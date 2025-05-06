@@ -298,7 +298,7 @@ Style: In-character, 1–2 sentences, no narration—only the NPC speaking.
 
     const payload = {
       messages: [{ role: "user", content: prompt }],
-      model: model || "anthropic/claude-3-opus",
+      model: model || "openai/gpt-3.5-turbo",
       temperature: 0.85,
       max_tokens: 80
     };
