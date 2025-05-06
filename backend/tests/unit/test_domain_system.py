@@ -71,10 +71,10 @@ def test_domain_drift():
     
     # Track usage
     for _ in range(10):
-        character.domains[DomainType.BODY].use(True)
+        character.domains[DomainType.BODY].use("Test usage", True)
     
     for _ in range(2):
-        character.domains[DomainType.MIND].use(True)
+        character.domains[DomainType.MIND].use("Test usage", True)
     
     # Get drift candidates
     drift_candidates = character.get_domain_drift_candidates()

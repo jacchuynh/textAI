@@ -8,8 +8,11 @@ from ..shared.models import (
     Domain, 
     DomainType, 
     Tag,
-    TagCategory
+    TagCategory,
+    GrowthTier,
+    GrowthLogEntry
 )
+from .shadow_profile import ShadowProfile
 
 
 class GameEngine:
@@ -29,6 +32,9 @@ class GameEngine:
         
         # Initialize standard tags - these would typically be loaded from a database
         self.standard_tags = self._initialize_standard_tags()
+        
+        # Track character shadow profiles
+        self.shadow_profiles: Dict[str, ShadowProfile] = {}
     
     def _initialize_standard_tags(self) -> Dict[str, Tag]:
         """Create the standard tags for the game"""
@@ -144,6 +150,9 @@ class GameEngine:
         character.domains[DomainType.SOCIAL].value = 1
         character.domains[DomainType.AWARENESS].value = 1
         
+        # Create a shadow profile for this character
+        self.shadow_profiles[character.id] = ShadowProfile(character.id)
+        
         return character
     
     def perform_action(self, character: Character, action_type: str, 
@@ -185,6 +194,24 @@ class GameEngine:
             else:
                 result["quality"] = "near miss"
         
+        # Update the character's domain growth log with the action
+        domain = character.domains[domain_type]
+        domain.add_growth_log_entry(action_type, result["success"])
+        
+        # Update shadow profile
+        if character.id in self.shadow_profiles:
+            # Weight by difficulty and margin
+            weight = max(1, int(difficulty / 5))  # Base weight from difficulty
+            if result["success"]:
+                weight += max(1, int(result["margin"] / 3))  # Bonus from high margin
+                
+            # Log the domain use in the shadow profile
+            self.shadow_profiles[character.id].log_domain_use(
+                domain=domain_type, 
+                action=action_type,
+                amount=weight
+            )
+        
         return result
     
     def add_tag_to_character(self, character: Character, tag_name: str) -> bool:
@@ -220,3 +247,42 @@ class GameEngine:
                          from_domain: DomainType, to_domain: DomainType) -> bool:
         """Apply domain drift by shifting points between domains"""
         return character.drift_domain(from_domain, to_domain)
+        
+    def get_character_shadow_profile(self, character_id: str) -> dict:
+        """Get shadow profile information for a character
+        
+        Args:
+            character_id: ID of the character
+            
+        Returns:
+            Dictionary with shadow profile details
+        """
+        if character_id not in self.shadow_profiles:
+            return {"error": "Shadow profile not found"}
+        
+        profile = self.shadow_profiles[character_id]
+        
+        # Get dominant domains
+        dominant_domains = profile.get_dominant_domains(3)
+        dominant_formatted = []
+        for domain, count in dominant_domains:
+            dominant_formatted.append({
+                "domain": domain.value,
+                "count": count
+            })
+        
+        # Get recent trend
+        recent_trend = profile.get_recent_trend(7)
+        recent_formatted = {}
+        for domain, count in recent_trend.items():
+            recent_formatted[domain.value] = count
+        
+        # Get personality profile
+        personality = profile.get_personality_profile()
+        
+        return {
+            "dominant_domains": dominant_formatted,
+            "recent_trend": recent_formatted,
+            "personality_profile": personality,
+            "updated_at": profile.updated_at.isoformat()
+        }

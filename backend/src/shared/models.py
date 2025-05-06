@@ -49,15 +49,84 @@ class Tag(BaseModel):
         return False
 
 
+class GrowthTier(str, Enum):
+    """Growth tiers for domains"""
+    NOVICE = "novice"       # Range 0-2
+    SKILLED = "skilled"     # Range 3-4
+    EXPERT = "expert"       # Range 5-7
+    MASTER = "master"       # Range 8-9
+    PARAGON = "paragon"     # Range 10+
+
+
+class GrowthLogEntry(BaseModel):
+    """An entry in the domain growth log"""
+    date: datetime = Field(default_factory=datetime.now)
+    domain: DomainType
+    action: str
+    success: bool
+    
+    def __str__(self) -> str:
+        return f"{self.date.strftime('%Y-%m-%d')} | {self.domain.value} | {self.action} | {'✅' if self.success else '❌'}"
+
+
 class Domain(BaseModel):
     """A domain represents one of the seven core stats"""
     type: DomainType
-    value: int = Field(default=0, ge=0, le=5, description="Current value from 0-5")
+    value: int = Field(default=0, ge=0, description="Current value, 0+ with higher tiers possible")
     growth_points: int = Field(default=0, description="Points accumulated toward next value increase")
     growth_required: int = Field(default=100, description="Points required for next value increase")
     usage_count: int = Field(default=0, description="How often this domain is used")
+    growth_log: List[GrowthLogEntry] = Field(default_factory=list, description="Log of growth events")
+    level_ups_required: int = Field(default=8, description="Number of log entries required for level up")
     
-    def use(self, success: bool) -> bool:
+    def get_tier(self) -> GrowthTier:
+        """Get the current growth tier based on value"""
+        if self.value <= 2:
+            return GrowthTier.NOVICE
+        elif self.value <= 4:
+            return GrowthTier.SKILLED
+        elif self.value <= 7:
+            return GrowthTier.EXPERT
+        elif self.value <= 9:
+            return GrowthTier.MASTER
+        else:
+            return GrowthTier.PARAGON
+    
+    def add_growth_log_entry(self, action: str, success: bool) -> bool:
+        """Add a growth log entry and check for level up
+        
+        Args:
+            action: Description of the action performed
+            success: Whether the action was successful
+            
+        Returns:
+            True if a level up occurred, False otherwise
+        """
+        # Add to log
+        entry = GrowthLogEntry(
+            domain=self.type,
+            action=action,
+            success=success
+        )
+        self.growth_log.append(entry)
+        
+        # Check if we have enough entries for a level up
+        successful_entries = [e for e in self.growth_log if e.success]
+        if len(successful_entries) >= self.level_ups_required:
+            # Level up
+            self.value += 1
+            
+            # Increase the required number of entries for next level
+            self.level_ups_required += 1
+            
+            # Remove the entries we used for this level up
+            # Keep the most recent ones that weren't used
+            self.growth_log = self.growth_log[self.level_ups_required - 1:]
+            
+            return True
+        return False
+    
+    def use(self, action: str, success: bool) -> bool:
         """Record a usage of this domain and return True if growth occurred"""
         self.usage_count += 1
         
@@ -65,13 +134,10 @@ class Domain(BaseModel):
         points = 10 if success else 3  # "Hard Lesson" rule
         self.growth_points += points
         
-        # Check for level up
-        if self.growth_points >= self.growth_required and self.value < 5:
-            self.value += 1
-            self.growth_points = 0
-            self.growth_required = self.growth_required * 2  # Double required for next level
-            return True
-        return False
+        # Add to growth log
+        level_up = self.add_growth_log_entry(action, success)
+        
+        return level_up
 
 
 class Character(BaseModel):
@@ -135,7 +201,7 @@ class Character(BaseModel):
         margin = total - difficulty
         
         # Record domain usage
-        domain.use(success)
+        domain.use("Domain check", success)
         
         # Record tag usage if applicable
         if tag_name and tag_name in self.tags and success:

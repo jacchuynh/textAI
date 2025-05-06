@@ -92,6 +92,21 @@ async def get_drift_options(
     return drift_options
 
 
+@router.get("/{character_id}/shadow-profile", response_model=dict)
+async def get_shadow_profile(character_id: str = Path(...)):
+    """Get a character's shadow profile"""
+    if character_id not in characters:
+        raise HTTPException(status_code=404, detail="Character not found")
+    
+    # Get the shadow profile
+    profile_data = game_engine.get_character_shadow_profile(character_id)
+    
+    if "error" in profile_data:
+        raise HTTPException(status_code=404, detail=profile_data["error"])
+    
+    return profile_data
+
+
 @router.post("/{character_id}/domains/drift", response_model=Character)
 async def apply_drift(
     character_id: str = Path(...),
