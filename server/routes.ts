@@ -6,6 +6,7 @@ import { GameEngine } from "./game-engine";
 import { AIService } from "./ai-service";
 import { MemoryManager } from "./memory";
 import * as schema from "@shared/types";
+import * as types from "@shared/types";
 import { z } from "zod";
 import { 
   autoTagAction, 
@@ -14,7 +15,7 @@ import {
   generateNpcResponse,
   updateShadowProfile 
 } from "./npc-reaction";
-import { addTestGameRoute } from "./test-game-generator";
+import { addTestGameRoute, generateTestGame } from "./test-game-generator";
 
 const gameEngine = new GameEngine();
 const aiService = new AIService();

@@ -62,13 +62,23 @@ export default function DomainTest() {
         
         ws.onmessage = (event) => {
           try {
-            // Handle different data types (string or ArrayBuffer)
-            const message = typeof event.data === 'string' 
-              ? event.data 
-              : new TextDecoder().decode(event.data as ArrayBuffer);
+            // Handle only string data which is what our server always sends
+            let message: string;
+            
+            if (typeof event.data === 'string') {
+              message = event.data;
+            } else if (event.data instanceof ArrayBuffer) {
+              message = new TextDecoder().decode(event.data);
+            } else {
+              console.error("Unknown data format received:", typeof event.data);
+              return;
+            }
+            
+            // Log the raw message for debugging
+            console.log("Raw WebSocket message:", message);
             
             const data = JSON.parse(message);
-            console.log("WebSocket message received:", data);
+            console.log("WebSocket message parsed:", data);
             
             if (data.type === 'domain_action_result') {
               setRollResults(prev => [data, ...prev].slice(0, 10));
@@ -85,9 +95,20 @@ export default function DomainTest() {
                 description: data.message || "Unknown error",
                 variant: "destructive",
               });
+            } else if (data.type === 'subscribed') {
+              console.log("Successfully subscribed to game:", data.gameId);
+              toast({
+                title: "Game Subscribed",
+                description: `Successfully subscribed to game ${data.gameId}`,
+              });
             }
           } catch (error) {
             console.error("Error parsing WebSocket message:", error);
+            toast({
+              title: "WebSocket Error",
+              description: "Failed to parse server message",
+              variant: "destructive",
+            });
           }
         };
         
