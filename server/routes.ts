@@ -14,15 +14,30 @@ import {
   generateNpcResponse,
   updateShadowProfile 
 } from "./npc-reaction";
+import { addTestGameRoute } from "./test-game-generator";
 
 const gameEngine = new GameEngine();
 const aiService = new AIService();
 const memoryManager = new MemoryManager();
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add debug routes
+  addTestGameRoute(app);
+  
   // Initialize the API
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
+  });
+  
+  // Get list of available games
+  app.get("/api/game/list", async (_req, res) => {
+    try {
+      const games = await storage.getSavedGames();
+      res.status(200).json(games);
+    } catch (error) {
+      console.error("Error getting game list:", error);
+      res.status(500).json({ error: "Failed to get game list" });
+    }
   });
 
   // Start new game
