@@ -73,19 +73,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Send player input
   app.post("/api/game/send-input", async (req, res) => {
     try {
+      console.log('Received input request:', req.body);
+      
       const inputSchema = z.object({
         gameId: z.string(),
         input: z.string().min(1, "Input cannot be empty")
       });
 
       const validatedData = inputSchema.parse(req.body);
+      console.log('Validated input data:', validatedData);
       
       // Get current game state
+      console.log('Attempting to get game state for ID:', validatedData.gameId);
       const gameState = await storage.getGameState(validatedData.gameId);
       
       if (!gameState) {
+        console.error('Game not found with ID:', validatedData.gameId);
         return res.status(404).json({ error: "Game not found" });
       }
+      
+      console.log('Found game state:', {
+        gameId: gameState.gameId,
+        characterName: gameState.character?.name,
+        locationName: gameState.location?.name
+      });
       
       // Get recent memory for context
       const recentMemories = await memoryManager.getRecentMemories(validatedData.gameId, 5);

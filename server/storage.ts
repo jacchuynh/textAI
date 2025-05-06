@@ -38,6 +38,12 @@ class StorageService {
   async saveGameState(gameState: types.GameState): Promise<void> {
     try {
       console.log('Saving game state with ID:', gameState.gameId);
+      console.log('Game state details:', { 
+        characterName: gameState.character?.name,
+        locationName: gameState.location?.name,
+        hasInventory: !!gameState.inventory,
+        hasQuests: !!gameState.quests
+      });
 
       // Find by the gameId in the JSON field
       const result = await pool.query(
@@ -45,6 +51,7 @@ class StorageService {
         [gameState.gameId]
       );
       
+      console.log('Found existing sessions:', result.rows.length);
       let gameSession = result.rows.length > 0 ? result.rows[0] : null;
       
       if (!gameSession) {
@@ -179,14 +186,22 @@ class StorageService {
         [gameId]
       );
       
-      const gameSession = result.rows.length > 0 ? result.rows[0] : null;
+      console.log('Query result:', result.rows);
       
-      if (!gameSession) {
+      if (result.rows.length === 0) {
         console.log('Game session not found for ID:', gameId);
         return null;
       }
       
-      console.log('Found game session for ID:', gameId);
+      const gameSession = result.rows[0];
+      console.log('Found game session:', gameSession);
+      
+      // PostgreSQL returns column names in snake_case
+      if (!gameSession.game_state) {
+        console.log('No game_state found in session:', Object.keys(gameSession));
+        return null;
+      }
+      
       return gameSession.game_state as unknown as types.GameState;
     } catch (error) {
       console.error('Error getting game state:', error);
