@@ -576,7 +576,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     ws.addEventListener('message', async (event) => {
       try {
-        const data = JSON.parse(event.data.toString());
+        // Ensure we properly handle different message types
+        let messageText: string;
+        
+        if (typeof event.data === 'string') {
+          messageText = event.data;
+        } else if (event.data instanceof Buffer) {
+          messageText = event.data.toString('utf-8');
+        } else if (event.data instanceof ArrayBuffer) {
+          messageText = new TextDecoder('utf-8').decode(event.data);
+        } else {
+          console.error('Unknown WebSocket message format:', typeof event.data);
+          ws.send(JSON.stringify({ 
+            type: 'error', 
+            message: 'Unsupported message format' 
+          }));
+          return;
+        }
+        
+        console.log('Raw WebSocket message received:', messageText);
+        const data = JSON.parse(messageText);
+        console.log('Parsed WebSocket message:', data);
         
         if (data.type === 'subscribe_game') {
           // Subscribe to game updates
