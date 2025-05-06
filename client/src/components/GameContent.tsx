@@ -15,7 +15,7 @@ import {
 import CombatModal from "@/components/modals/CombatModal";
 
 export default function GameContent() {
-  const { gameState, appendNarrativeContent, toggleShowCombat } = useGameContext();
+  const { gameState, setGameState, appendNarrativeContent, toggleShowCombat } = useGameContext();
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const narrativeRef = useRef<HTMLDivElement>(null);
@@ -50,6 +50,22 @@ export default function GameContent() {
         type: 'ai-response',
         content: data.response.narrative
       });
+      
+      // Update choices if any are returned
+      console.log('AI response choices:', data.response.choices);
+      if (data.response.choices && Array.isArray(data.response.choices)) {
+        console.log('Setting new choices:', data.response.choices);
+        setGameState({
+          type: 'SET_CHOICES',
+          payload: data.response.choices
+        });
+      } else {
+        console.log('No choices returned from API, setting empty choices');
+        setGameState({
+          type: 'SET_CHOICES',
+          payload: []
+        });
+      }
       
       // Check if there's a combat event to show
       if (data.response.combat) {
@@ -132,6 +148,13 @@ export default function GameContent() {
 
   const handleSelectChoice = (choice: string) => {
     setInputValue(choice);
+    
+    // Clear choices to avoid showing previous choices after selection
+    setGameState({
+      type: 'SET_CHOICES',
+      payload: []
+    });
+    
     handlePlayerInput({ preventDefault: () => {} } as React.FormEvent);
   };
 
@@ -181,19 +204,22 @@ export default function GameContent() {
             ))}
 
             {/* Choice Options */}
-            {gameState.choices && gameState.choices.length > 0 && (
-              <div className="flex flex-col sm:flex-row flex-wrap gap-3 mt-4">
-                {gameState.choices.map((choice, index) => (
-                  <Button
-                    key={index}
-                    className="bg-dark-700 hover:bg-dark-600 text-dark-100 border border-dark-500 rounded-md px-4 py-2 text-left transition-colors flex-grow sm:flex-grow-0 h-auto"
-                    onClick={() => handleSelectChoice(choice)}
-                  >
-                    {choice}
-                  </Button>
-                ))}
-              </div>
-            )}
+            {(() => {
+              console.log('Current game state choices:', gameState.choices);
+              return gameState.choices && gameState.choices.length > 0 && (
+                <div className="flex flex-col sm:flex-row flex-wrap gap-3 mt-4">
+                  {gameState.choices.map((choice, index) => (
+                    <Button
+                      key={index}
+                      className="bg-dark-700 hover:bg-dark-600 text-dark-100 border border-dark-500 rounded-md px-4 py-2 text-left transition-colors flex-grow sm:flex-grow-0 h-auto"
+                      onClick={() => handleSelectChoice(choice)}
+                    >
+                      {choice}
+                    </Button>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>

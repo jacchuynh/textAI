@@ -53,8 +53,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedGameState = {
         ...gameState,
         narrativeContent: aiResponse.narrative,
-        choices: aiResponse.choices
+        choices: aiResponse.choices || []
       };
+      
+      console.log('Starting new game with choices:', updatedGameState.choices);
       
       await storage.saveGameState(updatedGameState);
       
@@ -150,13 +152,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save updated game state
       await storage.saveGameState(updatedGameState);
       
-      res.status(200).json({
+      const responseData = {
         response: {
           narrative: aiResponse.narrative,
-          choices: aiResponse.choices,
+          choices: aiResponse.choices || [],
           combat: updatedGameState.combat
         }
-      });
+      };
+      
+      console.log('Sending response with choices:', responseData.response.choices);
+      res.status(200).json(responseData);
     } catch (error) {
       console.error("Error processing input:", error);
       
