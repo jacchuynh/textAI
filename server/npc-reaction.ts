@@ -1,4 +1,5 @@
 import axios from 'axios';
+import WebSocket from 'ws';
 import { DomainType, TagCategory, Tag } from '../shared/types';
 
 interface NPCShadowProfile {
