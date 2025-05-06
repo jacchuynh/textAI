@@ -1,6 +1,8 @@
 import { db } from '@db';
+import { pool } from '@db';
 import * as schema from '@shared/schema';
 import * as types from '@shared/types';
+import { eq, and, desc } from 'drizzle-orm';
 
 class StorageService {
   /**
@@ -9,7 +11,7 @@ class StorageService {
   async getLocationById(locationId: number): Promise<types.Location | null> {
     try {
       const location = await db.query.locations.findFirst({
-        where: (locations, { eq }) => eq(locations.id, locationId)
+        where: eq(schema.locations.id, locationId)
       });
       
       if (!location) {
@@ -35,12 +37,18 @@ class StorageService {
    */
   async saveGameState(gameState: types.GameState): Promise<void> {
     try {
-      // Check if the game session exists
-      let gameSession = await db.query.gameSessions.findFirst({
-        where: (sessions, { eq }) => eq(sessions.id.toString(), gameState.gameId)
-      });
+      console.log('Saving game state with ID:', gameState.gameId);
+
+      // Find by the gameId in the JSON field
+      const result = await pool.query(
+        `SELECT * FROM game_sessions WHERE game_state->>'gameId' = $1`,
+        [gameState.gameId]
+      );
+      
+      let gameSession = result.rows.length > 0 ? result.rows[0] : null;
       
       if (!gameSession) {
+        console.log('Creating new game session for ID:', gameState.gameId);
         // Create a new game session
         const [newSession] = await db.insert(schema.gameSessions)
           .values({
@@ -51,13 +59,14 @@ class StorageService {
         
         gameSession = newSession;
       } else {
+        console.log('Updating existing game session for ID:', gameState.gameId);
         // Update existing game session
         await db.update(schema.gameSessions)
           .set({
             gameState: gameState as any,
             updatedAt: new Date()
           })
-          .where((sessions, { eq }) => eq(sessions.id, gameSession!.id));
+          .where(eq(schema.gameSessions.id, gameSession.id));
       }
       
       // Save character if it exists
@@ -66,9 +75,9 @@ class StorageService {
         
         // Check if the character exists
         const existingCharacter = await db.query.characters.findFirst({
-          where: (characters, { eq, and }) => and(
-            eq(characters.gameSessionId, gameSession!.id),
-            eq(characters.name, character.name)
+          where: and(
+            eq(schema.characters.gameSessionId, gameSession.id),
+            eq(schema.characters.name, character.name)
           )
         });
         
@@ -101,7 +110,7 @@ class StorageService {
               currentMana: character.currentMana,
               updatedAt: new Date()
             })
-            .where((characters, { eq }) => eq(characters.id, existingCharacter.id));
+            .where(eq(schema.characters.id, existingCharacter.id));
         }
       }
       
@@ -109,16 +118,16 @@ class StorageService {
       if (gameState.inventory && gameState.inventory.items.length > 0 && gameState.character) {
         // Get character ID
         const character = await db.query.characters.findFirst({
-          where: (characters, { eq, and }) => and(
-            eq(characters.gameSessionId, gameSession!.id),
-            eq(characters.name, gameState.character.name)
+          where: and(
+            eq(schema.characters.gameSessionId, gameSession.id),
+            eq(schema.characters.name, gameState.character.name)
           )
         });
         
         if (character) {
           // Delete existing inventory items
           await db.delete(schema.inventoryItems)
-            .where((items, { eq }) => eq(items.characterId, character.id));
+            .where(eq(schema.inventoryItems.characterId, character.id));
           
           // Insert new inventory items
           for (const item of gameState.inventory.items) {
@@ -140,7 +149,7 @@ class StorageService {
       if (gameState.quests && gameState.quests.length > 0) {
         // Delete existing quests
         await db.delete(schema.quests)
-          .where((quests, { eq }) => eq(quests.gameSessionId, gameSession!.id));
+          .where(eq(schema.quests.gameSessionId, gameSession.id));
         
         // Insert new quests
         for (const quest of gameState.quests) {
@@ -163,15 +172,22 @@ class StorageService {
    */
   async getGameState(gameId: string): Promise<types.GameState | null> {
     try {
-      const gameSession = await db.query.gameSessions.findFirst({
-        where: (sessions, { eq }) => eq(sessions.id.toString(), gameId)
-      });
+      console.log('Getting game state for ID:', gameId);
+      
+      const result = await pool.query(
+        `SELECT * FROM game_sessions WHERE game_state->>'gameId' = $1`,
+        [gameId]
+      );
+      
+      const gameSession = result.rows.length > 0 ? result.rows[0] : null;
       
       if (!gameSession) {
+        console.log('Game session not found for ID:', gameId);
         return null;
       }
       
-      return gameSession.gameState as unknown as types.GameState;
+      console.log('Found game session for ID:', gameId);
+      return gameSession.game_state as unknown as types.GameState;
     } catch (error) {
       console.error('Error getting game state:', error);
       return null;
@@ -183,15 +199,13 @@ class StorageService {
    */
   async getSavedGames(userId?: number): Promise<{ id: string; name: string; updatedAt: string }[]> {
     try {
-      let query = db.query.gameSessions;
-      
       const gameSessions = userId
-        ? await query.findMany({
-            where: (sessions, { eq }) => eq(sessions.userId, userId),
-            orderBy: (sessions, { desc }) => [desc(sessions.updatedAt)]
+        ? await db.query.gameSessions.findMany({
+            where: eq(schema.gameSessions.userId, userId),
+            orderBy: [desc(schema.gameSessions.updatedAt)]
           })
-        : await query.findMany({
-            orderBy: (sessions, { desc }) => [desc(sessions.updatedAt)]
+        : await db.query.gameSessions.findMany({
+            orderBy: [desc(schema.gameSessions.updatedAt)]
           });
       
       return gameSessions.map(session => {
@@ -213,9 +227,12 @@ class StorageService {
    */
   async deleteGame(gameId: string): Promise<boolean> {
     try {
-      const gameSession = await db.query.gameSessions.findFirst({
-        where: (sessions, { eq }) => eq(sessions.id.toString(), gameId)
-      });
+      const result = await pool.query(
+        `SELECT * FROM game_sessions WHERE game_state->>'gameId' = $1`,
+        [gameId]
+      );
+      
+      const gameSession = result.rows.length > 0 ? result.rows[0] : null;
       
       if (!gameSession) {
         return false;
@@ -223,25 +240,25 @@ class StorageService {
       
       // Delete all associated records
       await db.delete(schema.memoryEntries)
-        .where((entries, { eq }) => eq(entries.gameSessionId, gameSession.id));
+        .where(eq(schema.memoryEntries.gameSessionId, gameSession.id));
       
       const characters = await db.query.characters.findMany({
-        where: (characters, { eq }) => eq(characters.gameSessionId, gameSession.id)
+        where: eq(schema.characters.gameSessionId, gameSession.id)
       });
       
       for (const character of characters) {
         await db.delete(schema.inventoryItems)
-          .where((items, { eq }) => eq(items.characterId, character.id));
+          .where(eq(schema.inventoryItems.characterId, character.id));
       }
       
       await db.delete(schema.characters)
-        .where((characters, { eq }) => eq(characters.gameSessionId, gameSession.id));
+        .where(eq(schema.characters.gameSessionId, gameSession.id));
       
       await db.delete(schema.quests)
-        .where((quests, { eq }) => eq(quests.gameSessionId, gameSession.id));
+        .where(eq(schema.quests.gameSessionId, gameSession.id));
       
       await db.delete(schema.gameSessions)
-        .where((sessions, { eq }) => eq(sessions.id, gameSession.id));
+        .where(eq(schema.gameSessions.id, gameSession.id));
       
       return true;
     } catch (error) {
