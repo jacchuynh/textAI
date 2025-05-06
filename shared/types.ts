@@ -10,6 +10,75 @@ export interface GameState {
   combat?: Combat | null;
 }
 
+// Domain System Types
+export enum DomainType {
+  BODY = "BODY",         // Physical health, stamina, manual labor, illness resistance
+  MIND = "MIND",         // Logic, learning, memory, magic theory, problem solving
+  SPIRIT = "SPIRIT",     // Willpower, luck, intuition, empathy, divine favor
+  SOCIAL = "SOCIAL",     // Persuasion, negotiation, reputation, manipulation
+  CRAFT = "CRAFT",       // Practical skills, making, fixing, performance under time pressure
+  AUTHORITY = "AUTHORITY", // Leadership, command, strategy, decree enforcement
+  AWARENESS = "AWARENESS" // Perception, reaction time, timing in social or combat interactions
+}
+
+export enum GrowthTier {
+  NOVICE = "NOVICE",       // Range 0-2
+  SKILLED = "SKILLED",     // Range 3-4
+  EXPERT = "EXPERT",       // Range 5-7
+  MASTER = "MASTER",       // Range 8-9
+  PARAGON = "PARAGON"      // Range 10+
+}
+
+export enum TagCategory {
+  COMBAT = "COMBAT",     // Combat-related tags
+  CRAFTING = "CRAFTING", // Crafting-related tags
+  SOCIAL = "SOCIAL",     // Social interaction tags
+  MAGIC = "MAGIC",       // Magic-related tags
+  SURVIVAL = "SURVIVAL", // Survival and wilderness tags
+  KINGDOM = "KINGDOM",   // Kingdom management tags
+  GENERAL = "GENERAL"    // General purpose tags
+}
+
+export interface Domain {
+  type: DomainType;
+  value: number;
+  growthPoints: number;
+  growthRequired: number;
+  usageCount: number;
+  growthLog: GrowthLogEntry[];
+  levelUpsRequired: number;
+}
+
+export interface GrowthLogEntry {
+  date: string;
+  domain: DomainType;
+  action: string;
+  success: boolean;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  category: TagCategory;
+  description: string;
+  domains: DomainType[];
+  rank: number;
+  xp: number;
+  xpRequired: number;
+}
+
+export interface ShadowProfile {
+  characterId: string;
+  domainUsage: Record<DomainType, number>;
+  recentTags: string[];
+  timeTracking: {
+    recent: Record<DomainType, number>;
+    weekly: Record<DomainType, number>;
+    monthly: Record<DomainType, number>;
+  };
+  preferences: Record<DomainType, number>;
+}
+
 // Character Types
 export interface Character {
   id: number;
@@ -23,6 +92,11 @@ export interface Character {
   currentHealth: number;
   maxMana: number;
   currentMana: number;
+  // Domain system additions
+  domains?: Record<DomainType, Domain>;
+  tags?: Record<string, Tag>;
+  shadowProfile?: ShadowProfile;
+  domainHistory?: Record<DomainType, number[]>;
 }
 
 export interface CharacterStats {
@@ -86,6 +160,10 @@ export interface NPC {
   description: string;
   attitude: "friendly" | "neutral" | "hostile";
   dialogue?: DialogueEntry[];
+  // Domain system additions
+  domainBias?: Partial<Record<DomainType, number>>;
+  knownInteractions?: string[];
+  firstEncounter?: boolean;
 }
 
 export interface DialogueEntry {
