@@ -207,6 +207,7 @@ Style: In-character, 2-3 sentences, no narration—only the NPC speaking.
 
     const payload = {
       messages: [{ role: "user", content: prompt }],
+      model: model || "openai/gpt-3.5-turbo",
       temperature: 0.85,
       max_tokens: 100
     };
@@ -224,8 +225,14 @@ Style: In-character, 2-3 sentences, no narration—only the NPC speaking.
     });
     
     return response.data.choices[0].message.content;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating first encounter response:", error);
+    if (error.response) {
+      console.error("API response error:", {
+        status: error.response.status,
+        data: error.response.data
+      });
+    }
     // Fallback response
     return `Hmm, I see you're skilled with ${detectedTags.join(', ')}. Interesting choice of techniques.`;
   }
@@ -291,6 +298,7 @@ Style: In-character, 1–2 sentences, no narration—only the NPC speaking.
 
     const payload = {
       messages: [{ role: "user", content: prompt }],
+      model: model || "anthropic/claude-3-opus",
       temperature: 0.85,
       max_tokens: 80
     };
@@ -308,8 +316,14 @@ Style: In-character, 1–2 sentences, no narration—only the NPC speaking.
     });
     
     return response.data.choices[0].message.content;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating NPC response:", error);
+    if (error.response) {
+      console.error("API response error:", {
+        status: error.response.status,
+        data: error.response.data
+      });
+    }
     // Fallback response
     return `I see you've been focusing on your ${getDominantDomains(shadowProfile.domains).join(' and ')} skills. Interesting choice.`;
   }
