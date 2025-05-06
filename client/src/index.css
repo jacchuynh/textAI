@@ -1,0 +1,235 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    
+    --primary: 250 95% 55%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 161 94% 30%;
+    --secondary-foreground: 210 40% 98%;
+    
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    
+    --accent: 35 92% 33%;
+    --accent-foreground: 210 40% 98%;
+    
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+    
+    --chart-1: 250 95% 55%;
+    --chart-2: 161 94% 30%;
+    --chart-3: 35 92% 33%;
+    --chart-4: 0 70% 50%;
+    --chart-5: 210 40% 50%;
+    
+    --radius: 0.5rem;
+    
+    --sidebar-background: 222.2 84% 7%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 250 95% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 35 92% 33%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  
+  .font-display {
+    font-family: 'Cinzel', serif;
+  }
+  
+  .font-sans {
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  /* Dark theme colors */
+  .bg-dark-700 {
+    @apply bg-[#111827];
+  }
+  
+  .bg-dark-800 {
+    @apply bg-[#0D1117];
+  }
+  
+  .border-dark-600 {
+    @apply border-[#1F2937];
+  }
+  
+  .text-dark-100 {
+    @apply text-[#E5E7EB];
+  }
+  
+  .text-dark-200 {
+    @apply text-[#9CA3AF];
+  }
+  
+  .bg-dark-200 {
+    @apply bg-[#9CA3AF];
+  }
+  
+  .text-dark-300 {
+    @apply text-[#6B7280];
+  }
+  
+  .bg-dark-300 {
+    @apply bg-[#6B7280];
+  }
+  
+  .text-dark-400 {
+    @apply text-[#4B5563];
+  }
+  
+  .bg-dark-800 {
+    @apply bg-[#0D1117];
+  }
+
+  .bg-dark-700 {
+    @apply bg-[#111827];
+  }
+
+  .bg-dark-600 {
+    @apply bg-[#1F2937];
+  }
+  
+  .bg-dark-500 {
+    @apply bg-[#374151];
+  }
+
+  .bg-dark-400 {
+    @apply bg-[#4B5563];
+  }
+
+  .bg-primary-600 {
+    @apply bg-[#7C3AED];
+  }
+  
+  .bg-danger {
+    @apply bg-[#EF4444];
+  }
+  
+  .bg-info {
+    @apply bg-[#3B82F6];
+  }
+  
+  .bg-primary-900\/30 {
+    @apply bg-[#4C1D95]/30;
+  }
+  
+  .text-primary-400 {
+    @apply text-[#A78BFA];
+  }
+  
+  .text-primary-300 {
+    @apply text-[#C4B5FD];
+  }
+  
+  .text-accent-400 {
+    @apply text-[#FBBF24];
+  }
+  
+  .text-danger {
+    @apply text-[#EF4444];
+  }
+  
+  .text-fx-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .narrative-text p {
+    @apply mb-4;
+  }
+  
+  .scrollbar-themed::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .scrollbar-themed::-webkit-scrollbar-track {
+    @apply bg-dark-600;
+  }
+  
+  .scrollbar-themed::-webkit-scrollbar-thumb {
+    @apply bg-dark-300 rounded;
+  }
+  
+  .scrollbar-themed::-webkit-scrollbar-thumb:hover {
+    @apply bg-dark-200;
+  }
+  
+  /* Dice Animation */
+  @keyframes roll {
+    0% { transform: rotateX(0deg) rotateY(0deg); }
+    100% { transform: rotateX(720deg) rotateY(360deg); }
+  }
+  
+  .animate-roll {
+    animation: roll 1s ease-out;
+  }
+
+  /* Player input styling */
+  .player-input {
+    @apply text-primary-300 italic mb-2;
+  }
+
+  /* AI response styling */
+  .ai-response p {
+    @apply mb-3;
+  }
+
+  .ai-response p:first-child {
+    @apply text-lg;
+  }
+
+  /* Loading indicator animation */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Choice buttons */
+  .choice-btn {
+    @apply bg-dark-700 hover:bg-dark-600 text-dark-100 border border-dark-500 rounded-md px-4 py-2 text-left transition-colors flex-grow sm:flex-grow-0 h-auto;
+  }
+  
+  /* Combat log styling */
+  .combat-log {
+    @apply bg-dark-800 border border-dark-600 rounded-md p-3 h-40 overflow-y-auto scrollbar-themed text-sm;
+  }
+
+  .combat-log p {
+    @apply text-dark-200 mb-1;
+  }
+}
