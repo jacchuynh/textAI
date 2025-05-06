@@ -33,10 +33,10 @@ export default function DomainTest() {
       if (window.location.hostname.includes("replit")) {
         // In Replit, we need to use a special URL format
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        wsUrl = `${protocol}//${window.location.host}/ws`;
+        wsUrl = `${protocol}//${window.location.host}/api/game-ws`;
       } else {
         // Local development
-        wsUrl = "ws://localhost:5000/ws";
+        wsUrl = "ws://localhost:5000/api/game-ws";
       }
       
       console.log(`Connecting to WebSocket at ${wsUrl}`);

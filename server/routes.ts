@@ -559,7 +559,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
   // Setup WebSocket server on a separate path from Vite's WebSocket
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  // Use a unique game-specific path to avoid any conflicts with Vite's WebSocket
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/api/game-ws' 
+  });
   
   // Extend WebSocket with gameId property
   interface GameWebSocket extends WebSocket {
@@ -568,7 +572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   wss.on('connection', (ws: WebSocket) => {
     const gameSocket = ws as GameWebSocket;
-    console.log('WebSocket client connected');
+    console.log('WebSocket client connected to /api/game-ws endpoint');
     
     ws.addEventListener('message', async (event) => {
       try {
