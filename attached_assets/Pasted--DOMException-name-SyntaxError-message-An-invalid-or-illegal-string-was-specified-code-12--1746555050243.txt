@@ -1,0 +1,67 @@
+
+DOMException {name: "SyntaxError", message: "An invalid or illegal string was specified", code: 12, result: 2152923148, filename: "https://fe0bc1b5-33d4-4a50-b7d8-2c201741f623-00-12f4b3ra7v2cq.picard.replit.dev/__replco/static/dev…", …}
+
+    ABORT_ERR: 20
+    DATA_CLONE_ERR: 25
+    DOMSTRING_SIZE_ERR: 2
+    HIERARCHY_REQUEST_ERR: 3
+    INDEX_SIZE_ERR: 1
+    INUSE_ATTRIBUTE_ERR: 10
+    INVALID_ACCESS_ERR: 15
+    INVALID_CHARACTER_ERR: 5
+    INVALID_MODIFICATION_ERR: 13
+    INVALID_NODE_TYPE_ERR: 24
+    INVALID_STATE_ERR: 11
+    NAMESPACE_ERR: 14
+    NETWORK_ERR: 19
+    NOT_FOUND_ERR: 8
+    NOT_SUPPORTED_ERR: 9
+    NO_DATA_ALLOWED_ERR: 6
+    NO_MODIFICATION_ALLOWED_ERR: 7
+    QUOTA_EXCEEDED_ERR: 22
+    SECURITY_ERR: 18
+    SYNTAX_ERR: 12
+    TIMEOUT_ERR: 23
+    TYPE_MISMATCH_ERR: 17
+    URL_MISMATCH_ERR: 21
+    VALIDATION_ERR: 16
+    WRONG_DOCUMENT_ERR: 4
+    code: 12
+    get code: ƒ code()
+    columnNumber: 0
+    get columnNumber: ƒ columnNumber()
+    data: null
+    get data: ƒ data()
+    filename: "https://fe0bc1b5-33d4-4a50-b7d8-2c201741f623-00-12f4b3ra7v2cq.picard.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js"
+    get filename: ƒ filename()
+    lineNumber: 2
+    get lineNumber: ƒ lineNumber()
+    message: "An invalid or illegal string was specified"
+    get message: ƒ message()
+    name: "SyntaxError"
+    get name: ƒ name()
+    result: 2152923148
+    get result: ƒ result()
+    stack: "t@https://fe0bc1b5-33d4-4a50-b7d8-2c201741f623-00-12f4b3ra7v2cq.picard.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:218737↵setupWebSocket@https://fe0bc1b5-33d4-4a50-b7d8-2c201741f623-00-12f4b3ra7v2cq.picard.replit.dev/@vite/client:536:19↵fallback@https://fe0bc1b5-33d4-4a50-b7d8-2c201741f623-00-12f4b3ra7v2cq.picard.replit.dev/@vite/client:509:16↵setupWebSocket/<@https://fe0bc1b5-33d4-4a50-b7d8-2c201741f623-00-12f4b3ra7v2cq.picard.replit.dev/@vite/client:555:7↵"
+    get stack: ƒ stack()
+    set stack: ƒ stack()
+    constructor: ƒ DOMException()
+    Symbol(Symbol.toStringTag): undefined
+    [[Prototype]]: Object
+
+
+WebSocket error: 
+Event {isTrusted: true}
+
+WebSocket error: 
+Event {isTrusted: true}
+
+WebSocket error: 
+Event {isTrusted: true}
+
+WebSocket error: 
+Event {isTrusted: true}
+
+t@https://fe0bc1b5-33d4-4a50-b7d8-2c201741f623-00-12f4b3ra7v2cq.picard.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630
+value@https://fe0bc1b5-33d4-4a50-b7d8-2c201741f623-00-12f4b3ra7v2cq.picard.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766
+8988/value/this.asyncTimer<@https://fe0bc1b5-33d4-4a50-b7d8-2c201741f623-00-12f4b3ra7v2cq.picard.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400

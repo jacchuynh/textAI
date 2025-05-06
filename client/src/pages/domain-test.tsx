@@ -27,71 +27,94 @@ export default function DomainTest() {
   // Initialize WebSocket connection
   useEffect(() => {
     if (gameId && !websocket) {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      // WebSockets in Replit need special handling
+      let wsUrl = "";
+      
+      if (window.location.hostname.includes("replit")) {
+        // In Replit, we need to use a special URL format
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        wsUrl = `${protocol}//${window.location.host}/ws`;
+      } else {
+        // Local development
+        wsUrl = "ws://localhost:5000/ws";
+      }
       
       console.log(`Connecting to WebSocket at ${wsUrl}`);
-      const ws = new WebSocket(wsUrl);
       
-      ws.onopen = () => {
-        console.log("WebSocket connected");
-        setConnected(true);
-        ws.send(JSON.stringify({ 
-          type: 'subscribe_game', 
-          gameId 
-        }));
+      try {
+        // Use the built-in browser WebSocket
+        const ws = new WebSocket(wsUrl);
         
-        toast({
-          title: "WebSocket Connected",
-          description: "Real-time connection established",
-        });
-      };
-      
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log("WebSocket message received:", data);
+        ws.onopen = () => {
+          console.log("WebSocket connected");
+          setConnected(true);
           
-          if (data.type === 'domain_action_result') {
-            setRollResults(prev => [data, ...prev].slice(0, 10));
-            
-            const resultToast = data.success 
-              ? { title: "Success!", description: `Roll: ${data.roll} + ${data.domainValue} = ${data.total} vs DC ${data.difficulty}` }
-              : { title: "Failure", description: `Roll: ${data.roll} + ${data.domainValue} = ${data.total} vs DC ${data.difficulty}`, variant: "destructive" as const };
-            
-            toast(resultToast);
-          }
-        } catch (error) {
-          console.error("Error parsing WebSocket message:", error);
-        }
-      };
-      
-      ws.onclose = () => {
-        console.log("WebSocket disconnected");
-        setConnected(false);
-        setWebsocket(null);
+          ws.send(JSON.stringify({ 
+            type: 'subscribe_game', 
+            gameId 
+          }));
+          
+          toast({
+            title: "WebSocket Connected",
+            description: "Real-time connection established",
+          });
+        };
         
-        toast({
-          title: "WebSocket Disconnected",
-          description: "Real-time connection lost",
-          variant: "destructive",
-        });
-      };
-      
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log("WebSocket message received:", data);
+            
+            if (data.type === 'domain_action_result') {
+              setRollResults(prev => [data, ...prev].slice(0, 10));
+              
+              const resultToast = data.success 
+                ? { title: "Success!", description: `Roll: ${data.roll} + ${data.domainValue} = ${data.total} vs DC ${data.difficulty}` }
+                : { title: "Failure", description: `Roll: ${data.roll} + ${data.domainValue} = ${data.total} vs DC ${data.difficulty}`, variant: "destructive" as const };
+              
+              toast(resultToast);
+            }
+          } catch (error) {
+            console.error("Error parsing WebSocket message:", error);
+          }
+        };
+        
+        ws.onclose = () => {
+          console.log("WebSocket disconnected");
+          setConnected(false);
+          setWebsocket(null);
+          
+          toast({
+            title: "WebSocket Disconnected",
+            description: "Real-time connection lost",
+            variant: "destructive",
+          });
+        };
+        
+        ws.onerror = (error) => {
+          console.error("WebSocket error:", error);
+          toast({
+            title: "WebSocket Error",
+            description: "Connection error occurred",
+            variant: "destructive",
+          });
+        };
+        
+        setWebsocket(ws);
+        
+        return () => {
+          if (ws && ws.readyState === 1) { // 1 is WebSocket.OPEN
+            ws.close();
+          }
+        };
+      } catch (error) {
+        console.error("Error creating WebSocket:", error);
         toast({
           title: "WebSocket Error",
-          description: "Connection error occurred",
+          description: "Failed to establish connection",
           variant: "destructive",
         });
-      };
-      
-      setWebsocket(ws);
-      
-      return () => {
-        ws.close();
-      };
+      }
     }
   }, [gameId, toast]);
 
@@ -180,7 +203,7 @@ export default function DomainTest() {
 
   // Send domain action through WebSocket
   const handleDomainAction = () => {
-    if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+    if (!websocket || websocket.readyState !== 1) { // 1 is WebSocket.OPEN
       toast({
         title: "Connection Error",
         description: "WebSocket connection not established",
