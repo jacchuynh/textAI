@@ -46,7 +46,17 @@ const initialGameState: GameStateInternal = {
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  const [gameState, setGameStateInternal] = useState<GameStateInternal>(initialGameState);
+  // Initialize with gameId from localStorage if available
+  const [gameState, setGameStateInternal] = useState<GameStateInternal>(() => {
+    const savedGameId = localStorage.getItem('gameId');
+    if (savedGameId) {
+      return {
+        ...initialGameState,
+        gameId: savedGameId
+      };
+    }
+    return initialGameState;
+  });
 
   // Load game state from the server on initial load
   const { data: gameData, isLoading } = useQuery({

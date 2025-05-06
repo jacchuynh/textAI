@@ -30,8 +30,15 @@ export default function GameContent() {
 
   const sendInputMutation = useMutation({
     mutationFn: async (input: string) => {
+      // Try to get gameId from state or localStorage
+      const gameId = gameState.gameId || localStorage.getItem('gameId');
+      
+      if (!gameId) {
+        throw new Error("No game ID found. Please create a character first.");
+      }
+      
       return await apiRequest("POST", "/api/game/send-input", {
-        gameId: gameState.gameId,
+        gameId,
         input
       });
     },

@@ -33,11 +33,26 @@ export default function CharacterCreationModal({ isOpen, onClose }: CharacterCre
     },
     onSuccess: async (response) => {
       const data = await response.json();
+      console.log("Game start response:", data);
+      
+      // Make sure gameId is properly set
+      if (!data.gameId) {
+        console.error("No gameId returned from server", data);
+        toast({
+          title: "Error",
+          description: "Failed to create character. No game ID returned.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       setGameState({
         type: 'START_GAME',
         payload: data
       });
+      
+      // Store gameId in localStorage for persistence
+      localStorage.setItem('gameId', data.gameId);
       
       queryClient.invalidateQueries({ queryKey: ['/api/game'] });
       toast({
