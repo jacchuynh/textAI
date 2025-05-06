@@ -284,10 +284,22 @@ export class GameEngine {
     if (aiResponse.worldUpdates) {
       // Handle location changes
       if (aiResponse.worldUpdates.location) {
-        const newLocationId = aiResponse.worldUpdates.location;
-        const newLocation = await storage.getLocationById(newLocationId);
-        if (newLocation) {
-          updatedGameState.location = newLocation;
+        // Make sure we parse the location ID to a number
+        const newLocationId = typeof aiResponse.worldUpdates.location === 'string' 
+          ? parseInt(aiResponse.worldUpdates.location, 10) 
+          : aiResponse.worldUpdates.location;
+          
+        // Skip if NaN
+        if (!isNaN(newLocationId)) {
+          console.log('Getting location by ID:', newLocationId);
+          const newLocation = await storage.getLocationById(newLocationId);
+          if (newLocation) {
+            updatedGameState.location = newLocation;
+          } else {
+            console.log('Location not found with ID:', newLocationId);
+          }
+        } else {
+          console.log('Invalid location ID, not a number:', aiResponse.worldUpdates.location);
         }
       }
       

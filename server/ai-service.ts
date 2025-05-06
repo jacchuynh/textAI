@@ -167,6 +167,7 @@ export class AIService {
         const jsonContent = jsonMatch[0];
         const parsedResponse = JSON.parse(jsonContent);
         
+        // If we successfully parsed the JSON, use the structure
         return {
           narrative: parsedResponse.narrative || "I'm not sure what happens next...",
           choices: parsedResponse.choices || [],
@@ -175,15 +176,40 @@ export class AIService {
         };
       }
       
-      // If we couldn't parse JSON, just use the text as narrative
+      // If we couldn't match JSON, just use the text as narrative
       return {
         narrative: content,
+        choices: [], // Always include an empty array for choices
         shouldRemember: false
       };
     } catch (error) {
       console.error('Error parsing AI response:', error);
+      
+      // If there was a JSON error, we probably have something that looks like JSON but isn't valid
+      // Check if the content appears to be in JSON format (has curly braces)
+      if (content.includes('{') && content.includes('}')) {
+        // This is likely malformed JSON - extract just the narrative part if possible
+        const narrativeMatch = content.match(/"narrative"\s*:\s*"([^"]+)"/i);
+        if (narrativeMatch && narrativeMatch[1]) {
+          return {
+            narrative: narrativeMatch[1],
+            choices: [],
+            shouldRemember: false
+          };
+        }
+        
+        // If we can't extract the narrative, return a fallback message
+        return {
+          narrative: "The story continues, though the details are hazy...",
+          choices: [],
+          shouldRemember: false
+        };
+      }
+      
+      // For any other error, return the content as narrative
       return {
         narrative: content,
+        choices: [],
         shouldRemember: false
       };
     }
