@@ -62,7 +62,12 @@ export default function DomainTest() {
         
         ws.onmessage = (event) => {
           try {
-            const data = JSON.parse(event.data);
+            // Handle different data types (string or ArrayBuffer)
+            const message = typeof event.data === 'string' 
+              ? event.data 
+              : new TextDecoder().decode(event.data as ArrayBuffer);
+            
+            const data = JSON.parse(message);
             console.log("WebSocket message received:", data);
             
             if (data.type === 'domain_action_result') {
@@ -73,6 +78,13 @@ export default function DomainTest() {
                 : { title: "Failure", description: `Roll: ${data.roll} + ${data.domainValue} = ${data.total} vs DC ${data.difficulty}`, variant: "destructive" as const };
               
               toast(resultToast);
+            } else if (data.type === 'error') {
+              console.error("WebSocket error from server:", data.message);
+              toast({
+                title: "Server Error",
+                description: data.message || "Unknown error",
+                variant: "destructive",
+              });
             }
           } catch (error) {
             console.error("Error parsing WebSocket message:", error);

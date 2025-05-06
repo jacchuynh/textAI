@@ -8,10 +8,24 @@ import DomainTest from "@/pages/domain-test";
 
 function Navigation() {
   return (
-    <nav className="bg-secondary py-2 px-4 mb-4">
-      <div className="container flex gap-4">
-        <Link href="/" className="text-primary hover:underline">Game</Link>
-        <Link href="/domain-test" className="text-primary hover:underline">Domain Test</Link>
+    <nav className="bg-background border-b border-border py-3 px-4 mb-6 shadow-sm">
+      <div className="container flex items-center justify-between">
+        <div className="flex items-center">
+          <span className="text-lg font-bold text-primary mr-6">Domain RPG</span>
+          <div className="flex gap-6">
+            <Link href="/" className="text-foreground hover:text-primary transition-colors">
+              Game
+            </Link>
+            <Link href="/domain-test" className="text-foreground hover:text-primary transition-colors">
+              Domain Test
+            </Link>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+            Alpha Version
+          </span>
+        </div>
       </div>
     </nav>
   );
