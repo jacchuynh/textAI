@@ -88,12 +88,15 @@ export default function CombatModal() {
       open={gameState.showCombat} 
       onOpenChange={(open) => toggleShowCombat(open)}
     >
-      <DialogContent className="bg-dark-700 border-dark-600 text-dark-100 max-w-md">
+      <DialogContent className="bg-dark-700 border-dark-600 text-dark-100 max-w-md" aria-describedby="combat-encounter-description">
         <DialogHeader>
           <DialogTitle className="text-xl font-display text-danger flex items-center">
             <Skull className="w-5 h-5 mr-2" />
             Combat Encounter
           </DialogTitle>
+          <p id="combat-encounter-description" className="text-dark-300 text-sm mt-1">
+            Face your enemy in battle. Choose actions wisely to defeat your opponent.
+          </p>
         </DialogHeader>
         
         {/* Enemy Info */}

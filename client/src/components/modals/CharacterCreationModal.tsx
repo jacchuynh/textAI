@@ -88,9 +88,12 @@ export default function CharacterCreationModal({ isOpen, onClose }: CharacterCre
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-dark-700 border-dark-600 text-dark-100 max-w-md">
+      <DialogContent className="bg-dark-700 border-dark-600 text-dark-100 max-w-md" aria-describedby="character-creation-description">
         <DialogHeader>
           <DialogTitle className="text-xl font-display text-primary-400">Create Your Character</DialogTitle>
+          <p id="character-creation-description" className="text-dark-300 text-sm mt-1">
+            Design your character's identity by selecting a name, class, and background
+          </p>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
