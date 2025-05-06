@@ -13,6 +13,8 @@ from ..shared.models import (
     GrowthLogEntry
 )
 from .shadow_profile import ShadowProfile
+from .tag_detection import auto_tag_action, suggest_domain_and_tag
+from .npc_interactions import get_npc_reaction, calculate_npc_affinity
 
 
 class GameEngine:
@@ -286,3 +288,78 @@ class GameEngine:
             "personality_profile": personality,
             "updated_at": profile.updated_at.isoformat()
         }
+    
+    def detect_action_tags(self, action_text: str) -> Dict[str, int]:
+        """Automatically detect relevant tags from action text
+        
+        Args:
+            action_text: The action text to analyze
+            
+        Returns:
+            Dictionary of tag names with their relevance scores
+        """
+        tag_scores = dict(auto_tag_action(action_text))
+        return tag_scores
+    
+    def suggest_action_approach(self, action_text: str, character: Character) -> Dict[str, Any]:
+        """Suggest the best domain and tag for an action
+        
+        Args:
+            action_text: The action text to analyze
+            character: The character performing the action
+            
+        Returns:
+            Dictionary with suggested approach details
+        """
+        # Get available tags for this character
+        available_tags = {**self.standard_tags, **character.tags}
+        
+        # Get suggestions
+        domain_type, tag_name, confidence = suggest_domain_and_tag(action_text, available_tags)
+        
+        # Create suggestion details
+        action_tags = self.detect_action_tags(action_text)
+        
+        # Handle tag bonus calculation with potential None value
+        tag_bonus = 0
+        if tag_name is not None and tag_name in character.tags:
+            tag_bonus = character.tags[tag_name].rank
+        
+        # Use empty string for None tag_name in the response
+        display_tag_name = "" if tag_name is None else tag_name
+        
+        return {
+            "suggested_domain": domain_type.value,
+            "suggested_tag": display_tag_name,
+            "confidence": confidence,
+            "domain_bonus": character.domains[domain_type].value,
+            "tag_bonus": tag_bonus,
+            "detected_tags": action_tags
+        }
+    
+    def get_npc_reaction_to_character(self, character_id: str, npc_name: str, recent_action: Optional[str] = None) -> Dict[str, Any]:
+        """Get an NPC's reaction to a character
+        
+        Args:
+            character_id: ID of the character
+            npc_name: Name of the NPC
+            recent_action: Optional description of a recent action
+            
+        Returns:
+            Dictionary with NPC reaction details
+        """
+        if character_id not in self.shadow_profiles:
+            return {"error": "Character has no shadow profile"}
+        
+        # Get recent tag if action provided
+        recent_tag = None
+        if recent_action:
+            tag_scores = self.detect_action_tags(recent_action)
+            if tag_scores:
+                recent_tag = list(tag_scores.keys())[0]  # Get highest scoring tag
+        
+        # Generate NPC reaction
+        profile = self.shadow_profiles[character_id]
+        reaction = get_npc_reaction(npc_name, character_id, profile, recent_tag)
+        
+        return reaction

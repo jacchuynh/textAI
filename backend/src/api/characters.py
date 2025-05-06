@@ -159,3 +159,70 @@ async def get_available_tags():
         })
     
     return {"categories": tags_by_category}
+
+
+@router.post("/{character_id}/detect-tags", response_model=Dict[str, Any])
+async def detect_action_tags(
+    character_id: str = Path(...),
+    action_text: str = Body(..., embed=True)
+):
+    """Detect tags in an action description"""
+    if character_id not in characters:
+        raise HTTPException(status_code=404, detail="Character not found")
+    
+    # Detect tags
+    tags = game_engine.detect_action_tags(action_text)
+    
+    return {"detected_tags": tags}
+
+
+@router.post("/{character_id}/suggest-approach", response_model=Dict[str, Any])
+async def suggest_action_approach(
+    character_id: str = Path(...),
+    action_text: str = Body(..., embed=True)
+):
+    """Suggest domain and tag for an action"""
+    if character_id not in characters:
+        raise HTTPException(status_code=404, detail="Character not found")
+    
+    # Get character
+    character = characters[character_id]
+    
+    # Get suggestions
+    suggestion = game_engine.suggest_action_approach(action_text, character)
+    
+    return suggestion
+
+
+@router.get("/{character_id}/shadow-profile", response_model=Dict[str, Any])
+async def get_shadow_profile(character_id: str = Path(...)):
+    """Get a character's shadow profile data"""
+    if character_id not in characters:
+        raise HTTPException(status_code=404, detail="Character not found")
+    
+    # Get the shadow profile
+    profile_data = game_engine.get_character_shadow_profile(character_id)
+    
+    if "error" in profile_data:
+        raise HTTPException(status_code=404, detail=profile_data["error"])
+    
+    return profile_data
+
+
+@router.post("/{character_id}/npc-reaction", response_model=Dict[str, Any])
+async def get_npc_reaction(
+    character_id: str = Path(...),
+    npc_name: str = Body(...),
+    recent_action: Optional[str] = Body(None)
+):
+    """Get an NPC's reaction to a character"""
+    if character_id not in characters:
+        raise HTTPException(status_code=404, detail="Character not found")
+    
+    # Get the NPC reaction
+    reaction = game_engine.get_npc_reaction_to_character(character_id, npc_name, recent_action)
+    
+    if "error" in reaction:
+        raise HTTPException(status_code=404, detail=reaction["error"])
+    
+    return reaction

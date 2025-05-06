@@ -1,0 +1,54 @@
+tag_keywords Dictionary
+
+tag_keywords = {
+    # ⚒️ Crafting & Professions
+    "Blacksmithing": ["forge", "anvil", "hammer", "iron", "temper", "ingot", "metal"],
+    "Tailoring": ["sew", "needle", "thread", "fabric", "cloth", "weave"],
+    "Potioncraft": ["brew", "bottle", "herb", "mortar", "vial", "distill", "essence"],
+    "Enchanting": ["inscribe", "rune", "infuse", "aura", "sigil", "embed"],
+    "Runework": ["glyph", "carve", "channel", "line", "pattern", "etch"],
+    "Jewelry": ["gem", "set", "ring", "amulet", "chain", "cut", "inlay"],
+    "Trapmaking": ["tripwire", "spring", "trigger", "trap", "mechanism", "camouflage"],
+
+    # 🔮 Arcane Tags & Magic Schools
+    "Fire": ["flame", "burn", "ignite", "heat", "ember", "scorch"],
+    "Ice": ["frost", "freeze", "cold", "chill", "shiver", "snow"],
+    "Lightning": ["spark", "shock", "bolt", "charge", "thunder"],
+    "Decay": ["rot", "blight", "corrupt", "molder", "wither"],
+    "Binding": ["chain", "seal", "tether", "lock", "bind", "contract"],
+    "Illusion": ["mirror", "fake", "phantom", "glimmer", "blur"],
+    "Light": ["shine", "glow", "radiant", "halo", "gleam", "reveal"],
+    "Shadow": ["dark", "veil", "conceal", "shade", "silence", "eclipse"],
+    "Spirit": ["soul", "essence", "prayer", "ritual", "chant", "offering"],
+    "Astral": ["dream", "sleep", "astral", "veil", "beyond", "star"],
+
+    # 🧠 Academic / Support
+    "Research": ["study", "observe", "experiment", "theory", "archive"],
+    "Investigation": ["search", "inspect", "clue", "track", "follow", "deduce"],
+    "Translation": ["decode", "interpret", "language", "script", "cipher"],
+
+    # 🧪 Ritual & Alchemy
+    "Ritual": ["circle", "chant", "blood", "offering", "sacrifice", "focus", "invoke"],
+    "Alchemy": ["transmute", "essence", "catalyst", "brew", "reaction", "balance"],
+
+    # 🗣️ Social Interaction
+    "Negotiation": ["deal", "haggle", "bargain", "price", "agree", "contract"],
+    "Deception": ["lie", "fake", "mislead", "bluff", "mask"],
+    "Persuasion": ["convince", "coax", "influence", "plea", "motivate"],
+    "Authority": ["command", "order", "decree", "rule", "lead", "mandate"]
+}
+
+✅ How to Use It
+
+You can now scan player or NPC dialogue, crafting logs, or action descriptions:
+
+def auto_tag_action(text):
+    tag_scores = {}
+    for tag, keywords in tag_keywords.items():
+        score = sum(1 for word in keywords if word in text.lower())
+        if score > 0:
+            tag_scores[tag] = score
+    return sorted(tag_scores.items(), key=lambda x: x[1], reverse=True)
+
+Would you like this dictionary exported as a .json, or integrated into your crafting/spell AI?
+
