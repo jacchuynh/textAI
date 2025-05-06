@@ -29,6 +29,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok" });
   });
   
+  // Create a test game (for development)
+  app.post("/api/game/test", async (_req, res) => {
+    try {
+      const gameState = await generateTestGame();
+      res.status(200).json(gameState);
+    } catch (error) {
+      console.error("Error generating test game:", error);
+      res.status(500).json({ error: "Failed to generate test game" });
+    }
+  });
+  
   // Get list of available games
   app.get("/api/game/list", async (_req, res) => {
     try {
