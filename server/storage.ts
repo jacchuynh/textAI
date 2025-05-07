@@ -181,10 +181,20 @@ class StorageService {
     try {
       console.log('Getting game state for ID:', gameId);
       
-      const result = await pool.query(
+      // First try to get the game by its internal UUID
+      let result = await pool.query(
         `SELECT * FROM game_sessions WHERE game_state->>'gameId' = $1`,
         [gameId]
       );
+      
+      // If not found, try using the database record ID
+      if (result.rows.length === 0) {
+        console.log('Game not found by internal gameId, trying database ID');
+        result = await pool.query(
+          `SELECT * FROM game_sessions WHERE id = $1`,
+          [gameId]
+        );
+      }
       
       console.log('Query result:', result.rows);
       
@@ -212,7 +222,7 @@ class StorageService {
   /**
    * Get all saved games for a user
    */
-  async getSavedGames(userId?: number): Promise<{ id: string; name: string; updatedAt: string }[]> {
+  async getSavedGames(userId?: number): Promise<{ id: string; gameId: string; name: string; updatedAt: string }[]> {
     try {
       const gameSessions = userId
         ? await db.query.gameSessions.findMany({
@@ -227,6 +237,7 @@ class StorageService {
         const gameState = session.gameState as unknown as types.GameState;
         return {
           id: session.id.toString(),
+          gameId: gameState.gameId,
           name: gameState.character?.name || `Game ${session.id}`,
           updatedAt: session.updatedAt.toISOString()
         };
