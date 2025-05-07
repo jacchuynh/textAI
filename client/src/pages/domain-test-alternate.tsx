@@ -78,9 +78,15 @@ export default function DomainTestAlternate() {
     },
     onError: (error) => {
       console.error("NPC interaction error:", error);
+      console.log("NPC interaction full error details:", {
+        message: error.message,
+        stack: error.stack,
+        cause: error.cause,
+        name: error.name
+      });
       toast({
         title: "Interaction Failed",
-        description: error.message,
+        description: error.message || "Unknown error occurred",
         variant: "destructive",
       });
     }
@@ -124,9 +130,15 @@ export default function DomainTestAlternate() {
     },
     onError: (error) => {
       console.error("Domain action error:", error);
+      console.log("Domain action full error details:", {
+        message: error.message,
+        stack: error.stack,
+        cause: error.cause,
+        name: error.name
+      });
       toast({
         title: "Action Failed",
-        description: error.message,
+        description: error.message || "Unknown error occurred",
         variant: "destructive",
       });
     }
