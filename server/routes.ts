@@ -333,6 +333,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Domain action (REST API alternative to WebSockets)
+  app.post("/api/game/domain-action", async (req, res) => {
+    try {
+      const actionSchema = z.object({
+        gameId: z.string(),
+        domain: z.string(),
+        tag: z.string().optional(),
+        action: z.string(),
+        difficulty: z.number().default(10)
+      });
+
+      const validatedData = actionSchema.parse(req.body);
+      
+      // Get current game state
+      const gameState = await storage.getGameState(validatedData.gameId);
+      
+      if (!gameState || !gameState.character) {
+        return res.status(404).json({ 
+          error: 'Game or character not found' 
+        });
+      }
+      
+      // Safely access domain value with proper type checking
+      let domainValue = 0;
+      if (gameState.character.domains && 
+          typeof validatedData.domain === 'string' && 
+          validatedData.domain in gameState.character.domains) {
+        domainValue = gameState.character.domains[validatedData.domain as schema.DomainType]?.value || 0;
+      }
+      
+      // Simulate domain check (in real implementation, this would call the Python backend)
+      const roll = Math.floor(Math.random() * 20) + 1; // d20 roll
+      const tagValue = validatedData.tag && gameState.character.tags && validatedData.tag in gameState.character.tags 
+        ? (gameState.character.tags[validatedData.tag]?.rank || 0) 
+        : 0;
+      const total = roll + domainValue + tagValue;
+      const success = total >= validatedData.difficulty;
+      
+      // Update shadow profile domain usage if it exists
+      if (gameState.character.shadowProfile && gameState.character.shadowProfile.domainUsage) {
+        if (typeof validatedData.domain === 'string' && 
+            Object.values(schema.DomainType).includes(validatedData.domain as schema.DomainType)) {
+          const typedDomain = validatedData.domain as schema.DomainType;
+          
+          const updatedDomainUsage = updateShadowProfile(
+            gameState.character.shadowProfile.domainUsage,
+            typedDomain,
+            1
+          );
+          
+          // Update shadow profile
+          gameState.character.shadowProfile.domainUsage = updatedDomainUsage;
+          
+          // Add to recent tags if a tag was used
+          if (validatedData.tag) {
+            gameState.character.shadowProfile.recentTags = [
+              validatedData.tag,
+              ...(gameState.character.shadowProfile.recentTags || [])
+            ].slice(0, 10);
+          }
+          
+          // Save game state with updated shadow profile
+          await storage.saveGameState(gameState);
+        }
+      }
+      
+      // Return the result
+      return res.status(200).json({
+        type: 'domain_action_result',
+        domain: validatedData.domain,
+        tag: validatedData.tag,
+        action: validatedData.action,
+        roll,
+        domainValue,
+        tagValue,
+        total,
+        difficulty: validatedData.difficulty,
+        success,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error processing domain action:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      
+      res.status(500).json({ error: "Failed to process domain action" });
+    }
+  });
+
   // Get NPC interaction
   app.post("/api/game/npc-interaction", async (req, res) => {
     try {

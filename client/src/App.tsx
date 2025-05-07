@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Game from "@/pages/game";
 import DomainTest from "@/pages/domain-test";
+import DomainTestAlternate from "@/pages/domain-test-alternate";
 
 function Navigation() {
   return (
@@ -18,6 +19,9 @@ function Navigation() {
             </Link>
             <Link href="/domain-test" className="text-foreground hover:text-primary transition-colors">
               Domain Test
+            </Link>
+            <Link href="/domain-test-alternate" className="text-foreground hover:text-primary transition-colors">
+              Domain Test (REST)
             </Link>
           </div>
         </div>
@@ -38,6 +42,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Game} />
         <Route path="/domain-test" component={DomainTest} />
+        <Route path="/domain-test-alternate" component={DomainTestAlternate} />
         <Route component={NotFound} />
       </Switch>
     </>
