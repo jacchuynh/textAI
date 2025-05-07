@@ -46,24 +46,52 @@ export default function DomainTestAlternate() {
   // Mutation for NPC interaction
   const npcInteractionMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/game/npc-interaction', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      try {
+        console.log("Sending NPC interaction request:", {
           gameId,
           npcId,
-          playerAction,
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to interact with NPC');
+          playerAction
+        });
+        
+        const response = await fetch('/api/game/npc-interaction', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            gameId,
+            npcId,
+            playerAction,
+          }),
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("NPC interaction response error:", {
+            status: response.status,
+            statusText: response.statusText,
+            responseText: errorText
+          });
+          
+          let errorMessage = 'Failed to interact with NPC';
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.error || errorMessage;
+          } catch (e) {
+            // If JSON parsing fails, use the raw error text
+            errorMessage = errorText || errorMessage;
+          }
+          
+          throw new Error(errorMessage);
+        }
+        
+        const result = await response.json();
+        console.log("NPC interaction response:", result);
+        return result;
+      } catch (error) {
+        console.error("NPC interaction exception:", error);
+        throw error;
       }
-      
-      return response.json();
     },
     onSuccess: (data) => {
       console.log("NPC interaction successful:", data);
@@ -95,26 +123,56 @@ export default function DomainTestAlternate() {
   // Mutation for domain action through REST API
   const domainActionMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/game/domain-action', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      try {
+        console.log("Sending domain action request:", {
           gameId,
           domain: selectedDomain,
           tag: selectedTag || undefined,
           action: actionDescription,
           difficulty
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to perform domain action');
+        });
+        
+        const response = await fetch('/api/game/domain-action', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            gameId,
+            domain: selectedDomain,
+            tag: selectedTag || undefined,
+            action: actionDescription,
+            difficulty
+          }),
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Domain action response error:", {
+            status: response.status,
+            statusText: response.statusText,
+            responseText: errorText
+          });
+          
+          let errorMessage = 'Failed to perform domain action';
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.error || errorMessage;
+          } catch (e) {
+            // If JSON parsing fails, use the raw error text
+            errorMessage = errorText || errorMessage;
+          }
+          
+          throw new Error(errorMessage);
+        }
+        
+        const result = await response.json();
+        console.log("Domain action response:", result);
+        return result;
+      } catch (error) {
+        console.error("Domain action exception:", error);
+        throw error;
       }
-      
-      return response.json();
     },
     onSuccess: (data) => {
       console.log("Domain action successful:", data);
@@ -257,9 +315,9 @@ export default function DomainTestAlternate() {
                     <div 
                       key={game.id}
                       className="p-2 text-sm cursor-pointer hover:bg-secondary rounded-md"
-                      onClick={() => setGameId(game.id)}
+                      onClick={() => setGameId(game.gameId || game.id)}
                     >
-                      {game.name} (ID: {game.id})
+                      {game.name} (ID: {game.gameId || game.id})
                     </div>
                   ))}
                 </div>
