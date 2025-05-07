@@ -200,12 +200,41 @@ export default function DomainTestAlternate() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="gameId">Game ID</Label>
-              <Input 
-                id="gameId" 
-                placeholder="Enter game ID" 
-                value={gameId} 
-                onChange={(e) => setGameId(e.target.value)} 
-              />
+              <div className="flex gap-2">
+                <Input 
+                  id="gameId" 
+                  placeholder="Enter game ID" 
+                  value={gameId} 
+                  onChange={(e) => setGameId(e.target.value)} 
+                  className="flex-1"
+                />
+                <Button 
+                  variant="outline" 
+                  className="shrink-0"
+                  onClick={() => {
+                    navigator.clipboard.readText().then(text => {
+                      if (text && text.trim()) {
+                        setGameId(text.trim());
+                        toast({
+                          title: "ID Pasted",
+                          description: "Game ID pasted from clipboard",
+                        });
+                      }
+                    }).catch(err => {
+                      toast({
+                        title: "Paste Failed",
+                        description: "Could not access clipboard",
+                        variant: "destructive",
+                      });
+                    });
+                  }}
+                >
+                  Paste ID
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                First create a test game by clicking "Game" in the navigation, then click on the ID to copy it.
+              </p>
             </div>
             
             {games && games.length > 0 && (

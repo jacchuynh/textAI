@@ -142,7 +142,22 @@ function GameSelection() {
                           </span>
                           <span className="flex items-center">
                             <Book className="w-3 h-3 mr-1" />
-                            ID: {game.id.substring(0, 8)}...
+                            <div className="relative group">
+                              <span className="cursor-pointer hover:text-primary" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(game.id);
+                                      toast({
+                                        title: "Copied!",
+                                        description: `Game ID "${game.id}" copied to clipboard`,
+                                      });
+                                    }}>
+                                ID: {game.id}
+                              </span>
+                              <span className="hidden group-hover:inline-block absolute -top-8 left-0 bg-primary text-primary-foreground text-xs px-2 py-1 rounded whitespace-nowrap">
+                                Click to copy
+                              </span>
+                            </div>
                           </span>
                         </div>
                       </div>
