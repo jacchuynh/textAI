@@ -371,6 +371,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const total = roll + domainValue + tagValue;
       const success = total >= validatedData.difficulty;
       
+      // Update domain growth log and check for level up
+      let leveledUp = false;
+      if (gameState.character.domains && 
+          typeof validatedData.domain === 'string' && 
+          validatedData.domain in gameState.character.domains) {
+        const typedDomain = validatedData.domain as schema.DomainType;
+        const domain = gameState.character.domains[typedDomain];
+        
+        if (domain) {
+          // Add to growth log
+          const newLogEntry: schema.GrowthLogEntry = {
+            date: new Date().toISOString(),
+            domain: typedDomain,
+            action: validatedData.action,
+            success: success
+          };
+          
+          // Initialize growth log if it doesn't exist
+          if (!domain.growthLog) {
+            domain.growthLog = [];
+          }
+          
+          // Add the new entry
+          domain.growthLog.push(newLogEntry);
+          
+          // Initialize or ensure levelUpsRequired is set
+          if (typeof domain.levelUpsRequired !== 'number') {
+            domain.levelUpsRequired = 8; // Default: 8 entries required for first level up
+          }
+          
+          // Increment usage count
+          domain.usageCount = (domain.usageCount || 0) + 1;
+          
+          // Check if there are enough successful entries for a level up
+          const successfulEntries = domain.growthLog.filter(entry => entry.success);
+          console.log(`Domain ${typedDomain} has ${successfulEntries.length} successful entries out of ${domain.levelUpsRequired} required`);
+          
+          if (successfulEntries.length >= domain.levelUpsRequired) {
+            // Level up!
+            domain.value += 1;
+            leveledUp = true;
+            
+            // Increase required entries for next level up
+            domain.levelUpsRequired += 1;
+            
+            // Remove used entries but keep newer ones
+            const entriesToKeep = domain.growthLog.slice(domain.levelUpsRequired - 1);
+            domain.growthLog = entriesToKeep;
+            
+            console.log(`Level up! Domain ${typedDomain} increased to level ${domain.value}. Next level requires ${domain.levelUpsRequired} entries.`);
+          }
+        }
+      }
+      
       // Update shadow profile domain usage if it exists
       if (gameState.character.shadowProfile && gameState.character.shadowProfile.domainUsage) {
         if (typeof validatedData.domain === 'string' && 
@@ -393,11 +447,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ...(gameState.character.shadowProfile.recentTags || [])
             ].slice(0, 10);
           }
-          
-          // Save game state with updated shadow profile
-          await storage.saveGameState(gameState);
         }
       }
+      
+      // Save game state with all updates
+      await storage.saveGameState(gameState);
       
       // Return the result
       return res.status(200).json({
