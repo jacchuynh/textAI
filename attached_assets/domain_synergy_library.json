@@ -1,0 +1,182 @@
+[
+    {
+        "Domain Pair": "Craft + Body",
+        "Fusion Title": "Ironhand",
+        "Perks": [
+            "Higher chance to craft items 1 tier higher",
+            "Adds hidden traits to crafted gear",
+            "Can craft without tools"
+        ],
+        "Unlocks": [
+            "Quest: The Singing Steel"
+        ]
+    },
+    {
+        "Domain Pair": "Mind + Awareness",
+        "Fusion Title": "Sightweaver",
+        "Perks": [
+            "Predict enemy actions",
+            "Expose weaknesses mid-combat",
+            "Tactical advantage in mass battles"
+        ],
+        "Unlocks": [
+            "Skill: Combat Simulation"
+        ]
+    },
+    {
+        "Domain Pair": "Spirit + Social",
+        "Fusion Title": "Silverheart",
+        "Perks": [
+            "Auto-succeed on emotional persuasion once per day",
+            "Sense and influence emotional states",
+            "Link minds briefly with allies or NPCs"
+        ],
+        "Unlocks": [
+            "Trait: Empathic Link"
+        ]
+    },
+    {
+        "Domain Pair": "Authority + Craft",
+        "Fusion Title": "Architect of Order",
+        "Perks": [
+            "Structures gain morale and defense traits",
+            "Boosts building output in managed zones",
+            "Unlocks civic edict bonuses"
+        ],
+        "Unlocks": [
+            "Skill: Civic Blueprinting"
+        ]
+    },
+    {
+        "Domain Pair": "Mind + Craft",
+        "Fusion Title": "Technomage",
+        "Perks": [
+            "Create hybrid magical devices",
+            "Unlocks magical engineering systems",
+            "Can enchant during crafting"
+        ],
+        "Unlocks": [
+            "Workshop: Arcano-Forge"
+        ]
+    },
+    {
+        "Domain Pair": "Awareness + Social",
+        "Fusion Title": "Veilblade",
+        "Perks": [
+            "Infiltration scenes allow extra options",
+            "Can read deception or motive once per day",
+            "Unlocks stealth-based diplomacy"
+        ],
+        "Unlocks": [
+            "Mission Type: Shadow Envoy"
+        ]
+    },
+    {
+        "Domain Pair": "Authority + Spirit",
+        "Fusion Title": "Theocrat",
+        "Perks": [
+            "Issue divine edicts",
+            "Followers gain morale through faith",
+            "Bless regions with spiritual influence"
+        ],
+        "Unlocks": [
+            "Decree: Divine Mandate"
+        ]
+    },
+    {
+        "Domain Pair": "Body + Awareness",
+        "Fusion Title": "Flowfighter",
+        "Perks": [
+            "Perfect dodge chance under certain conditions",
+            "Enhanced reaction time in physical combat",
+            "Can counter mid-action"
+        ],
+        "Unlocks": [
+            "Technique: Reactive Pulse"
+        ]
+    },
+    {
+        "Domain Pair": "Mind + Social",
+        "Fusion Title": "Schemer",
+        "Perks": [
+            "Manipulate faction dynamics",
+            "Uncover hidden agendas or secrets",
+            "Mastermind long-term social plots"
+        ],
+        "Unlocks": [
+            "Perk: Political Web"
+        ]
+    },
+    {
+        "Domain Pair": "Spirit + Mind",
+        "Fusion Title": "Dreamsage",
+        "Perks": [
+            "Can interpret visions or prophecies",
+            "Unlocks dreamwalking mechanics",
+            "Access alternate memory layers"
+        ],
+        "Unlocks": [
+            "Ability: Dreamgate"
+        ]
+    },
+    {
+        "Domain Pair": "Craft + Awareness",
+        "Fusion Title": "Precision Maker",
+        "Perks": [
+            "Crit bonuses on crafted tools and weapons",
+            "Can auto-correct crafting mistakes mid-process",
+            "Tools made have better synergy with user"
+        ],
+        "Unlocks": [
+            "Item Trait: Artisan Edge"
+        ]
+    },
+    {
+        "Domain Pair": "Social + Authority",
+        "Fusion Title": "Voice of the People",
+        "Perks": [
+            "Easier time passing policies via persuasion",
+            "Boost crowd morale in public speeches",
+            "Unlocks rally and festival bonuses"
+        ],
+        "Unlocks": [
+            "Civic Event: People's Assembly"
+        ]
+    },
+    {
+        "Domain Pair": "Spirit + Awareness",
+        "Fusion Title": "Ghostwatcher",
+        "Perks": [
+            "Sense spiritual disturbances or presences",
+            "Perceive hidden curses or blessings",
+            "Interact with intangible entities"
+        ],
+        "Unlocks": [
+            "Event Type: Spirit Encounter"
+        ]
+    },
+    {
+        "Domain Pair": "Mind + Authority",
+        "Fusion Title": "Strategist",
+        "Perks": [
+            "Unlock war-table planning options",
+            "Predict enemy politics and troop moves",
+            "Reduce chaos during policy changes"
+        ],
+        "Unlocks": [
+            "Structure: Command Chamber"
+        ]
+    },
+    {
+        "Domain Pair": "Body + Spirit",
+        "Fusion Title": "Ascetic",
+        "Perks": [
+            "Reduce hunger/thirst penalties",
+            "Immune to panic/fear auras",
+            "Can channel inner energy to heal slightly"
+        ],
+        "Unlocks": [
+            "Meditation: Flow Rebirth"
+        ]
+    }
+]
