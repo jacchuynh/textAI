@@ -1,0 +1,86 @@
+✅ Step 1: GameEvent Class (Typed Object)
+
+from datetime import datetime
+import uuid
+
+class GameEvent:
+    def __init__(
+        self,
+        event_type: str,
+        actor: str,
+        context: dict = None,
+        metadata: dict = None,
+        tags: list = None,
+        effects: list = None,
+    ):
+        self.id = str(uuid.uuid4())  # Unique ID for traceability
+        self.timestamp = datetime.utcnow().isoformat()
+        self.event_type = event_type
+        self.actor = actor
+        self.context = context or {}
+        self.metadata = metadata or {}
+        self.tags = tags or []
+        self.effects = effects or []
+    
+    def summarize(self):
+        return {
+            "id": self.id,
+            "type": self.event_type,
+            "actor": self.actor,
+            "summary": f"{self.actor} triggered {self.event_type} with context {self.context}",
+            "timestamp": self.timestamp
+        }
+✅ Step 2: Upgraded GameEventBus with Logging
+
+from collections import defaultdict
+import json
+
+class GameEventBus:
+    def __init__(self, enable_logging=True):
+        self.subscribers = defaultdict(list)
+        self.history = []
+        self.enable_logging = enable_logging
+    
+    def subscribe(self, event_type, callback):
+        self.subscribers[event_type].append(callback)
+
+    def publish(self, game_event: GameEvent):
+        if self.enable_logging:
+            self.log_event(game_event)
+
+        for callback in self.subscribers.get(game_event.event_type, []):
+            callback(game_event)
+
+        # Allow wildcard listeners (optional)
+        for callback in self.subscribers.get("*", []):
+            callback(game_event)
+
+    def log_event(self, event: GameEvent):
+        self.history.append(event.summarize())
+        # Optional: write to persistent file
+        with open("event_log.jsonl", "a") as f:
+            f.write(json.dumps(event.summarize()) + "\n")
+✅ Sample Usage
+
+def on_enter_region(event):
+    print(f"[📍 EVENT] {event.actor} entered {event.context.get('region_id')}")
+
+# Setup
+event_bus = GameEventBus()
+event_bus.subscribe("PLAYER_ENTERED_REGION", on_enter_region)
+
+# Trigger
+event = GameEvent(
+    event_type="PLAYER_ENTERED_REGION",
+    actor="player_001",
+    context={"region_id": "SILVER_PLAINS", "weather": "foggy"},
+    tags=["travel", "location_change"]
+)
+event_bus.publish(event)
+🧠 LangChain Integration (Conceptual)
+
+Store event.summarize() into:
+
+Summary Buffer Memory for short-term recall
+Vector store embedding for semantic query
+Serialized archive (JSONL) for persistent search
