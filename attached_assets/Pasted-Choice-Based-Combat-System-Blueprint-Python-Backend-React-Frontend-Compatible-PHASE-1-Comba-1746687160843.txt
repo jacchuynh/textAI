@@ -1,0 +1,123 @@
+Choice-Based Combat System Blueprint (Python Backend + React Frontend Compatible)
+🧱 PHASE 1 — Combat Initialization
+🔹 Step 1.1 — Trigger Encounter
+
+    Called when narrative or logic initiates combat.
+
+🔹 Step 1.2 — Build Initial Combat State
+
+Define:
+
+combat_state = {
+    "location": "Ancient Crypt",
+    "round": 1,
+    "momentum": "player",
+    "environment": ["Low Light", "Arcane Interference"],
+    "enemies": [EnemyObject("Flesh Mage")],
+    "player": PlayerObject(...),
+    "growth_log": [],
+    "log": [],
+    "phase": "decision",
+    "available_actions": []
+}
+
+🧠 PHASE 2 — Generate Combat Options
+🔹 Step 2.1 — Analyze Player Context
+
+    Inventory
+
+    Known spells
+
+    Domain values
+
+    Active status effects
+
+    Tag unlocks
+
+🔹 Step 2.2 — Build 3–5 Action Options + Custom Input
+
+    Call: generate_combat_options(player, combat_state)
+
+    Output: array of action objects
+
+{
+  "label": "Cast 'Blinding Spark'",
+  "action_type": "spell",
+  "domains": ["MIND", "SPIRIT"],
+  "cost": 1,
+  "tags": ["Stun", "Light"]
+}
+
+✅ Send to frontend → render as UI buttons + text area
+🎲 PHASE 3 — Action Selection & Roll Resolution
+🔹 Step 3.1 — Player Chooses Action
+
+Frontend sends JSON:
+
+{
+  "chosen_action": {
+    "label": "Cast 'Blinding Spark'",
+    "action_type": "spell",
+    "domains": ["MIND", "SPIRIT"],
+    "target": "Flesh Mage"
+  }
+}
+
+🔹 Step 3.2 — Backend Executes:
+
+roll = d20() + sum([player.domain[d] for d in action["domains"]])
+dc = calculate_dc(enemy, terrain_mods, momentum)
+outcome = roll >= dc
+
+🔹 Step 3.3 — Build Combat Log Entry
+
+log_entry = f"ROLL 1d20 + {domain_sum} = {roll} vs DC {dc} → {'SUCCESS' if outcome else 'FAILURE'}"
+combat_state["log"].append(log_entry)
+
+🔹 Step 3.4 — Update Growth Log
+
+growth_log.append({
+    "domain": "MIND",
+    "result": "success",
+    "roll": 17,
+    "dc": 15,
+    "action": "Blinding Spark"
+})
+
+🩸 PHASE 4 — Apply Effects & Enemy Response
+🔹 Step 4.1 — Apply Damage, Status, or Narrative Effect
+
+    Apply HP loss, status effect, or momentum change
+
+    Modify enemy state accordingly
+
+🔹 Step 4.2 — Trigger Enemy Turn
+
+    Run generate_enemy_action(enemy, player, state)
+
+    Perform enemy logic the same way (rolls, log, growth, outcomes)
+
+🔁 PHASE 5 — Advance Round & Loop
+🔹 Step 5.1 — Increment Round
+
+combat_state["round"] += 1
+combat_state["momentum"] = "enemy" if last_actor == "player" else "player"
+
+🔹 Step 5.2 — Check End Conditions
+
+if player.hp <= 0:
+    trigger_death_scene()
+elif all(e.hp <= 0 for e in enemies):
+    trigger_victory_scene()
+else:
+    regenerate_player_options()
+
+🧠 PHASE 6 — Memory, Reflection, Growth
+🔹 Step 6.1 — Log Domain Growth
+
+Push growth_log to LangChain or vector memory.
+🔹 Step 6.2 — Reflective Event Trigger
+
+if player.SPIRIT >= 6 and failed_escape:
+    trigger_reflection("Why did I panic… again?")
+
