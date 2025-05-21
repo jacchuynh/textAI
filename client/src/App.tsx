@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import Game from "@/pages/game";
 import DomainTest from "@/pages/domain-test";
 import DomainTestAlternate from "@/pages/domain-test-alternate";
+import CombatGame from "@/pages/CombatGame";
 
 function Navigation() {
   return (
@@ -16,6 +17,9 @@ function Navigation() {
           <div className="flex gap-6">
             <Link href="/" className="text-foreground hover:text-primary transition-colors">
               Game
+            </Link>
+            <Link href="/combat" className="text-foreground hover:text-primary transition-colors">
+              Combat Arena
             </Link>
             <Link href="/domain-test" className="text-foreground hover:text-primary transition-colors">
               Domain Test
@@ -41,6 +45,7 @@ function Router() {
       <Navigation />
       <Switch>
         <Route path="/" component={Game} />
+        <Route path="/combat" component={CombatGame} />
         <Route path="/domain-test" component={DomainTest} />
         <Route path="/domain-test-alternate" component={DomainTestAlternate} />
         <Route component={NotFound} />
