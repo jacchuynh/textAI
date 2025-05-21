@@ -22,6 +22,9 @@ from .environment_system import EnvironmentSystem, environment_system
 from .narrative_generator import narrative_generator
 from .adaptive_enemy_ai import AdaptiveEnemyAI, EnemyPersonality
 from .combat_memory import combat_memory
+from .damage_calculation import calculate_damage, apply_damage_and_effects
+from .monster_archetypes import create_monster_from_archetype, ThreatTier
+from .environment_effects import apply_environment_effects, get_environment_description
 
 
 class CombatController:
@@ -41,6 +44,7 @@ class CombatController:
                     enemy_type: str, 
                     enemy_level: int = None,
                     environment_tags: List[str] = None,
+                    threat_tier: ThreatTier = ThreatTier.STANDARD,
                     game_id: str = None) -> Dict[str, Any]:
         """
         Start a new combat encounter.
@@ -50,6 +54,7 @@ class CombatController:
             enemy_type: Type of enemy to create
             enemy_level: Optional level override for the enemy (defaults to character level)
             environment_tags: Optional environment tags
+            threat_tier: Threat tier of the enemy
             game_id: Optional game ID for event tracking
             
         Returns:
@@ -61,20 +66,17 @@ class CombatController:
         # Set enemy level based on character if not provided
         if enemy_level is None:
             enemy_level = character.level if hasattr(character, 'level') else 1
-            
-        # Determine enemy domain focus based on type
-        domain_focus = self._get_enemy_domain_focus(enemy_type)
         
-        # Create an enemy
-        enemy = combat_system.create_enemy(
-            name=self._generate_enemy_name(enemy_type),
-            level=enemy_level,
+        # Create the enemy using our archetype system
+        enemy = self.create_enemy_from_archetype(
             enemy_type=enemy_type,
-            domain_focus=domain_focus
+            level=enemy_level,
+            threat_tier=threat_tier
         )
-        
+            
         # Create an AI for the enemy
-        personality = self._create_enemy_personality(enemy_type, domain_focus)
+        personality = self._create_enemy_personality(enemy_type, 
+                                                   enemy.strong_domains if hasattr(enemy, 'strong_domains') else [])
         enemy_ai = AdaptiveEnemyAI(
             enemy=enemy,
             personality=personality,
@@ -98,12 +100,26 @@ class CombatController:
         # Store the combat state
         self.active_combats[combat_state["id"]] = combat_state
         
-        # Generate initial narrative
+        # Store active combatants for environment effects
+        active_combatants = {
+            player_combatant.name: player_combatant,
+            enemy.name: enemy
+        }
+        
+        # Apply initial environment effects if any
+        if environment_tags:
+            environment_effects = apply_environment_effects(environment_tags, active_combatants)
+            if environment_effects:
+                combat_state["environment_effects"] = environment_effects
+        
+        # Generate initial narrative with environment description
+        env_description = get_environment_description(environment_tags or [])
         initial_narrative = self._generate_combat_start_narrative(
             player_name=character.name,
             enemy_name=enemy.name,
             enemy_type=enemy_type,
-            environment_tags=environment_tags or []
+            environment_tags=environment_tags or [],
+            environment_description=env_description
         )
         
         # Update the combat state with the narrative
@@ -118,7 +134,8 @@ class CombatController:
                     "enemy_name": enemy.name,
                     "enemy_type": enemy_type,
                     "environment": environment_tags or [],
-                    "combat_id": combat_state["id"]
+                    "combat_id": combat_state["id"],
+                    "threat_tier": threat_tier.name if threat_tier else "STANDARD"
                 },
                 tags=["combat", "encounter"],
                 game_id=game_id
@@ -185,13 +202,45 @@ class CombatController:
         # Get the enemy's move
         enemy_move = enemy_ai.choose_move(player_combatant, player_move)
         
-        # Resolve the combat round
-        result = combat_system.resolve_opposed_moves(
+        # Get base roll results for opposed moves
+        base_result = combat_system.resolve_opposed_moves(
             actor=player_combatant,
             actor_move=player_move,
             target=enemy_combatant,
             target_move=enemy_move
         )
+        
+        # Calculate enhanced damage using our improved system
+        damage, special_effects = calculate_damage(
+            actor=player_combatant,
+            target=enemy_combatant,
+            actor_move=player_move,
+            target_move=enemy_move,
+            actor_roll=base_result["actor_roll"],
+            target_roll=base_result["target_roll"],
+            actor_success=base_result["actor_success"],
+            effect_magnitude=base_result["effect_magnitude"],
+            type_advantage=base_result["type_advantage"],
+            actor_momentum=base_result.get("actor_momentum", 0),
+            target_momentum=base_result.get("target_momentum", 0),
+            environment_tags=combat_state.get("environment_tags", [])
+        )
+        
+        # Apply damage and effects
+        damage_result = apply_damage_and_effects(
+            actor=player_combatant,
+            target=enemy_combatant,
+            damage=damage,
+            special_effects=special_effects,
+            actor_move=player_move,
+            combat_system=combat_system
+        )
+        
+        # Combine results
+        result = {**base_result}
+        result["damage"] = damage
+        result["special_effects"] = special_effects
+        result["damage_result"] = damage_result
         
         # Update the AI with the result
         enemy_ai.update_from_combat_result(result, player_move, enemy_move)
@@ -208,29 +257,44 @@ class CombatController:
         if environment_hooks:
             result["environment_hooks"] = environment_hooks
         
+        # Apply active environment effects each round
+        active_combatants = {
+            player_combatant.name: player_combatant,
+            enemy_combatant.name: enemy_combatant
+        }
+        
+        if combat_state.get("environment_tags"):
+            environment_effects = apply_environment_effects(
+                combat_state["environment_tags"], 
+                active_combatants
+            )
+            if environment_effects:
+                result["environment_effects"] = environment_effects
+        
         # Apply status effects if applicable
-        if "status_applied" in result:
-            status_name = result["status_applied"]
-            status_tier = StatusTier.MODERATE
-            
-            if result.get("effect_magnitude", 0) > 7:
-                status_tier = StatusTier.SEVERE
-            elif result.get("effect_magnitude", 0) > 4:
+        if "status_applied" in result or "CRITICAL" in special_effects:
+            status_name = result.get("status_applied", "Wounded" if "CRITICAL" in special_effects else None)
+            if status_name:
                 status_tier = StatusTier.MODERATE
-            else:
-                status_tier = StatusTier.MINOR
                 
-            status = None
-            if status_name == "Wounded":
-                status = StatusFactory.create_wounded(status_tier)
-            elif status_name == "Confused":
-                status = StatusFactory.create_confused(status_tier)
-                
-            if status:
-                if result["actor_success"]:
-                    status.apply_to_combatant(enemy_combatant)
+                if result.get("effect_magnitude", 0) > 7:
+                    status_tier = StatusTier.SEVERE
+                elif result.get("effect_magnitude", 0) > 4:
+                    status_tier = StatusTier.MODERATE
                 else:
-                    status.apply_to_combatant(player_combatant)
+                    status_tier = StatusTier.MINOR
+                    
+                status = None
+                if status_name == "Wounded":
+                    status = StatusFactory.create_wounded(status_tier)
+                elif status_name == "Confused":
+                    status = StatusFactory.create_confused(status_tier)
+                    
+                if status:
+                    if result["actor_success"]:
+                        status.apply_to_combatant(enemy_combatant)
+                    else:
+                        status.apply_to_combatant(player_combatant)
         
         # Generate narrative
         narrative = self._generate_combat_narrative(
@@ -273,10 +337,57 @@ class CombatController:
                 enemy_name=enemy_combatant.name
             )
             combat_state["narrative"] = defeat_narrative
+            
+    def _generate_combat_start_narrative(self,
+                                  player_name: str,
+                                  enemy_name: str,
+                                  enemy_type: str,
+                                  environment_tags: List[str],
+                                  environment_description: str = None) -> Dict[str, str]:
+        """
+        Generate narrative for the start of combat.
         
-        # Publish events and update memory if the combat has ended
-        if combat_state["status"] != "active" and game_id:
-            outcome = "victory" if combat_state["status"] == "victory" else "defeat"
+        Args:
+            player_name: Name of the player
+            enemy_name: Name of the enemy
+            enemy_type: Type of enemy
+            environment_tags: List of environment tags
+            environment_description: Optional detailed environment description
+            
+        Returns:
+            Narrative dictionary
+        """
+        environment_desc = ""
+        if environment_tags:
+            environment_desc = f" in {', '.join(environment_tags)}"
+            
+        main_narrative = f"{player_name} encounters a {enemy_name} ({enemy_type}){environment_desc}! Combat begins!"
+        
+        # Get any memory context
+        memory_hooks = combat_memory.get_narrative_hooks()
+        memory_hook = ""
+        
+        for hook in memory_hooks:
+            if enemy_type.lower() in hook.lower():
+                memory_hook = hook
+                break
+                
+        if not memory_hook and enemy_name in combat_memory.opponent_history:
+            insights = combat_memory.get_opponent_insights(enemy_name)
+            if insights.get("narrative_callback"):
+                memory_hook = insights["narrative_callback"]
+        
+        # Set environment description
+        if not environment_description and environment_tags:
+            environment_description = f"The battle takes place{environment_desc}."
+        elif not environment_description:
+            environment_description = ""
+            
+        return {
+            "main": main_narrative,
+            "memory_hook": memory_hook,
+            "environment": environment_description
+        }
             
             event_bus.publish(GameEvent(
                 type=EventType.COMBAT_ENDED,
@@ -994,6 +1105,95 @@ class CombatController:
         
         return moments
     
+    def create_enemy_from_archetype(self, 
+                               enemy_type: str, 
+                               name: Optional[str] = None,
+                               level: int = 1,
+                               threat_tier: ThreatTier = ThreatTier.STANDARD) -> Combatant:
+        """
+        Create an enemy from an archetype.
+        
+        Args:
+            enemy_type: Type of enemy to create
+            name: Optional name (generated if not provided)
+            level: Level of the enemy
+            threat_tier: Threat tier of the enemy
+            
+        Returns:
+            A combatant based on the archetype
+        """
+        # Generate name if not provided
+        if not name:
+            name = self._generate_enemy_name(enemy_type)
+            
+        # Map common enemy types to archetype IDs
+        archetype_mapping = {
+            "bandit": "bandit",
+            "wolf": "wolf",
+            "troll": "troll",
+            "cultist": "cultist",
+            "zombie": "zombie",
+            "mage": "mage",
+            "elemental": "elemental",
+            "dragon": "dragon"
+        }
+        
+        # Find the closest archetype match
+        archetype_id = None
+        enemy_type_lower = enemy_type.lower()
+        
+        # Exact match
+        if enemy_type_lower in archetype_mapping:
+            archetype_id = archetype_mapping[enemy_type_lower]
+        else:
+            # Partial match
+            for key, value in archetype_mapping.items():
+                if key in enemy_type_lower:
+                    archetype_id = value
+                    break
+        
+        # Default to "bandit" if no match found
+        if not archetype_id:
+            archetype_id = "bandit"
+        
+        try:
+            # Create monster from archetype
+            monster, moves = create_monster_from_archetype(
+                archetype_id=archetype_id,
+                name=name,
+                tier=threat_tier,
+                level=level
+            )
+            return monster
+        except ValueError:
+            # Fallback to old system if archetype not found
+            return self._create_enemy_fallback(enemy_type, name, level)
+            
+    def _create_enemy_fallback(self, enemy_type: str, name: str, level: int) -> Combatant:
+        """
+        Fallback method to create an enemy if archetype not found.
+        
+        Args:
+            enemy_type: Type of enemy to create
+            name: Name of the enemy
+            level: Level of the enemy
+            
+        Returns:
+            A combatant based on the enemy type
+        """
+        # Get domain focus for the enemy type
+        domain_focus = self._get_enemy_domain_focus(enemy_type)
+        
+        # Create an enemy using the combat system
+        enemy = combat_system.create_enemy(
+            name=name,
+            level=level,
+            enemy_type=enemy_type,
+            domain_focus=domain_focus
+        )
+        
+        return enemy
+            
     def _get_enemy_domain_focus(self, enemy_type: str) -> List[Domain]:
         """
         Get domain focus for an enemy type.
@@ -1009,7 +1209,7 @@ class CombatController:
             "bandit": [Domain.BODY, Domain.AWARENESS],
             "wolf": [Domain.BODY, Domain.AWARENESS],
             "troll": [Domain.BODY, Domain.CRAFT],
-            "goblin": [Domain.CRAFT, Domain.TRICK],
+            "goblin": [Domain.CRAFT, Domain.SOCIAL],
             "skeleton": [Domain.BODY],
             "cultist": [Domain.SPIRIT, Domain.MIND],
             "knight": [Domain.BODY, Domain.AUTHORITY],
