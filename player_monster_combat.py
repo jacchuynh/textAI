@@ -316,17 +316,16 @@ class CombatController:
             f"When the dust settled, {actor_name} had dealt {actor_damage} damage and received {target_damage}."
         ]
         
-        # Add special narration for critical success (roll of 20)
-        if "actor_roll" in self.history[-1] and self.history[-1]["actor_roll"] >= 18:
+        # Add special narration for high and low damage scenarios
+        if actor_damage > 8:
             templates.append(
-                f"{actor_name} executed a perfect {actor_move.name}, catching {target_name} off guard despite their {target_move.name}. "
-                f"The masterful attack dealt {actor_damage} damage while {actor_name} only suffered {target_damage} in return."
+                f"{actor_name} executed a powerful {actor_move.name}, catching {target_name} off guard despite their {target_move.name}. "
+                f"The devastating attack dealt {actor_damage} damage while {actor_name} only suffered {target_damage} in return."
             )
         
-        # Add special narration for critical failure (roll of 1)
-        if "actor_roll" in self.history[-1] and self.history[-1]["actor_roll"] <= 3:
+        if actor_damage < 3 and target_damage > 5:
             templates.append(
-                f"{actor_name} stumbled while attempting {actor_move.name}, giving {target_name} an opening with {target_move.name}. "
+                f"{actor_name} struggled while attempting {actor_move.name}, giving {target_name} an opening with {target_move.name}. "
                 f"The mistake resulted in only {actor_damage} damage dealt while taking {target_damage} damage."
             )
         
@@ -797,10 +796,13 @@ def simulate_player_combat():
         
         round_number += 1
         
-        # Offer the option to flee after round 3
-        if round_number > 3 and not monster.is_defeated() and not player.is_defeated():
-            flee = input("\nDo you want to attempt to flee? (y/n): ").lower().strip()
-            if flee == 'y':
+        # Automatically decide whether to flee after round 3
+        if round_number > 3 and round_number % 2 == 0 and not monster.is_defeated() and not player.is_defeated():
+            # Decide to flee if health is below 30%
+            should_flee = player.current_health < (player.max_health * 0.3)
+            
+            if should_flee:
+                print("\nYour health is low - attempting to flee!")
                 # 50% chance to successfully flee, modified by Awareness
                 flee_roll = random.randint(1, 20) + player.domains[Domain.AWARENESS]
                 if flee_roll >= 15:
