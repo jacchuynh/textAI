@@ -1,0 +1,454 @@
+# Monster Threat Tier Comments for Balancing
+#
+# minion: Weak, common, appear in groups. Swarm/fodder/combat flavor.
+# standard: Moderate threat, mainstay encounter, solo or in packs.
+# elite: Strong, tactical, "mini-boss" feel. Requires teamwork.
+# boss: Major encounter, rare, story or dungeon centerpiece.
+# legendary: Unique, campaign-defining, only one at a time. World-altering.
+
+monster_archetypes:
+  # 🌲 The Whispering Woods (Expanded Minion and Standard Types)
+  - name: Treejumper
+    category: Beast
+    threat_tier: minion  # Harmless alone, dangerous in swarms, good for ambushes or distractions.
+    primary_domains: [AWARENESS, CRAFT]
+    weak_domains: [BODY, SPIRIT]
+    resistant_domains: [DARKNESS]
+    special_abilities:
+      - Leaps from tree to tree
+      - Throws nuts and sticks
+    typical_moves:
+      - Flurry throw (CRAFT)
+      - Rapid leap (AWARENESS)
+    description: |
+      Mischievous, monkey-like creatures, more a nuisance than a threat but capable of overwhelming in numbers.
+
+  - name: Mimicsquirrel
+    category: Magical
+    threat_tier: minion  # Can trick, steal, or distract. Harmless unless in numbers.
+    primary_domains: [AWARENESS, CRAFT]
+    weak_domains: [BODY, FIRE]
+    resistant_domains: [DARKNESS]
+    special_abilities:
+      - Mimics sounds and voices
+      - Steals shiny objects
+    typical_moves:
+      - Mimicry (AWARENESS)
+      - Quick grab (CRAFT)
+    description: |
+      Squirrels capable of imitating voices or sounds, often luring travelers off the path or causing confusion.
+
+  - name: Truffle Boar
+    category: Beast
+    threat_tier: minion  # Environmental threat, can damage supplies or fields.
+    primary_domains: [BODY, CRAFT]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [BODY]
+    special_abilities:
+      - Digs for truffles, uprooting terrain
+      - Short, powerful charges
+    typical_moves:
+      - Tusk swipe (BODY)
+      - Dig (CRAFT)
+    description: |
+      Stocky boars with a keen nose for fungi, often disrupting campsites in their search for food.
+
+  - name: Leafmoth Swarm
+    category: Beast/Magical
+    threat_tier: minion  # Obscures vision, mildly poisonous, good for soft control.
+    primary_domains: [SPIRIT, BODY]
+    weak_domains: [FIRE, AWARENESS]
+    resistant_domains: [DARKNESS]
+    special_abilities:
+      - Clouds of dust obscure vision
+      - Mild poison irritates skin
+    typical_moves:
+      - Swarm cloud (SPIRIT)
+      - Wing beat (BODY)
+    description: |
+      Clouds of moths that fill the air with dust, often preceding larger threats or masking retreats.
+
+  - name: Barkworm
+    category: Beast
+    threat_tier: minion  # Weak, but in large numbers can strip bark from trees or flesh from bone.
+    primary_domains: [BODY, CRAFT]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [BODY]
+    special_abilities:
+      - Eats wood and flesh
+      - Quick burrow
+    typical_moves:
+      - Swarm bite (BODY)
+      - Burrow (CRAFT)
+    description: |
+      Small worms that infest deadwood and can become a hazard if not cleared from camps or paths.
+
+  - name: Mantis Wolf Pup
+    category: Beast/Magical
+    threat_tier: minion  # Weak alone, strong in packs, introduces the threat of adult mantis wolves.
+    primary_domains: [BODY, AWARENESS]
+    weak_domains: [FIRE, SOCIAL]
+    resistant_domains: [BODY, MIND]
+    special_abilities:
+      - Sharp forelimbs
+      - Pack tactics
+    typical_moves:
+      - Nip (BODY)
+      - Hide (AWARENESS)
+    description: |
+      Young mantis wolves with oversized claws, often encountered before their adult kin.
+
+  - name: Mantis Wolf
+    category: Beast/Magical
+    threat_tier: standard  # Pack predator, can ambush or chase.
+    primary_domains: [BODY, AWARENESS]
+    weak_domains: [FIRE, SOCIAL]
+    resistant_domains: [BODY, MIND]
+    special_abilities:
+      - Forelimbs can slice through wood
+      - Night vision
+    typical_moves:
+      - Ambush (AWARENESS)
+      - Rending strike (BODY)
+    description: |
+      Predatory wolves with mantis-like forelimbs, hunting in packs through the thickest undergrowth.
+
+  - name: Barkback
+    category: Beast
+    threat_tier: standard  # High defense, low attack, environmental obstacle.
+    primary_domains: [BODY, CRAFT]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [BODY, EARTH]
+    special_abilities:
+      - Bark-like armor
+      - Can camouflage as trees
+    typical_moves:
+      - Ram (BODY)
+      - Bark shield (CRAFT)
+    description: |
+      Stocky quadrupeds covered in tough bark, ambushing prey by blending in with the forest.
+
+  - name: Feathered Prowler
+    category: Beast/Magical
+    threat_tier: standard  # Stealth ambusher, can mimic bird calls to lure or confuse.
+    primary_domains: [AWARENESS, SPIRIT]
+    weak_domains: [BODY, SOCIAL]
+    resistant_domains: [DARKNESS]
+    special_abilities:
+      - Mimics bird calls
+      - Silent movement
+    typical_moves:
+      - Swoop (SPIRIT)
+      - Pounce (AWARENESS)
+    description: |
+      Sleek predators that stalk the canopy, using mimicry to lure prey into range.
+
+  - name: Leaflight Lantern
+    category: Magical
+    threat_tier: standard  # Environmental hazard, can blind or confuse, rarely lethal.
+    primary_domains: [SPIRIT, AWARENESS]
+    weak_domains: [BODY, FIRE]
+    resistant_domains: [DARKNESS]
+    special_abilities:
+      - Emits dazzling light
+      - Can move through tree canopies
+    typical_moves:
+      - Dazzle (SPIRIT)
+      - Flicker (AWARENESS)
+    description: |
+      Enchanted floating lights that lure travelers off safe paths and into danger.
+
+  - name: Predator Vine
+    category: Magical/Beast
+    threat_tier: standard  # Area control, can grapple or immobilize. 
+    primary_domains: [CRAFT, BODY]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [BODY, EARTH]
+    special_abilities:
+      - Grapples and immobilizes
+      - Can move along the ground
+    typical_moves:
+      - Grapple (CRAFT)
+      - Squeeze (BODY)
+    description: |
+      Vines that slither across the forest floor, grabbing at anything that brushes past.
+
+  - name: Verdant Mauler
+    category: Beast/Magical
+    threat_tier: elite  # Major threat, strong regeneration, dangerous melee.
+    primary_domains: [BODY, SPIRIT]
+    weak_domains: [FIRE, MIND]
+    resistant_domains: [BODY, DARKNESS]
+    special_abilities:
+      - Regenerates from plant matter
+      - Can spread toxic pollen on hit
+      - Feral rage increases damage
+    typical_moves:
+      - Mauling charge (BODY)
+      - Pollen burst (SPIRIT)
+    description: |
+      Savage, hulking guardians of the Hollowbark Core, both feared and venerated by forest dwellers.
+
+  - name: Barkback Alpha
+    category: Beast
+    threat_tier: elite  # Controls barkbacks, can call for reinforcements, high defense.
+    primary_domains: [BODY, CRAFT, AUTHORITY]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [BODY, EARTH]
+    special_abilities:
+      - Bellow calls barkback reinforcements
+      - Reinforced bark armor
+    typical_moves:
+      - Alpha ram (BODY)
+      - Bark shield wall (CRAFT)
+    description: |
+      The leader of a barkback herd, nearly impervious to conventional weapons and able to rally its kin.
+
+  - name: Owl-Bear Colossus
+    category: Beast
+    threat_tier: boss  # Major story/quest boss, absorbs other beasts.
+    primary_domains: [BODY, AWARENESS]
+    weak_domains: [MIND, LIGHT]
+    resistant_domains: [BODY, DARKNESS]
+    special_abilities:
+      - Night vision
+      - Devastating grapple
+      - Deafening screech
+    typical_moves:
+      - Charging slam (BODY)
+      - Grasp and crush (AWARENESS)
+      - Screech frighten (SOCIAL)
+    description: |
+      Fused by old magics, these towering beasts blend the senses of owls and bears to dominate their ancient woodland territories.
+
+  - name: Fungal Rhino-Treant
+    category: Aberration/Magical
+    threat_tier: legendary  # Unique, spreads mobile fungal colonies, campaign-level threat.
+    primary_domains: [BODY, CRAFT, SPIRIT]
+    weak_domains: [FIRE, LIGHT]
+    resistant_domains: [BODY, DARKNESS]
+    special_abilities:
+      - Spawns mobile fungal colonies
+      - Spores cause hallucinations
+      - Can harden bark armor
+    typical_moves:
+      - Charge and gore (BODY)
+      - Spore cloud (SPIRIT)
+      - Rooted defense (CRAFT)
+    description: |
+      These lumbering hybrids wander the Whispering Woods, breaking down deadwood and spreading new life—and madness—with every step.
+
+  # ❄️ The Frostbound Tundra (Expanded Minion and Standard Types)
+  - name: Chillhound
+    category: Beast
+    threat_tier: minion  # Pack minion, weak, environmental hazard.
+    primary_domains: [BODY, AWARENESS]
+    weak_domains: [FIRE, CRAFT]
+    resistant_domains: [ICE, BODY]
+    special_abilities:
+      - Resistant to cold
+      - Can sense heat sources
+    typical_moves:
+      - Pack hunt (AWARENESS)
+      - Quick bite (BODY)
+    description: |
+      Furry canines that hunt in packs, their howls echoing across the snowfields.
+
+  - name: Snowbat
+    category: Beast
+    threat_tier: minion  # Swarm minion, can confuse or distract, rarely lethal.
+    primary_domains: [AWARENESS, SPIRIT]
+    weak_domains: [FIRE, BODY]
+    resistant_domains: [ICE, DARKNESS]
+    special_abilities:
+      - Echolocation
+      - Hypnotic flight patterns
+    typical_moves:
+      - Swarm confuse (SPIRIT)
+      - Swoop (AWARENESS)
+    description: |
+      Nocturnal bats with shimmering wings, able to distract and confuse with coordinated flights.
+
+  - name: Ice Gecko
+    category: Beast
+    threat_tier: minion  # Weak, environmental flavor, can be used for stealth or evasion.
+    primary_domains: [BODY, ICE]
+    weak_domains: [FIRE, CRAFT]
+    resistant_domains: [ICE]
+    special_abilities:
+      - Camouflages on ice
+      - Can freeze small patches of ground
+    typical_moves:
+      - Freeze touch (ICE)
+      - Scurry (BODY)
+    description: |
+      Small lizards that blend into snowy rocks, sometimes freezing small items or toes.
+
+  - name: Frostsnack
+    category: Beast
+    threat_tier: minion  # Harmless, edible, can be used as a resource or distraction.
+    primary_domains: [BODY, ICE]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [ICE]
+    special_abilities:
+      - Cold-blooded metabolism
+      - Hibernates in snow
+    typical_moves:
+      - Nibble (BODY)
+      - Sleep (ICE)
+    description: |
+      Small, slow-moving creatures popular as a food source among tundra dwellers.
+
+  - name: Aurora Herdling
+    category: Beast/Magical
+    threat_tier: minion  # Swarm minion, can blind with light, rarely lethal.
+    primary_domains: [BODY, LIGHT]
+    weak_domains: [DARKNESS, FIRE]
+    resistant_domains: [ICE, LIGHT]
+    special_abilities:
+      - Emits aurora bursts
+      - Herd movement
+    typical_moves:
+      - Light burst (LIGHT)
+      - Stampede (BODY)
+    description: |
+      Small herd animals that glow with the northern lights, dazzling predators and adventurers alike.
+
+  - name: Wind Wolf Pup
+    category: Beast/Magical
+    threat_tier: minion  # Weak, fast, good for flavor or as a warning of adults.
+    primary_domains: [AWARENESS, WIND]
+    weak_domains: [EARTH, BODY]
+    resistant_domains: [WIND]
+    special_abilities:
+      - Runs on wind gusts
+      - Can howl to summon snow squalls
+    typical_moves:
+      - Wind rush (WIND)
+      - Pup bite (BODY)
+    description: |
+      Young wind wolves that dart through snowdrifts, rarely attacking unless cornered.
+
+  - name: Blizzard Bear
+    category: Beast
+    threat_tier: standard  # Durable, dangerous if provoked, classic tundra hazard.
+    primary_domains: [BODY, ICE]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [ICE, BODY]
+    special_abilities:
+      - Thick hide resists cold
+      - Snow camouflage
+    typical_moves:
+      - Maul (BODY)
+      - Avalanche roar (ICE)
+    description: |
+      Massive bears with fur like drifting snow, able to disappear into a blizzard and strike with deadly force.
+
+  - name: Wind Wolf
+    category: Beast/Magical
+    threat_tier: standard  # Fast, coordinated, uses weather as cover.
+    primary_domains: [AWARENESS, WIND]
+    weak_domains: [EARTH, BODY]
+    resistant_domains: [WIND]
+    special_abilities:
+      - Runs on wind gusts
+      - Can howl to summon snow squalls
+    typical_moves:
+      - Wind rush (WIND)
+      - Coordinated pack strike (AWARENESS)
+    description: |
+      Ethereal wolves that hunt in harmony with the tundra’s storms, their howls blending with the wind.
+
+  - name: Icevine Serpent
+    category: Beast/Magical
+    threat_tier: standard  # Area denial, can entangle or freeze.
+    primary_domains: [ICE, BODY, CRAFT]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [ICE, EARTH]
+    special_abilities:
+      - Freezes whatever it coils around
+      - Camouflages as icevine
+    typical_moves:
+      - Coil freeze (ICE)
+      - Lash (BODY)
+    description: |
+      Long, vine-like serpents that blend into the undergrowth, freezing unwary prey.
+
+  - name: Shiver Elk
+    category: Beast
+    threat_tier: standard  # Herd animal, can stampede or gore.
+    primary_domains: [BODY, ICE]
+    weak_domains: [FIRE, CRAFT]
+    resistant_domains: [ICE, BODY]
+    special_abilities:
+      - Frost-tipped antlers
+      - Emits chilling bellows
+    typical_moves:
+      - Antler gore (BODY)
+      - Bellow (ICE)
+    description: |
+      Large elk with icicle antlers, capable of defending their herds with chilling attacks.
+
+  - name: Blizzard Bear Matron
+    category: Beast
+    threat_tier: elite  # Controls bears in the region, formidable melee.
+    primary_domains: [BODY, ICE, AUTHORITY]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [ICE, BODY]
+    special_abilities:
+      - Commands bear packs
+      - Avalanche charge
+    typical_moves:
+      - Command roar (AUTHORITY)
+      - Avalanche charge (ICE)
+    description: |
+      Matriarchs of the blizzard bears, leading their kin through the harshest storms.
+
+  - name: Frostbore Mammoth
+    category: Beast
+    threat_tier: elite  # Massive, tramples terrain, can freeze ground.
+    primary_domains: [BODY, ICE, EARTH]
+    weak_domains: [FIRE, CRAFT]
+    resistant_domains: [ICE, BODY]
+    special_abilities:
+      - Freezing trunk blast
+      - Tramples terrain, causing hazards
+    typical_moves:
+      - Trample (BODY)
+      - Icy blast (ICE)
+    description: |
+      Enormous creatures whose footsteps freeze the land, reshaping the tundra as they wander.
+
+  - name: Ice Tyrant
+    category: Beast/Elemental
+    threat_tier: boss  # Dungeon/quest boss, area-wide freezing effects.
+    primary_domains: [BODY, SPIRIT, ICE]
+    weak_domains: [FIRE, CRAFT]
+    resistant_domains: [ICE, BODY]
+    special_abilities:
+      - Multi-limbed attacks
+      - Freezing aura chills area
+      - Immune to cold
+    typical_moves:
+      - Frost slam (BODY)
+      - Chill breath (ICE)
+      - Icy grapple (SPIRIT)
+    description: |
+      A colossal, cryo-ape slumbering beneath the Glace Hollow, awakening only when great magical surges disturb its icy rest.
+
+  - name: Fractal Drake
+    category: Dragon/Elemental
+    threat_tier: legendary  # Unique, can phase through ice, control illusions.
+    primary_domains: [BODY, MIND, ICE]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [ICE, MIND]
+    special_abilities:
+      - Shards of ice form mirrored illusions
+      - Can phase through snow and ice
+      - Hypnotic gaze
+    typical_moves:
+      - Fractal breath (ICE/MIND)
+      - Illusory dodge (MIND)
+      - Tail sweep (BODY)
+    description: |
+      A crystalline dragon whose mirrored scales confound attackers, said to guard ancient leyline secrets in the tundra depths.

@@ -1,0 +1,194 @@
+# Cross-Region Human Threats for Crimson Accord
+# These human or humanoid enemies can appear as adversaries in any wilderness or near settlements.
+
+monster_archetypes:
+  - name: Highway Bandit
+    category: Humanoid
+    threat_tier: minion  # Common, weak alone, appear in groups for ambushes.
+    primary_domains: [BODY, CRAFT]
+    weak_domains: [AUTHORITY, SPIRIT]
+    resistant_domains: [BODY]
+    special_abilities:
+      - Sets simple traps and ambushes
+      - Flee if outnumbered
+    typical_moves:
+      - Ambush strike (BODY)
+      - Tripwire (CRAFT)
+    description: |
+      Desperate or greedy outlaws who prey on travelers and caravans, rarely a threat alone but dangerous in numbers.
+
+  - name: Bandit Slinger
+    category: Humanoid
+    threat_tier: minion  # Ranged support for bandit groups.
+    primary_domains: [AWARENESS, CRAFT]
+    weak_domains: [BODY, AUTHORITY]
+    resistant_domains: [BODY]
+    special_abilities:
+      - Accurate with slings or bows
+      - Calls for help if threatened
+    typical_moves:
+      - Sling stone (CRAFT)
+      - Signal alarm (AWARENESS)
+    description: |
+      Youths or smaller bandits skilled with slings, providing cover fire for their allies.
+
+  - name: Roadside Cutthroat
+    category: Humanoid
+    threat_tier: standard  # More skilled and better armed than common bandits.
+    primary_domains: [BODY, SOCIAL]
+    weak_domains: [AUTHORITY, SPIRIT]
+    resistant_domains: [BODY, SOCIAL]
+    special_abilities:
+      - Intimidates to force surrender
+      - Fights dirty (sand, poison, etc.)
+    typical_moves:
+      - Gut punch (BODY)
+      - Threaten (SOCIAL)
+    description: |
+      Hardened criminals who lead bandit groups, known for their cruelty and opportunism.
+
+  - name: Bandit Captain
+    category: Humanoid
+    threat_tier: elite  # Leader, coordinates ambushes and escape.
+    primary_domains: [AUTHORITY, BODY, CRAFT]
+    weak_domains: [SPIRIT, SOCIAL]
+    resistant_domains: [BODY, AUTHORITY]
+    special_abilities:
+      - Commands lesser bandits
+      - Set complex traps
+      - Rallies group morale
+    typical_moves:
+      - Rally (AUTHORITY)
+      - Parry and counter (BODY)
+      - Trap trigger (CRAFT)
+    description: |
+      Charismatic or ruthless leaders who plan ambushes, negotiate ransoms, and keep their gangs together.
+
+  - name: Outland Mercenary
+    category: Humanoid
+    threat_tier: standard  # Hired swords, not loyal, may switch sides.
+    primary_domains: [BODY, CRAFT]
+    weak_domains: [SPIRIT, SOCIAL]
+    resistant_domains: [BODY, CRAFT]
+    special_abilities:
+      - Uses diverse weapons
+      - May offer to parley or betray employer
+    typical_moves:
+      - Multi-weapon attack (BODY)
+      - Equipment swap (CRAFT)
+    description: |
+      Professional warriors for hire, sometimes hired by bandits, nobles, or Accord agents alike.
+
+  - name: Cultist Zealot
+    category: Humanoid/Magical
+    threat_tier: standard  # Fanatical, may call upon dark magic or aberrations.
+    primary_domains: [SPIRIT, BODY]
+    weak_domains: [AUTHORITY, LIGHT]
+    resistant_domains: [DARKNESS, SPIRIT]
+    special_abilities:
+      - Enters magical frenzy
+      - Calls for supernatural aid
+    typical_moves:
+      - Frenzied strike (BODY)
+      - Dark prayer (SPIRIT)
+    description: |
+      Members of forbidden sects, often found performing rituals or leading minor aberrations.
+
+  - name: Cult Fanatic
+    category: Humanoid/Magical
+    threat_tier: elite  # Ritual leaders, more powerful magic, summon monsters.
+    primary_domains: [SPIRIT, AUTHORITY, DARKNESS]
+    weak_domains: [LIGHT, CRAFT]
+    resistant_domains: [DARKNESS, SPIRIT]
+    special_abilities:
+      - Casts curses and hexes
+      - Summons aberrant minions
+      - Inspires zealotry in followers
+    typical_moves:
+      - Hex (SPIRIT)
+      - Command minion (AUTHORITY)
+      - Shadow shield (DARKNESS)
+    description: |
+      High-ranking cultists who wield dangerous magic and inspire terror among the faithful and their foes alike.
+
+  - name: Rebel Skirmisher
+    category: Humanoid
+    threat_tier: minion  # Guerrilla fighters, often fight Accord or local lords.
+    primary_domains: [BODY, AWARENESS]
+    weak_domains: [AUTHORITY, CRAFT]
+    resistant_domains: [BODY]
+    special_abilities:
+      - Uses terrain for ambushes
+      - Retreats quickly when losing
+    typical_moves:
+      - Hit-and-run (BODY)
+      - Camouflage (AWARENESS)
+    description: |
+      Lightly equipped freedom fighters, often more interested in survival than conquest.
+
+  - name: Rebel Captain
+    category: Humanoid
+    threat_tier: elite  # Mobile, tactical, can inspire local uprisings.
+    primary_domains: [AUTHORITY, BODY]
+    weak_domains: [SPIRIT, SOCIAL]
+    resistant_domains: [BODY, AUTHORITY]
+    special_abilities:
+      - Inspires local peasants or rebels
+      - Sets ambushes and retreats
+      - Negotiates with locals
+    typical_moves:
+      - Rally rebels (AUTHORITY)
+      - Coordinated attack (BODY)
+    description: |
+      Leaders of organized resistance, capable of turning the tide of local conflicts with their presence.
+
+  - name: Infamous Warlord
+    category: Humanoid
+    threat_tier: boss  # Unique, controls a whole bandit army or rebel faction.
+    primary_domains: [AUTHORITY, BODY, SOCIAL]
+    weak_domains: [SPIRIT, LIGHT]
+    resistant_domains: [BODY, AUTHORITY]
+    special_abilities:
+      - Unites rival groups
+      - Demands tribute or ransom
+      - Can call for mass retreats or attacks
+    typical_moves:
+      - Command army (AUTHORITY)
+      - Duel challenge (BODY)
+      - Intimidation (SOCIAL)
+    description: |
+      Dreaded leaders whose names are spoken in fear across regions; their raids can shape the fate of entire provinces.
+
+  - name: Accord Inquisitor
+    category: Humanoid/Elite
+    threat_tier: elite  # Rare, hunts magic-users, can appear in any region.
+    primary_domains: [AUTHORITY, MIND, BODY]
+    weak_domains: [SPIRIT, SOCIAL]
+    resistant_domains: [AUTHORITY, MIND]
+    special_abilities:
+      - Detects magical auras and lies
+      - Can suppress spells or abilities temporarily
+      - Calls Accord reinforcements
+    typical_moves:
+      - Interrogate (MIND)
+      - Spell suppression (AUTHORITY)
+      - Sword strike (BODY)
+    description: |
+      Fanatical magical law enforcers, feared even by other Accord agents for their zeal and harsh methods.
+
+  - name: Legendary Outlaw King
+    category: Humanoid
+    threat_tier: legendary  # Unique, legendary bandit lord, unites all outlaws in a region.
+    primary_domains: [AUTHORITY, BODY, SOCIAL]
+    weak_domains: [LIGHT, SPIRIT]
+    resistant_domains: [BODY, AUTHORITY, SOCIAL]
+    special_abilities:
+      - Unites disparate bandit factions
+      - Escapes seemingly impossible odds
+      - Inspires terror (or hope) among the dispossessed
+    typical_moves:
+      - King’s rally (AUTHORITY)
+      - Daring escape (BODY)
+      - Legend’s speech (SOCIAL)
+    description: |
+      Fabled leader whose daring exploits and charisma have made them a folk hero or villain across the continent, a campaign-altering force if encountered.

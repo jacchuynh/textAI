@@ -1,0 +1,251 @@
+# Monster Threat Tier Comments for Balancing
+#
+# minion: Weak, common, often appear in groups. Designed to be easily defeated by a typical party or even solo adventurers. Good for swarms, distractions, or as fodder protecting stronger enemies.
+# standard: Average threat, reasonable challenge for a solo adventurer or small group. Most wilderness encounters, patrols, or minor predators fall into this tier.
+# elite: Stronger than standard, often requiring teamwork or tactics to overcome. May have unique abilities, resistances, or serve as "mini-bosses" in dungeons and special encounters.
+# boss: Major threat. Usually the centerpiece of a quest, dungeon, or region. Bosses should be rare, have advanced tactics, multiple phases, and can defeat unprepared or disorganized parties.
+# legendary: Unique, world-shaking threats. Their presence can alter the story, environment, or even politics of the world. Usually only one exists at a time. Defeating or encountering a legendary monster is a campaign-level event.
+
+monster_archetypes:
+  # 🌾 The Verdant Frontier (Expanded Minion and Standard Types)
+  - name: Vine Weasel
+    category: Beast
+    threat_tier: minion  # Common, weak, swarm behavior. Ideal as early game fodder or for ambushes.
+    primary_domains: [AWARENESS, CRAFT]
+    weak_domains: [BODY, SOCIAL]
+    resistant_domains: [MIND, SPIRIT]
+    special_abilities: 
+      - Entangling bite
+      - Rapid nest building
+      - Swarm tactics
+    typical_moves:
+      - Swarm rush (BODY)
+      - Entangle (CRAFT)
+    description: |
+      Agile rodent-like creatures that weave living nests, attacking in groups and overwhelming intruders with entangling vines.
+
+  - name: Willowhopper
+    category: Beast
+    threat_tier: minion  # Low-threat, fast, but not dangerous alone. Useful as nuisance, alarm, or distraction.
+    primary_domains: [BODY, AWARENESS]
+    weak_domains: [CRAFT, FIRE]
+    resistant_domains: [BODY]
+    special_abilities:
+      - High-speed hops
+      - Startle burst to scatter groups
+    typical_moves:
+      - Leaping kick (BODY)
+      - Scatter (AWARENESS)
+    description: |
+      Small, herbivorous beasts that can leap great distances to escape predators, sometimes stampeding in panic.
+
+  - name: Rootboar
+    category: Beast
+    threat_tier: minion  # Durable, but slow and predictable. Fodder for new adventurers.
+    primary_domains: [BODY, CRAFT]
+    weak_domains: [SPIRIT, SOCIAL]
+    resistant_domains: [BODY]
+    special_abilities:
+      - Digs up roots, disrupting terrain
+      - Short, aggressive charges
+    typical_moves:
+      - Root dig (CRAFT)
+      - Tusk ram (BODY)
+    description: |
+      Stocky boars that root up crops and charge intruders, sometimes creating hazardous ground.
+
+  - name: Howling Shrub
+    category: Magical
+    threat_tier: minion  # Annoying support minion, rarely dangerous alone. Pairs well with predators.
+    primary_domains: [SPIRIT, AWARENESS]
+    weak_domains: [FIRE, BODY]
+    resistant_domains: [DARKNESS, MIND]
+    special_abilities:
+      - Emits disorienting howls
+      - Can mask presence of other monsters
+    typical_moves:
+      - Howl (AWARENESS)
+      - Distract (SPIRIT)
+    description: |
+      Animated shrubs with a haunting howl, used by predators to disorient prey and mask their own approach.
+
+  - name: Thornmouse
+    category: Beast
+    threat_tier: minion  # Swarm minion. Threat comes from numbers, ambushes, or as a minor hazard.
+    primary_domains: [AWARENESS, CRAFT]
+    weak_domains: [BODY, FIRE]
+    resistant_domains: [DARKNESS]
+    special_abilities:
+      - Hides in thick thorns
+      - Quick, darting attacks
+    typical_moves:
+      - Nibble (BODY)
+      - Thorn dash (AWARENESS)
+    description: |
+      Tiny, spiky rodents that can slip through thorn hedges, biting at ankles and vanishing before retaliation.
+
+  - name: Seedbug Swarm
+    category: Beast
+    threat_tier: minion  # Environmental nuisance, rarely lethal but can be a resource drain.
+    primary_domains: [CRAFT, BODY]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [CRAFT]
+    special_abilities:
+      - Chews through wood and cloth
+      - Releases irritating pollen
+    typical_moves:
+      - Swarm bite (BODY)
+      - Pollen cloud (CRAFT)
+    description: |
+      Small insects that travel in swarms, devouring plant matter and filling the air with itchy pollen.
+
+  - name: Bloated Rootboar
+    category: Beast
+    threat_tier: minion  # Slightly more dangerous than typical minions due to poison burst.
+    primary_domains: [BODY, CRAFT]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [BODY]
+    special_abilities:
+      - Bloats with toxic roots, can explode on death
+      - Short, aggressive charges
+    typical_moves:
+      - Root dig (CRAFT)
+      - Tusk ram (BODY)
+      - Toxic burst (SPIRIT)
+    description: |
+      Swollen boars that root up toxic plants, sometimes bursting in a cloud of poison when killed.
+
+  - name: Flitting Gleambird
+    category: Beast/Magical
+    threat_tier: minion  # Harmless, but can disrupt spellcasting or vision. Good for non-combat or puzzle encounters.
+    primary_domains: [AWARENESS, SPIRIT]
+    weak_domains: [BODY, CRAFT]
+    resistant_domains: [DARKNESS]
+    special_abilities:
+      - Emits distracting flashes of light
+      - Quick aerial maneuvers
+    typical_moves:
+      - Flash swoop (SPIRIT)
+      - Peck (BODY)
+    description: |
+      Small, dazzling birds that flit through the air in flocks, their light a warning of predators nearby.
+
+  - name: Orchard Rat
+    category: Beast
+    threat_tier: minion  # Common pest. Best used in swarms or to threaten supplies/resources.
+    primary_domains: [CRAFT, BODY]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [BODY]
+    special_abilities:
+      - Gnaws on food stores
+      - Quick, coordinated attacks
+    typical_moves:
+      - Bite (BODY)
+      - Scurry (CRAFT)
+    description: |
+      Common pests in the farmlands, orchard rats are dangerous in numbers, often stealing crops and biting at exposed flesh.
+
+  - name: Grazing Mossback
+    category: Beast
+    threat_tier: standard  # Not aggressive, but dangerous if provoked or startled. 
+    primary_domains: [BODY, CRAFT]
+    weak_domains: [SPIRIT, FIRE]
+    resistant_domains: [BODY]
+    special_abilities:
+      - Thick mossy hide
+      - Slow, but dangerous if provoked
+    typical_moves:
+      - Stomp (BODY)
+      - Moss shake (CRAFT)
+    description: |
+      Large, docile herd beasts that defend themselves with powerful kicks and shakes that scatter attackers.
+
+  - name: Flowerfeather Hare
+    category: Beast/Magical
+    threat_tier: standard  # Tricky foe, hard to catch, but not lethal. Good for chase or magical trick encounters.
+    primary_domains: [AWARENESS, SPIRIT]
+    weak_domains: [BODY, CRAFT]
+    resistant_domains: [DARKNESS]
+    special_abilities:
+      - Can vanish in a burst of petals
+      - Confuses predators with illusion
+    typical_moves:
+      - Petal flash (SPIRIT)
+      - Kick (BODY)
+    description: |
+      Magical hares that are rarely seen twice, leaving only a cloud of petals behind.
+
+  - name: Bramble Fox
+    category: Beast
+    threat_tier: standard  # Evasive and clever, but beatable by a prepared party. 
+    primary_domains: [AWARENESS, CRAFT]
+    weak_domains: [BODY, SOCIAL]
+    resistant_domains: [MIND]
+    special_abilities:
+      - Lays hidden traps of thorns
+      - Agile and evasive
+    typical_moves:
+      - Quick bite (BODY)
+      - Ambush (AWARENESS)
+    description: |
+      Cunning foxes that set traps for prey and intruders, rarely fighting directly unless cornered.
+
+  - name: Packhunter Deer
+    category: Beast
+    threat_tier: standard  # Dangerous in packs, but not in isolation.
+    primary_domains: [BODY, AWARENESS]
+    weak_domains: [AUTHORITY, SOCIAL]
+    resistant_domains: [BODY]
+    special_abilities:
+      - Coordinated pack tactics
+      - Sudden charge
+    typical_moves:
+      - Flanking rush (BODY)
+      - Group feint (AWARENESS)
+    description: |
+      Social predators, these deer-like beasts hunt in packs, using coordination to bring down larger prey.
+
+  - name: Burrowbeast
+    category: Beast
+    threat_tier: standard  # Single threat, can catch players off-guard.
+    primary_domains: [BODY, CRAFT]
+    weak_domains: [SPIRIT, FIRE]
+    resistant_domains: [BODY, EARTH]
+    special_abilities:
+      - Subterranean movement
+      - Can collapse tunnels to trap foes
+    typical_moves:
+      - Dig and emerge (CRAFT)
+      - Tunnel collapse (BODY)
+    description: |
+      Massive, mole-like creatures that burrow through the earth, surfacing unexpectedly to attack.
+
+  - name: Overgrowth Stalker
+    category: Beast/Magical
+    threat_tier: standard  # Sneaky, but not strong. Good for ambushes or as stealth challenge.
+    primary_domains: [AWARENESS, SPIRIT]
+    weak_domains: [FIRE, SOCIAL]
+    resistant_domains: [BODY, DARKNESS]
+    special_abilities:
+      - Blends into magical undergrowth
+      - Can leap great distances
+    typical_moves:
+      - Pounce (BODY)
+      - Conceal (AWARENESS)
+    description: |
+      Predators that use magical camouflage, striking when least expected from the wildest thickets.
+
+  - name: Howling Shrub Alpha
+    category: Magical
+    threat_tier: standard  # Support monster, rarely alone. Boosts minions.
+    primary_domains: [SPIRIT, AUTHORITY]
+    weak_domains: [FIRE, BODY]
+    resistant_domains: [DARKNESS, MIND]
+    special_abilities:
+      - Controls lesser howling shrubs
+      - Disorients with cacophonous wails
+    typical_moves:
+      - Command howl (AUTHORITY)
+      - Shrub surge (SPIRIT)
+    description: |
+      The root of a howling shrub infestation, this larger, more intelligent plant can command its lesser kin.

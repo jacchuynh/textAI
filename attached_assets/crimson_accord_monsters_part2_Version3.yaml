@@ -1,0 +1,440 @@
+# Monster Threat Tier Comments for Balancing
+#
+# minion: Weak, common, appear in groups. Swarm/fodder/combat flavor.
+# standard: Moderate threat, mainstay encounter, solo or in packs.
+# elite: Strong, tactical, "mini-boss" feel. Requires teamwork.
+# boss: Major encounter, rare, story or dungeon centerpiece.
+# legendary: Unique, campaign-defining, only one at a time. World-altering.
+
+monster_archetypes:
+  # 🌿 The Shimmering Marshes
+  - name: Lightfrog
+    category: Beast/Magical
+    threat_tier: minion  # Harmless, environmental flavor, swarms can distract or support.
+    primary_domains: [AWARENESS, WATER]
+    weak_domains: [BODY, CRAFT]
+    resistant_domains: [DARKNESS]
+    special_abilities:
+      - Emits soft light
+      - Jumps long distances
+    typical_moves:
+      - Glow leap (AWARENESS)
+      - Swarm jump (WATER)
+    description: |
+      Small, luminous frogs that gather around ley pools, beloved by children and used as living lanterns.
+
+  - name: Lily Leaper
+    category: Beast
+    threat_tier: minion  # Quick, low-damage, used as a nuisance or to trigger traps/hazards.
+    primary_domains: [BODY, AWARENESS]
+    weak_domains: [FIRE, SOCIAL]
+    resistant_domains: [WATER]
+    special_abilities:
+      - Leaps between floating lilies
+      - Startles larger beasts
+    typical_moves:
+      - Jump attack (BODY)
+      - Evade (AWARENESS)
+    description: |
+      Small amphibians that dart across lily pads, startling intruders but rarely causing harm.
+
+  - name: Dragonfly Dog
+    category: Beast/Magical
+    threat_tier: minion  # Fast, distracting, harasses with group tactics.
+    primary_domains: [AWARENESS, CRAFT]
+    weak_domains: [BODY, FIRE]
+    resistant_domains: [WATER]
+    special_abilities:
+      - Flies short distances
+      - Annoying bite
+    typical_moves:
+      - Dive nip (AWARENESS)
+      - Swarm (CRAFT)
+    description: |
+      Canine-sized insects with iridescent wings, often kept as pets but form wild packs in the marsh.
+
+  - name: Marsh Slime
+    category: Aberration
+    threat_tier: minion  # Slow, weak, can split into more slimes. Good for attrition.
+    primary_domains: [BODY, WATER]
+    weak_domains: [FIRE, LIGHT]
+    resistant_domains: [WATER, DARKNESS]
+    special_abilities:
+      - Splits into smaller slimes when cut
+      - Absorbs weak attacks
+    typical_moves:
+      - Engulf (BODY)
+      - Split (WATER)
+    description: |
+      Oozing blobs that creep through the wetlands, dissolving anything left unattended.
+
+  - name: Plague Eel
+    category: Beast
+    threat_tier: minion  # Infectious bite, environmental threat to water crossings.
+    primary_domains: [BODY, SPIRIT]
+    weak_domains: [FIRE, LIGHT]
+    resistant_domains: [WATER, DARKNESS]
+    special_abilities:
+      - Infectious bite
+      - Burrows in mud
+    typical_moves:
+      - Bite (BODY)
+      - Mud hide (SPIRIT)
+    description: |
+      Diseased eels that transmit fevers, lurking in muddy pools waiting for prey.
+
+  - name: Glowspore Cloud
+    category: Magical
+    threat_tier: minion  # Area denial/fog effect, rarely lethal.
+    primary_domains: [SPIRIT, WATER]
+    weak_domains: [FIRE, BODY]
+    resistant_domains: [DARKNESS]
+    special_abilities:
+      - Creates glowing fog patches
+      - Can disorient or mildly poison
+    typical_moves:
+      - Spore release (SPIRIT)
+      - Drift (WATER)
+    description: |
+      Floating clusters of bioluminescent spores, beautiful but mildly toxic if inhaled.
+
+  - name: Mirepanther
+    category: Beast
+    threat_tier: standard  # Stealth ambusher, dangerous alone or in pairs.
+    primary_domains: [AWARENESS, BODY]
+    weak_domains: [AUTHORITY, SOCIAL]
+    resistant_domains: [MIND, SPIRIT]
+    special_abilities:
+      - Silent swimming and pouncing
+      - Can blend with marsh shadows
+    typical_moves:
+      - Shadow stalk (AWARENESS)
+      - Drag under (BODY)
+    description: |
+      Elusive, sleek predators that haunt bogs and canals, striking swiftly from murky waters.
+
+  - name: Swampback Croc
+    category: Beast
+    threat_tier: standard  # Durable, classic hazard for river crossings.
+    primary_domains: [BODY, WATER]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [BODY, WATER]
+    special_abilities:
+      - Death roll attack
+      - Can submerge for hours
+    typical_moves:
+      - Ambush lunge (BODY)
+      - Tail sweep (WATER)
+    description: |
+      Huge, mossy crocodiles that lurk at the edges of slow water, ready to snap up anything that moves.
+
+  - name: Mire Wisp
+    category: Magical
+    threat_tier: standard  # Trickster, lures adventurers into danger.
+    primary_domains: [SPIRIT, AWARENESS]
+    weak_domains: [BODY, CRAFT]
+    resistant_domains: [DARKNESS]
+    special_abilities:
+      - Lures travelers with glowing lights
+      - Can vanish into fog
+    typical_moves:
+      - Mesmerize (SPIRIT)
+      - Fade (AWARENESS)
+    description: |
+      Floating lights said to be the souls of the lost, leading wanderers into quicksand or monster lairs.
+
+  - name: Mireback Turtle
+    category: Beast
+    threat_tier: standard  # High defense, low offense; environmental obstacle.
+    primary_domains: [BODY, WATER]
+    weak_domains: [FIRE, MIND]
+    resistant_domains: [BODY, WATER]
+    special_abilities:
+      - Armored shell
+      - Can retract and block passage
+    typical_moves:
+      - Shell bash (BODY)
+      - Withstand (WATER)
+    description: |
+      Ancient turtles with mossy shells, often forming living islands in the deepest bogs.
+
+  - name: Slimeheart Ooze
+    category: Aberration/Magical
+    threat_tier: elite  # Splits on damage, can sap party resources.
+    primary_domains: [BODY, CRAFT]
+    weak_domains: [FIRE, SOCIAL]
+    resistant_domains: [WATER, BODY]
+    special_abilities:
+      - Absorbs physical attacks
+      - Splits into smaller oozes when damaged
+      - Sticky secretion saps strength
+    typical_moves:
+      - Engulf (BODY)
+      - Split and surround (CRAFT)
+      - Acidic dissolve (BODY)
+    description: |
+      Semi-sentient oozes that feed on magic and organic matter, often found in the deeper Shimmering Marshes.
+
+  - name: Swampback Croc Matriarch
+    category: Beast
+    threat_tier: elite  # Large, territorial, controls croc packs.
+    primary_domains: [BODY, WATER, AUTHORITY]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [BODY, WATER]
+    special_abilities:
+      - Commands other crocs
+      - Massive tail swipe
+    typical_moves:
+      - Command bellow (AUTHORITY)
+      - Crushing bite (BODY)
+    description: |
+      Matriarchs of the swampback crocs, these hulking beasts rule the marshes and are fiercely protective of their nests.
+
+  - name: Plague Eel Swarm
+    category: Beast
+    threat_tier: elite  # Infectious, area control, weak alone but deadly in numbers.
+    primary_domains: [BODY, WATER, SPIRIT]
+    weak_domains: [FIRE, LIGHT]
+    resistant_domains: [WATER, DARKNESS]
+    special_abilities:
+      - Infectious swarm bite
+      - Poisonous cloud if killed
+    typical_moves:
+      - Swarm surge (BODY)
+      - Cloud release (SPIRIT)
+    description: |
+      A writhing mass of plague eels, their collective movements can poison entire pools and drive out other monsters.
+
+  - name: Gloomshell Leviathan
+    category: Aberration
+    threat_tier: boss  # Major quest/dungeon boss, environmental changes with its presence.
+    primary_domains: [BODY, SPIRIT]
+    weak_domains: [LIGHT, FIRE]
+    resistant_domains: [WATER, DARKNESS]
+    special_abilities:
+      - Generates thick mists
+      - Immense strength
+      - Can swallow boats whole
+    typical_moves:
+      - Mist breath (SPIRIT)
+      - Shell slam (BODY)
+      - Whirlpool (WATER)
+    description: |
+      A gargantuan, ancient serpent whose shell pulses with ley magic, stirring only when the marsh is flooded by mana surges.
+
+  - name: Marsh Deeps Oracle
+    category: Magical
+    threat_tier: legendary  # Unique, mythic, can alter fate, controls marsh weather and tides.
+    primary_domains: [SPIRIT, WATER, MIND]
+    weak_domains: [FIRE, BODY]
+    resistant_domains: [DARKNESS, WATER]
+    special_abilities:
+      - Alters probability of events in the region
+      - Commands the weather
+      - Foretells doom
+    typical_moves:
+      - Prophecy (MIND)
+      - Stormcall (WATER)
+    description: |
+      The mythical mind of the marsh, said to be a living memory of the leyline, able to change the fate of entire expeditions.
+
+  # ⛰️ The Crystal Highlands
+  - name: Echo Wasp
+    category: Beast/Magical
+    threat_tier: minion  # Swarm minion, can harass or distract, rarely lethal alone.
+    primary_domains: [AWARENESS, SOCIAL]
+    weak_domains: [CRAFT, FIRE]
+    resistant_domains: [BODY, SOUND]
+    special_abilities:
+      - Mimics sounds
+      - Paralyzing sting
+      - Hive mind
+    typical_moves:
+      - Sonic mimicry (AWARENESS)
+      - Swarm surround (SOCIAL)
+    description: |
+      Crystal-bodied wasps that communicate through echoes and can overwhelm much larger foes by acting as one.
+
+  - name: Tunnel Mole
+    category: Beast
+    threat_tier: minion  # Weak, but can create hazards (cave-ins, traps).
+    primary_domains: [CRAFT, BODY]
+    weak_domains: [FIRE, SOCIAL]
+    resistant_domains: [EARTH]
+    special_abilities:
+      - Rapid digging
+      - Weakens rock structures
+    typical_moves:
+      - Tunnel (CRAFT)
+      - Bite (BODY)
+    description: |
+      Blind rodents that dig extensive tunnels, sometimes causing landslides or undermining explorers.
+
+  - name: Glidehorn Sheep
+    category: Beast
+    threat_tier: minion  # Harmless, environmental flavor, can stampede.
+    primary_domains: [BODY, AWARENESS]
+    weak_domains: [FIRE, CRAFT]
+    resistant_domains: [BODY]
+    special_abilities:
+      - Short gliding leaps
+      - High-altitude adaptation
+    typical_moves:
+      - Leap (BODY)
+      - Herd stampede (AWARENESS)
+    description: |
+      Fuzzy sheep adapted to the high cliffs, able to glide short distances to escape predators.
+
+  - name: Cliffcat
+    category: Beast
+    threat_tier: minion  # Sneaky, minor threat, strikes from above.
+    primary_domains: [AWARENESS, BODY]
+    weak_domains: [SOCIAL, SPIRIT]
+    resistant_domains: [BODY]
+    special_abilities:
+      - Climbing and leaping across cliffs
+      - Stealth attacks from above
+    typical_moves:
+      - Pounce (BODY)
+      - Cliff ambush (AWARENESS)
+    description: |
+      Agile feline predators that rule the rocky outcrops, striking quickly and vanishing just as fast.
+
+  - name: Rock Lizard
+    category: Beast
+    threat_tier: minion  # Environmental flavor, can be used for hazards or low-level encounters.
+    primary_domains: [BODY, CRAFT]
+    weak_domains: [FIRE, SPIRIT]
+    resistant_domains: [EARTH]
+    special_abilities:
+      - Camouflages among rocks
+      - Eats crystal growths
+    typical_moves:
+      - Scuttle (CRAFT)
+      - Bite (BODY)
+    description: |
+      Small lizards that blend into the stony landscape, feeding on crystal formations.
+
+  - name: Quakebeast Pup
+    category: Beast
+    threat_tier: minion  # Minor hazard, can grow into a major threat if left unchecked.
+    primary_domains: [BODY, EARTH]
+    weak_domains: [MIND, LIGHT]
+    resistant_domains: [BODY, EARTH]
+    special_abilities:
+      - Small ground tremor
+      - Thick hide
+    typical_moves:
+      - Stomp (BODY)
+      - Quake (EARTH)
+    description: |
+      Juvenile quakebeasts that shake the ground with every step, warning of larger threats nearby.
+
+  - name: Echo Wasp Matron
+    category: Beast/Magical
+    threat_tier: standard  # Controls swarms, dangerous if unchallenged.
+    primary_domains: [AWARENESS, SOCIAL, AUTHORITY]
+    weak_domains: [FIRE, CRAFT]
+    resistant_domains: [BODY, SOUND]
+    special_abilities:
+      - Controls nearby wasp swarms
+      - Amplifies sound attacks
+    typical_moves:
+      - Sonic burst (AUTHORITY)
+      - Swarm command (SOCIAL)
+    description: |
+      The hive leader of echo wasps, able to direct swarms and unleash ear-splitting attacks.
+
+  - name: Tunnel Mole King
+    category: Beast
+    threat_tier: standard  # Environmental hazard, can create sudden cave-ins or block passages.
+    primary_domains: [CRAFT, BODY, AUTHORITY]
+    weak_domains: [FIRE, SOCIAL]
+    resistant_domains: [EARTH]
+    special_abilities:
+      - Causes large-scale tunnel collapses
+      - Gathers mole swarms
+    typical_moves:
+      - Collapse (CRAFT)
+      - Summon (AUTHORITY)
+    description: |
+      The massive leader of tunnel moles, whose digging can alter entire cave systems.
+
+  - name: Aerocrab
+    category: Beast/Magical
+    threat_tier: standard  # Climbs and drops rocks, can cause rockfalls.
+    primary_domains: [BODY, AWARENESS]
+    weak_domains: [FIRE, SOCIAL]
+    resistant_domains: [BODY]
+    special_abilities:
+      - Clings to cliffs
+      - Drops rocks from above
+    typical_moves:
+      - Boulder drop (BODY)
+      - Scuttle (AWARENESS)
+    description: |
+      Crabs that cling to high cliffs, dropping stones on unsuspecting climbers.
+
+  - name: Quakebeast
+    category: Beast
+    threat_tier: elite  # Major hazard, causes terrain changes and damage.
+    primary_domains: [BODY, EARTH, AWARENESS]
+    weak_domains: [MIND, LIGHT]
+    resistant_domains: [BODY, EARTH]
+    special_abilities:
+      - Can cause minor tremors
+      - Armored hide
+    typical_moves:
+      - Tremor stomp (BODY)
+      - Boulder toss (EARTH)
+    description: |
+      Massive, slow-moving beasts with rock-like skin, their steps shake the ground and dislodge unwary climbers.
+
+  - name: Sonic Raptor
+    category: Beast/Magical
+    threat_tier: elite  # Fast, sound-based attacks, packs can wipe out parties.
+    primary_domains: [BODY, SOUND, AWARENESS]
+    weak_domains: [MIND, LIGHT]
+    resistant_domains: [BODY, SOUND]
+    special_abilities:
+      - Sonic scream attack
+      - Disorients with high-pitched calls
+    typical_moves:
+      - Sonic scream (SOUND)
+      - Swift strike (BODY)
+    description: |
+      Raptors whose screeches can shatter crystal, moving in coordinated packs among the spires.
+
+  - name: Choral Maelgorn
+    category: Beast/Magical
+    threat_tier: boss  # Controls other flying creatures, area-wide sound effects.
+    primary_domains: [AUTHORITY, BODY, AWARENESS]
+    weak_domains: [MIND, SPIRIT]
+    resistant_domains: [SOUND, BODY]
+    special_abilities:
+      - Resonant roar shakes cliffs and stuns foes
+      - Commands flocks of smaller creatures
+      - Can manipulate wind currents
+    typical_moves:
+      - Sonic blast (AUTHORITY)
+      - Flock call (summon)
+      - Aerial charge (BODY)
+    description: |
+      A mountain-spanning avian beast whose voice can bring avalanches or rally entire flocks, revered and feared by highlander clans.
+
+  - name: Skyglass Roc
+    category: Beast/Elemental
+    threat_tier: legendary  # Unique, world event, can cause storms and block out the sun.
+    primary_domains: [BODY, WIND, AUTHORITY]
+    weak_domains: [EARTH, MIND]
+    resistant_domains: [WIND, BODY]
+    special_abilities:
+      - Can shatter crystal with its cry
+      - Causes storms when it flies
+    typical_moves:
+      - Thunderclap wingbeat (WIND)
+      - Shattering screech (AUTHORITY)
+    description: |
+      A titanic bird of legend, seen only during the wildest storms, whose wings can block out the sun.
+
+# (Continue with Whispering Woods and Frostbound Tundra in further sections if you like this approach)
