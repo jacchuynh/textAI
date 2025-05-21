@@ -1,255 +1,66 @@
-# Monster Threat Tier Comments for Balancing
-#
-# minion: Weak, common, often appear in groups. Designed to be easily defeated by a typical party or even solo adventurers. Good for swarms, distractions, or as fodder protecting stronger enemies.
-# standard: Average threat, reasonable challenge for a solo adventurer or small group. Most wilderness encounters, patrols, or minor predators fall into this tier.
-# elite: Stronger than standard, often requiring teamwork or tactics to overcome. May have unique abilities, resistances, or serve as "mini-bosses" in dungeons and special encounters.
-# boss: Major threat. Usually the centerpiece of a quest, dungeon, or region. Bosses should be rare, have advanced tactics, multiple phases, and can defeat unprepared or disorganized parties.
-# legendary: Unique, world-shaking threats. Their presence can alter the story, environment, or even politics of the world. Usually only one exists at a time. Defeating or encountering a legendary monster is a campaign-level event.
-
 monster_archetypes:
-  # 🔥 The Ember Wastes (Expanded Minion and Standard Types)
-  - name: Ember Goat
-    category: Beast
-    threat_tier: minion  # Weak, but fast, and can be used in numbers or for environmental hazards.
-    primary_domains: [BODY, CRAFT]
-    weak_domains: [WATER, MIND]
-    resistant_domains: [FIRE]
-    special_abilities:
-      - Heat-resistant hide
-      - Can cause minor fires when startled
-    typical_moves:
-      - Headbutt (BODY)
-      - Stampede (CRAFT)
-    description: |
-      Hardy livestock in the Ember Wastes, known for their fiery tempers and ability to survive near active vents.
-
-  - name: Spinesnake
-    category: Beast
-    threat_tier: minion  # Low HP, but dangerous in swarms or as surprise attackers.
-    primary_domains: [AWARENESS, BODY]
-    weak_domains: [CRAFT, ICE]
-    resistant_domains: [FIRE, BODY]
-    special_abilities:
-      - Quick reflexes
-      - Spiny scales inflict bleeding
-    typical_moves:
-      - Snap bite (BODY)
-      - Spine flick (AWARENESS)
-    description: |
-      Slender, quick snakes that blend with the ashy soil, their bites and spines both dangerous.
-
-  - name: Heatcrab
-    category: Beast
-    threat_tier: minion  # Swarm minion, rarely lethal unless in great numbers.
-    primary_domains: [CRAFT, BODY]
-    weak_domains: [WATER, ICE]
-    resistant_domains: [FIRE]
-    special_abilities:
-      - Absorbs ambient heat
-      - Can burrow quickly into hot sand
-    typical_moves:
-      - Sand dig (CRAFT)
-      - Pincer snap (BODY)
-    description: |
-      Tiny crustaceans that swarm in numbers, their shells radiating warmth even at night.
-
-  - name: Ember Vole
-    category: Beast
-    threat_tier: minion  # Fast, weak, and good for flavor or nuisance.
-    primary_domains: [BODY, AWARENESS]
-    weak_domains: [WATER, MIND]
-    resistant_domains: [FIRE]
-    special_abilities:
-      - Digs shallow burrows in hot sand
-      - Fast, erratic movement
-    typical_moves:
-      - Dash (AWARENESS)
-      - Nibble (BODY)
-    description: |
-      Small rodents that thrive in scorched fields, often preying on insects and seeds.
-
-  - name: Sun Mirage Lizard
-    category: Beast/Magical
-    threat_tier: minion  # Difficult to target directly, but not dangerous alone.
-    primary_domains: [AWARENESS, SPIRIT]
-    weak_domains: [WATER, CRAFT]
-    resistant_domains: [FIRE, LIGHT]
-    special_abilities:
-      - Reflects sunlight to create illusions
-      - Can vanish from sight in heat
-    typical_moves:
-      - Mirage flash (SPIRIT)
-      - Quick bite (BODY)
-    description: |
-      Lizard-like creatures that flicker in the sun, sometimes appearing as multiple foes.
-
-  - name: Ash Beetle
-    category: Beast
-    threat_tier: minion  # Small, harmless unless roused in numbers.
-    primary_domains: [CRAFT, BODY]
-    weak_domains: [WATER, MIND]
-    resistant_domains: [FIRE]
-    special_abilities:
-      - Eats charred wood, can tunnel through debris
-      - Emits foul odor when crushed
-    typical_moves:
-      - Scramble (CRAFT)
-      - Swarm (BODY)
-    description: |
-      Insects that thrive in ash and debris, often found cleaning up after wildfires.
-
-  - name: Bright Beetle
-    category: Beast/Magical
-    threat_tier: minion  # Typically harmless, but can blind or attract more dangerous foes.
-    primary_domains: [SPIRIT, CRAFT]
-    weak_domains: [WATER, MIND]
-    resistant_domains: [FIRE, LIGHT]
-    special_abilities:
-      - Glows brightly
-      - Can emit blinding flash if threatened
-    typical_moves:
-      - Flash (SPIRIT)
-      - Scatter (CRAFT)
-    description: |
-      Beetles with naturally glowing bodies, sometimes used as emergency lamps by travelers.
-
-  - name: Scorchfin
-    category: Beast
-    threat_tier: minion  # Very weak outside of water, but can make water hazardous.
-    primary_domains: [BODY, WATER]
-    weak_domains: [ICE, CRAFT]
-    resistant_domains: [FIRE]
-    special_abilities:
-      - Heats water around it
-      - Can cause minor burns with touch
-    typical_moves:
-      - Fin slash (BODY)
-      - Heat surge (WATER)
-    description: |
-      Fish found in hot springs, their fins trailing steam as they heat the water around them.
-
-  - name: Ashstorm Raptor
-    category: Beast
-    threat_tier: standard  # Good single threat, uses environment to advantage.
-    primary_domains: [BODY, AWARENESS]
-    weak_domains: [WATER, MIND]
-    resistant_domains: [FIRE, WIND]
-    special_abilities:
-      - Creates small ash clouds when moving
-      - Sharp talons and keen vision
-    typical_moves:
-      - Dive attack (BODY)
-      - Ash cloud (AWARENESS)
-    description: |
-      Birds of prey that use ash storms for cover, diving suddenly from obscured skies.
-
-  - name: Flameback Lizard
-    category: Beast/Magical
-    threat_tier: standard  # Moderate threat with area-denial abilities.
-    primary_domains: [BODY, FIRE]
-    weak_domains: [WATER, MIND]
-    resistant_domains: [FIRE, BODY]
-    special_abilities:
-      - Ignites when threatened
-      - Can leave trails of fire
-    typical_moves:
-      - Flame burst (FIRE)
-      - Tail whip (BODY)
-    description: |
-      Territorial lizards with flaming spines that ignite when threatened, often marking territory with fire trails.
-
-  - name: Smokestrider
-    category: Beast/Magical
-    threat_tier: standard  # Hit-and-run ambusher, difficult to track.
-    primary_domains: [AWARENESS, SPIRIT]
-    weak_domains: [WATER, MIND]
-    resistant_domains: [FIRE, AIR]
-    special_abilities:
-      - Can turn partially into smoke
-      - Quick strikes from concealment
-    typical_moves:
-      - Smoke fade (SPIRIT)
-      - Ambush (AWARENESS)
-    description: |
-      Wolf-like predators that can partially dissolve into smoke, making them nearly impossible to track.
-
-  - name: Magma Crab
-    category: Beast/Magical
-    threat_tier: standard  # Tank/area control, slow but dangerous up close.
-    primary_domains: [BODY, CRAFT]
-    weak_domains: [WATER, MIND]
-    resistant_domains: [FIRE, EARTH]
-    special_abilities:
-      - Heat-resistant shell
-      - Spits molten rock
-    typical_moves:
-      - Magma spit (CRAFT)
-      - Pincer crush (BODY)
-    description: |
-      Heavy crustaceans with molten interiors, leaving glowing footprints as they patrol for prey.
-
   - name: Cinderwolf
-    category: Beast/Magical
-    threat_tier: standard  # Pack predator, uses coordinated fire tactics.
-    primary_domains: [BODY, FIRE]
-    weak_domains: [WATER, CRAFT]
-    resistant_domains: [FIRE, BODY]
-    special_abilities:
-      - Pack hunting tactics
-      - Ignites footsteps when running
-    typical_moves:
-      - Fire trail (FIRE)
-      - Coordinated bite (BODY)
-    description: |
-      Canines with embers for fur, hunting in packs and surrounding prey with rings of fire.
-
-  - name: Emberscale Serpent
-    category: Beast/Magical
-    threat_tier: elite  # Major single threat, area control, can split battlefield with fire.
-    primary_domains: [BODY, FIRE, CRAFT]
-    weak_domains: [ICE, WATER]
+    description: A wolf-like predator with fur that glows like embers. It leaves small flames in its footprints and hunts in packs.
+    category: Beast
+    threat_tier: STANDARD
+    primary_domains: [BODY, FIRE, AWARENESS]
+    weak_domains: [WATER, MIND]
     resistant_domains: [FIRE, EARTH]
-    special_abilities:
-      - Creates walls of flame
-      - Molten blood burns attackers
-      - Ignites nearby combustibles
     typical_moves:
-      - Fire wall (FIRE)
-      - Constrict (BODY)
-      - Ember spray (CRAFT)
-    description: |
-      Massive serpents whose scales constantly shed embers, igniting everything in their path as they slither through the wastes.
+      - Ember Bite (FIRE)
+      - Pack Hunt (BODY)
+      - Heat Sense (AWARENESS)
+    special_abilities:
+      - Fire Trail - Leaves a trail of fire when running at full speed
+      - Thermal Vision - Can see heat signatures through walls and cover
+      - Burning Howl - Its howl can cause small combustible items to ignite
 
-  - name: Magma Titan
+  - name: Flameshell Tortoise
+    description: A large tortoise with a shell made of hardened volcanic rock. Cracks in its shell reveal the molten core within.
+    category: Beast
+    threat_tier: ELITE
+    primary_domains: [EARTH, FIRE, BODY]
+    weak_domains: [WATER, AWARENESS]
+    resistant_domains: [FIRE, EARTH]
+    typical_moves:
+      - Magma Shell (EARTH)
+      - Flame Breath (FIRE)
+      - Shell Slam (BODY)
+    special_abilities:
+      - Molten Core - When injured, releases gouts of lava
+      - Heat Wave - Can drastically increase the temperature around it
+      - Volcanic Shield - Shell can withstand extreme heat and pressure
+
+  - name: Ashweaver
+    description: A slender humanoid figure composed of dancing ash and embers. It floats just above the ground and can reshape its form.
     category: Elemental
-    threat_tier: boss  # Major encounter, can reshape battlefield with lava flows.
-    primary_domains: [BODY, FIRE, EARTH]
-    weak_domains: [WATER, ICE]
-    resistant_domains: [FIRE, BODY, EARTH]
-    special_abilities:
-      - Creates lava pools
-      - Molten form regenerates damage
-      - Can hurl liquid rock
-    typical_moves:
-      - Magma surge (FIRE)
-      - Crushing blow (BODY)
-      - Ground rupture (EARTH)
-    description: |
-      Living formations of magma and stone, these titans erupt from the deepest fissures during times of volcanic activity.
-
-  - name: Ashstorm Lord
-    category: Elemental/Magical
-    threat_tier: legendary  # Unique, alters entire region's weather, campaign-level threat.
-    primary_domains: [SPIRIT, FIRE, WIND]
+    threat_tier: ELITE
+    primary_domains: [FIRE, AIR, SPIRIT]
     weak_domains: [WATER, EARTH]
-    resistant_domains: [FIRE, WIND, SPIRIT]
-    special_abilities:
-      - Controls regional weather patterns
-      - Can appear anywhere ash falls
-      - Creates devastating fire tornados
+    resistant_domains: [FIRE, AIR, DARKNESS]
     typical_moves:
-      - Ash hurricane (WIND)
-      - Mind of flame (SPIRIT)
-      - Burning judgment (FIRE)
-    description: |
-      A sentient storm of ash and flame, said to be the collective rage of a forest consumed by fire in ancient times.
+      - Ash Cloud (AIR)
+      - Ember Strike (FIRE)
+      - Spirit Scorch (SPIRIT)
+    special_abilities:
+      - Smoke Form - Can transform into smoke to avoid physical attacks
+      - Ember Swarm - Creates a swarm of tiny embers that burn enemies
+      - Ashen Memory - Can show visions of past fires by manipulating ash
+
+  - name: Molten Monarch
+    description: A massive creature composed of flowing magma with a crown-like formation of obsidian. It rules over the most dangerous volcanic regions.
+    category: Elemental
+    threat_tier: BOSS
+    primary_domains: [FIRE, EARTH, AUTHORITY]
+    weak_domains: [WATER, AIR]
+    resistant_domains: [FIRE, EARTH, BODY]
+    typical_moves:
+      - Magma Surge (FIRE)
+      - Tectonic Shift (EARTH)
+      - Royal Command (AUTHORITY)
+      - Obsidian Spikes (EARTH)
+    special_abilities:
+      - Volcanic Eruption - Can cause small-scale eruptions
+      - Heat Dominion - Can control the intensity of any flame in the area
+      - Magma Minions - Can create lesser elemental servants from its own body
+      - Obsidian Armor - Can harden its outer layer into impenetrable obsidian
