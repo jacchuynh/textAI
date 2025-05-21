@@ -1,0 +1,138 @@
+# Cross-Region Monsters for Crimson Accord
+# These monsters may appear in multiple wilderness regions, migrate with seasons, or be summoned by special events.
+# Their presence adds unpredictability and unique challenges to any region.
+
+monster_archetypes:
+  - name: Ley-Touched Revenant
+    category: Undead/Magical
+    threat_tier: standard  # Uncommon but not unique; can appear anywhere ley surges occurred.
+    primary_domains: [SPIRIT, BODY]
+    weak_domains: [LIGHT, AUTHORITY]
+    resistant_domains: [DARKNESS, BODY]
+    special_abilities:
+      - Draws power from local ley surges
+      - Regenerates in magical storms
+      - Can sense living mana users
+    typical_moves:
+      - Spirit lash (SPIRIT)
+      - Drain vitality (BODY)
+      - Phase shift (AWARENESS)
+    description: |
+      Once-mortal wanderers reanimated by wild ley energy, often seeking out places of conflict or mana storms.
+
+  - name: Crimson Swarm
+    category: Aberration
+    threat_tier: minion  # Swarm minion, can appear almost anywhere in great numbers.
+    primary_domains: [BODY, DARKNESS]
+    weak_domains: [LIGHT, FIRE]
+    resistant_domains: [BODY, DARKNESS]
+    special_abilities:
+      - Overwhelms with sheer numbers
+      - Can merge into larger forms
+      - Resistant to fear effects
+    typical_moves:
+      - Swarm overwhelm (BODY)
+      - Merge (BODY)
+    description: |
+      Blood-red insectoid swarms rumored to be a legacy of the Dissonance, spreading wherever corruption or decay is strong.
+
+  - name: Dissonant Wraith
+    category: Undead/Magical
+    threat_tier: elite  # Dangerous, rare, especially during ley storms or in ruined battlefields.
+    primary_domains: [SPIRIT, DARKNESS]
+    weak_domains: [LIGHT, AUTHORITY]
+    resistant_domains: [DARKNESS, BODY, MIND]
+    special_abilities:
+      - Invokes terror in the living
+      - Can slip through walls and barriers
+      - Drains energy from magical items
+    typical_moves:
+      - Wail of despair (SPIRIT)
+      - Shadow pass (DARKNESS)
+      - Siphon magic (SPIRIT)
+    description: |
+      Echoes of the ancient war, these spectral horrors manifest in any region scarred by violence or wild magic.
+
+  - name: Relic Hunter Golem
+    category: Construct/Magical
+    threat_tier: standard  # Sent by relic guilds, can appear anywhere artifact activity is detected.
+    primary_domains: [BODY, CRAFT]
+    weak_domains: [SPIRIT, LIGHT]
+    resistant_domains: [BODY, EARTH]
+    special_abilities:
+      - Can sense hidden relics
+      - Repairs itself using local materials
+      - Immune to mind effects
+    typical_moves:
+      - Slam (BODY)
+      - Seize artifact (CRAFT)
+      - Repair (BODY)
+    description: |
+      Animated constructs dispatched to reclaim or guard dangerous artifacts, sometimes malfunctioning and turning hostile to all.
+
+  - name: Skyshadow Roc
+    category: Beast/Magical
+    threat_tier: boss  # Rare, migratory, can trigger regional events if sighted.
+    primary_domains: [BODY, WIND, AWARENESS]
+    weak_domains: [EARTH, CRAFT]
+    resistant_domains: [WIND, BODY]
+    special_abilities:
+      - Casts vast shadows that disorient or frighten
+      - Travels between regions on seasonal winds
+      - Can summon storms in flight
+    typical_moves:
+      - Shadow dive (BODY)
+      - Storm call (WIND)
+      - Terrifying screech (AWARENESS)
+    description: |
+      Enormous, dark-plumed birds that migrate across the continent, their presence marking omens or great change in local folklore.
+
+  - name: Pactbound Shade
+    category: Spirit/Undead
+    threat_tier: standard  # Haunts ancient ruins, crossroads, or places of broken oaths.
+    primary_domains: [SPIRIT, MIND]
+    weak_domains: [LIGHT, AUTHORITY]
+    resistant_domains: [DARKNESS, SPIRIT]
+    special_abilities:
+      - Possesses the weak-willed
+      - Can sense broken promises or oaths
+      - Vanishes in moonlight
+    typical_moves:
+      - Possess (MIND)
+      - Whisper curse (SPIRIT)
+    description: |
+      Shadows of those who broke sacred vows, these spirits appear in any region where promises are made—and broken.
+
+  - name: Crimson Accord Peacekeeper (Rogue)
+    category: Humanoid/Elite
+    threat_tier: elite  # Rare, only when Accord enforcement goes rogue or is magically subverted.
+    primary_domains: [BODY, AUTHORITY, CRAFT]
+    weak_domains: [SPIRIT, SOCIAL]
+    resistant_domains: [BODY, AUTHORITY]
+    special_abilities:
+      - Wields enchanted arms and armor
+      - Can call for reinforcements via magical signal
+      - Highly disciplined tactics
+    typical_moves:
+      - Tactical strike (BODY)
+      - Command (AUTHORITY)
+      - Defensive formation (CRAFT)
+    description: |
+      Normally protectors of civilization, rogue peacekeepers are a dire threat anywhere, using advanced tactics and Accord weaponry.
+
+  - name: Wyrm of the Shifting Veil
+    category: Legendary Beast/Magical
+    threat_tier: legendary  # Unique, can move between regions via leylines, reshapes the wilds it passes through.
+    primary_domains: [BODY, SPIRIT, AWARENESS]
+    weak_domains: [LIGHT, MIND]
+    resistant_domains: [BODY, DARKNESS, SPIRIT]
+    special_abilities:
+      - Can tunnel through both earth and ley currents
+      - Alters terrain and weather as it passes
+      - Can vanish and reappear in any region
+    typical_moves:
+      - Veil shift (AWARENESS)
+      - Cataclysmic roar (BODY)
+      - Ley surge (SPIRIT)
+    description: |
+      A mythic serpent said to weave the fate of the wilds, its passage marks the rise and fall of entire regions.
