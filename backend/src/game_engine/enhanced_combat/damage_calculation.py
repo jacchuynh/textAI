@@ -4,10 +4,9 @@ Enhanced damage calculation for combat system.
 This module provides more nuanced damage calculations that account for
 momentum, status effects, environment, and other combat factors.
 """
-from typing import Dict, List, Tuple, Any, Optional
-import random
+from typing import Dict, List, Any, Tuple, Optional
 
-from .combat_system_core import Domain, Status, MoveType, Combatant, CombatMove
+from .combat_system_core import Combatant, CombatMove, Status, MoveType, Domain
 
 
 def calculate_damage(
@@ -20,9 +19,9 @@ def calculate_damage(
     actor_success: bool,           # Whether actor succeeded with their move
     effect_magnitude: int,         # Base magnitude of the effect
     type_advantage: int,           # Move type advantage factor
-    actor_momentum: int,           # Actor's momentum
-    target_momentum: int,          # Target's momentum
-    environment_tags: List[str]    # Current environment tags
+    actor_momentum: int = 0,       # Actor's momentum
+    target_momentum: int = 0,      # Target's momentum
+    environment_tags: List[str] = None   # Current environment tags
 ) -> Tuple[int, List[str]]:
     """
     Comprehensive damage calculation that accounts for all combat factors.
@@ -48,6 +47,8 @@ def calculate_damage(
     if not actor_success:
         return 0, []  # No damage on failure
     
+    environment_tags = environment_tags or []
+    
     # Start with base damage from effect magnitude
     base_damage = effect_magnitude
     
@@ -62,7 +63,7 @@ def calculate_damage(
     domain_modifier = 1.0
     for domain in actor_move.domains:
         # Increase damage based on actor's skill in the domain
-        domain_rating = actor.domain_ratings.get(domain, 1)
+        domain_rating = actor.domain_ratings.get(domain.value, 1)
         domain_modifier += (domain_rating - 1) * 0.1  # +10% per point above 1
         
         # Check if targeting a weakness
@@ -80,40 +81,54 @@ def calculate_damage(
     special_effects = []
     
     # Actor status effects that boost damage
-    if Status.INSPIRED in actor.statuses:
-        status_modifier += 0.15  # +15% damage
+    if hasattr(actor, 'statuses'):
+        if Status.ENERGIZED in actor.statuses:
+            status_modifier += 0.2  # +20% damage
+        if Status.FOCUSED in actor.statuses:
+            status_modifier += 0.1  # +10% damage
+        if Status.INSPIRED in actor.statuses:
+            status_modifier += 0.15  # +15% damage
     
     # Target status effects that increase damage taken
-    if Status.WOUNDED in target.statuses:
-        status_modifier += 0.2  # +20% damage
-    if Status.STUNNED in target.statuses:
-        status_modifier += 0.1  # +10% damage
+    if hasattr(target, 'statuses'):
+        if Status.VULNERABLE in target.statuses:
+            status_modifier += 0.3  # +30% damage
+        if Status.WEAKENED in target.statuses:
+            status_modifier += 0.2  # +20% damage
+        if Status.BURNING in target.statuses and Domain.WATER in actor_move.domains:
+            status_modifier += 0.4  # +40% damage for water vs burning
+            special_effects.append("EXTINGUISH")  # Add special effect to remove burning
     
     # Target status effects that reduce damage taken
-    if Status.FRIGHTENED in actor.statuses:
-        status_modifier -= 0.1  # -10% damage
+    if hasattr(target, 'statuses'):
+        if Status.PROTECTED in target.statuses:
+            status_modifier -= 0.3  # -30% damage
+        if Status.FORTIFIED in target.statuses:
+            status_modifier -= 0.2  # -20% damage
     
     # Environmental modifiers
     environment_modifier = 1.0
     for tag in environment_tags:
         # Domain-specific environment bonuses
-        if tag.lower() == "water" and Domain.BODY in actor_move.domains:
-            environment_modifier += 0.1  # +10% for body moves in water
-        elif tag.lower() == "darkness" and Domain.AWARENESS in actor_move.domains:
-            environment_modifier += 0.2  # +20% for awareness moves in darkness
+        if tag == "flooded" and Domain.WATER in actor_move.domains:
+            environment_modifier += 0.2  # +20% for water moves in flooded environment
+        elif tag == "electrified" and Domain.SPARK in actor_move.domains:
+            environment_modifier += 0.3  # +30% for spark moves in electrified environment
+        elif tag == "windy" and Domain.AIR in actor_move.domains:
+            environment_modifier += 0.2  # +20% for air moves in windy environment
         
         # Move type environmental bonuses
-        if tag.lower() == "unstable ground" and actor_move.move_type == MoveType.TRICK:
-            environment_modifier += 0.15  # +15% for trick moves on unstable ground
-        elif tag.lower() == "confined space" and actor_move.move_type == MoveType.FORCE:
+        if tag == "chaotic" and actor_move.move_type == MoveType.TRICK:
+            environment_modifier += 0.15  # +15% for trick moves in chaotic environment
+        elif tag == "confined" and actor_move.move_type == MoveType.FORCE:
             environment_modifier += 0.1  # +10% for force moves in confined spaces
     
     # Special modifiers for calculated and desperate moves
     special_modifier = 1.0
-    if actor_move.is_calculated:
+    if hasattr(actor_move, 'is_calculated') and actor_move.is_calculated:
         # Calculated moves do less damage but are more reliable
         special_modifier = 0.8
-    elif actor_move.is_desperate:
+    elif hasattr(actor_move, 'is_desperate') and actor_move.is_desperate:
         # Desperate moves do more damage but are risky
         special_modifier = 1.5
     
@@ -178,52 +193,64 @@ def apply_damage_and_effects(
     for effect in special_effects:
         if effect == "CRITICAL":
             applied_effects.append("Critical hit")
-            # Add wounded status on critical hit if not already present
-            if Status.WOUNDED not in target.statuses:
-                target.statuses.add(Status.WOUNDED)
-                applied_effects.append("Target wounded")
+            # Add vulnerable status on critical hit
+            if hasattr(target, 'statuses') and Status.VULNERABLE not in target.statuses:
+                target.statuses.append(Status.VULNERABLE)
+                applied_effects.append("Target vulnerable")
+        
+        elif effect == "EXTINGUISH":
+            if hasattr(target, 'statuses') and Status.BURNING in target.statuses:
+                target.statuses.remove(Status.BURNING)
+                removed_effects.append("Burning removed")
     
     # Apply move-specific status effects based on move type and domains
-    if actor_move.move_type == MoveType.FORCE and damage >= 5:
-        # Strong force moves can stun
-        if Status.STUNNED not in target.statuses:
-            target.statuses.add(Status.STUNNED)
-            applied_effects.append("Target stunned")
-    
-    elif actor_move.move_type == MoveType.TRICK and actor_move.is_calculated:
-        # Calculated trick moves can confuse
-        if Status.CONFUSED not in target.statuses:
-            target.statuses.add(Status.CONFUSED)
-            applied_effects.append("Target confused")
-    
-    # Domain-specific effects
-    for domain in actor_move.domains:
-        if domain == Domain.SPIRIT and damage >= 3:
-            # Spirit moves can cause frightened
-            if Status.FRIGHTENED not in target.statuses:
-                target.statuses.add(Status.FRIGHTENED)
-                applied_effects.append("Target frightened")
+    if hasattr(target, 'statuses'):
+        if actor_move.move_type == MoveType.FORCE and damage >= 5:
+            # Strong force moves can stun
+            if Status.STUNNED not in target.statuses:
+                target.statuses.append(Status.STUNNED)
+                applied_effects.append("Target stunned")
         
-        elif domain == Domain.AUTHORITY and damage >= 3:
-            # Authority moves can intimidate
-            if Status.FRIGHTENED not in target.statuses:
-                target.statuses.add(Status.FRIGHTENED)
-                applied_effects.append("Target intimidated")
+        elif actor_move.move_type == MoveType.TRICK and hasattr(actor_move, 'is_calculated') and actor_move.is_calculated:
+            # Calculated trick moves can confuse
+            if Status.CONFUSED not in target.statuses:
+                target.statuses.append(Status.CONFUSED)
+                applied_effects.append("Target confused")
+        
+        # Domain-specific effects
+        for domain in actor_move.domains:
+            if domain == Domain.FIRE and damage >= 3:
+                # Fire moves can cause burning
+                if Status.BURNING not in target.statuses:
+                    target.statuses.append(Status.BURNING)
+                    applied_effects.append("Target burning")
+            
+            elif domain == Domain.ICE and damage >= 3:
+                # Ice moves can slow
+                if Status.SLOWED not in target.statuses:
+                    target.statuses.append(Status.SLOWED)
+                    applied_effects.append("Target slowed")
+    
+    # Apply resource costs to actor
+    if hasattr(actor_move, 'stamina_cost'):
+        actor.current_stamina -= actor_move.stamina_cost
+    if hasattr(actor_move, 'focus_cost'):
+        actor.current_focus -= actor_move.focus_cost
+    if hasattr(actor_move, 'spirit_cost'):
+        actor.current_spirit -= actor_move.spirit_cost
     
     # Check for knockdown on high damage
-    if damage >= 7 and not hasattr(target, 'statuses_immune') and not getattr(target, 'statuses_immune', False):
-        # A knockdown effect could be represented as stunned in our system
-        if Status.STUNNED not in target.statuses:
-            target.statuses.add(Status.STUNNED)
-            applied_effects.append("Target knocked down")
+    if hasattr(target, 'statuses') and damage >= 7 and Status.PRONE not in target.statuses:
+        target.statuses.append(Status.PRONE)
+        applied_effects.append("Target knocked down")
     
     # Check for defeat
     defeated = target.current_health <= 0
     
-    # Update momentum if the combat system supports it
-    if hasattr(combat_system, 'momentum') and damage > 0:
-        combat_system.momentum[actor.id] = min(3, combat_system.momentum.get(actor.id, 0) + 1)
-        combat_system.momentum[target.id] = max(0, combat_system.momentum.get(target.id, 0) - 1)
+    # Update momentum after successful attack
+    if damage > 0 and hasattr(combat_system, 'update_momentum'):
+        combat_system.update_momentum(actor, +1)
+        combat_system.update_momentum(target, -1)
     
     return {
         "damage_dealt": health_damage,
@@ -231,5 +258,5 @@ def apply_damage_and_effects(
         "removed_effects": removed_effects,
         "target_defeated": defeated,
         "remaining_health": target.current_health,
-        "remaining_health_percent": (target.current_health / target.max_health) * 100 if target.max_health > 0 else 0
+        "remaining_health_percent": (target.current_health / target.max_health) * 100 if target.max_health else 0
     }

@@ -4,10 +4,10 @@ Enhanced environment effects for combat system.
 This module provides more sophisticated environmental interactions and effects
 that can dynamically alter combat conditions and create tactical opportunities.
 """
+from typing import Dict, List, Any, Callable, Optional, TypeGuard
 import random
-from typing import Dict, List, Any, Optional
 
-from .combat_system_core import Domain, Status, Combatant
+from .combat_system_core import Combatant, Domain, Status
 
 
 class EnvironmentEffect:
@@ -15,8 +15,8 @@ class EnvironmentEffect:
     def __init__(self, 
                 name: str, 
                 description: str,
-                apply_function: callable,
-                tags: List[str] = None):
+                apply_function: Callable,
+                tags: Optional[List[str]] = None):
         """
         Initialize an environment effect.
         
@@ -54,45 +54,40 @@ def _apply_burning_environment(combatants: Dict[str, Combatant]) -> Dict[str, Di
     Returns:
         Dictionary mapping combatant names to effect results
     """
-    round_effects = {}
+    results = {}
     
     for name, combatant in combatants.items():
-        # Calculate damage based on resistances and vulnerabilities
-        base_damage = 2  # Base burning damage
-        damage_mod = 1.0
+        result = {"damage": 0, "effects": [], "description": ""}
         
-        # Resistance check
-        if hasattr(combatant, 'strong_domains') and Domain.SPIRIT in combatant.strong_domains:
-            damage_mod *= 0.5  # Half damage for fire resistance
+        # Apply bonus to fire domain users
+        if hasattr(combatant, 'domain_ratings') and Domain.FIRE.value in combatant.domain_ratings:
+            fire_rating = combatant.domain_ratings[Domain.FIRE.value]
+            if fire_rating > 3:  # High fire domain users benefit from burning
+                result["effects"].append("Empowered by flames")
+                result["description"] = f"{name} draws power from the burning surroundings."
             
-        # Vulnerability check
-        if hasattr(combatant, 'weak_domains') and Domain.BODY in combatant.weak_domains:
-            damage_mod *= 1.5  # Extra damage for physical weakness
+        # Apply damage to combatants without fire protection
+        if hasattr(combatant, 'statuses') and Status.BURNING not in combatant.statuses:
+            # Check if already protected from fire
+            fire_protected = False
+            if hasattr(combatant, 'statuses'):
+                fire_protected = Status.FIRE_RESISTANT in combatant.statuses
             
-        # Status modification
-        if Status.WOUNDED in combatant.statuses:
-            damage_mod *= 1.2  # More damage if already wounded
-            
-        # Apply the damage
-        final_damage = round(base_damage * damage_mod)
-        original_health = combatant.current_health
-        combatant.current_health = max(0, combatant.current_health - final_damage)
-        actual_damage = original_health - combatant.current_health
+            if not fire_protected:
+                damage = random.randint(1, 3)
+                combatant.current_health = max(0, combatant.current_health - damage)
+                result["damage"] = damage
+                result["description"] = f"{name} takes {damage} damage from the burning environment."
+                
+                # Chance to apply burning status
+                if random.random() < 0.3 and hasattr(combatant, 'statuses'):  # 30% chance
+                    combatant.statuses.append(Status.BURNING)
+                    result["effects"].append("Burning")
+                    result["description"] += f" {name} is now burning!"
         
-        # Add status effect if not already present
-        effect_applied = False
-        if Status.WOUNDED not in combatant.statuses:
-            combatant.statuses.add(Status.WOUNDED)
-            effect_applied = True
-            
-        # Track effects
-        round_effects[name] = {
-            "environment": "burning",
-            "damage": actual_damage,
-            "status_applied": "WOUNDED" if effect_applied else None
-        }
-    
-    return round_effects
+        results[name] = result
+        
+    return results
 
 
 def _apply_freezing_environment(combatants: Dict[str, Combatant]) -> Dict[str, Dict[str, Any]]:
@@ -105,45 +100,40 @@ def _apply_freezing_environment(combatants: Dict[str, Combatant]) -> Dict[str, D
     Returns:
         Dictionary mapping combatant names to effect results
     """
-    round_effects = {}
+    results = {}
     
     for name, combatant in combatants.items():
-        # Resistance and vulnerability check for freezing
-        stamina_loss = 2  # Base stamina loss
-        damage = 0
+        result = {"damage": 0, "effects": [], "description": ""}
         
-        if hasattr(combatant, 'weak_domains') and Domain.BODY in combatant.weak_domains:
-            stamina_loss += 1  # Extra stamina loss
-            damage = 1  # Also causes minor health damage
+        # Apply bonus to ice domain users
+        if hasattr(combatant, 'domain_ratings') and Domain.ICE.value in combatant.domain_ratings:
+            ice_rating = combatant.domain_ratings[Domain.ICE.value]
+            if ice_rating > 3:  # High ice domain users benefit from freezing
+                result["effects"].append("Empowered by frost")
+                result["description"] = f"{name} harnesses the freezing environment."
             
-        if hasattr(combatant, 'strong_domains') and Domain.SPIRIT in combatant.strong_domains:
-            stamina_loss = max(0, stamina_loss - 1)  # Reduced effect
+        # Apply effects to combatants without cold protection
+        cold_protected = False
+        if hasattr(combatant, 'statuses'):
+            cold_protected = Status.COLD_RESISTANT in combatant.statuses
             
-        # Apply effects
-        combatant.current_stamina = max(0, combatant.current_stamina - stamina_loss)
+        if not cold_protected:
+            # Reduce stamina
+            if hasattr(combatant, 'current_stamina') and hasattr(combatant, 'max_stamina'):
+                stamina_reduction = random.randint(1, 2)
+                combatant.current_stamina = max(0, combatant.current_stamina - stamina_reduction)
+                result["effects"].append(f"Stamina reduced by {stamina_reduction}")
+                result["description"] = f"The freezing cold saps {name}'s stamina."
+                
+                # Chance to apply slowed status
+                if random.random() < 0.3 and hasattr(combatant, 'statuses'):  # 30% chance
+                    combatant.statuses.append(Status.SLOWED)
+                    result["effects"].append("Slowed")
+                    result["description"] += f" {name} is slowed by the cold!"
         
-        if damage > 0:
-            original_health = combatant.current_health
-            combatant.current_health = max(0, combatant.current_health - damage)
-            actual_damage = original_health - combatant.current_health
-        else:
-            actual_damage = 0
-            
-        # Add status effect if not already present
-        effect_applied = False
-        if Status.EXHAUSTED not in combatant.statuses:
-            combatant.statuses.add(Status.EXHAUSTED)
-            effect_applied = True
-            
-        # Track effects
-        round_effects[name] = {
-            "environment": "freezing",
-            "damage": actual_damage,
-            "stamina_loss": stamina_loss,
-            "status_applied": "EXHAUSTED" if effect_applied else None
-        }
-    
-    return round_effects
+        results[name] = result
+        
+    return results
 
 
 def _apply_electrified_environment(combatants: Dict[str, Combatant]) -> Dict[str, Dict[str, Any]]:
@@ -156,40 +146,42 @@ def _apply_electrified_environment(combatants: Dict[str, Combatant]) -> Dict[str
     Returns:
         Dictionary mapping combatant names to effect results
     """
-    round_effects = {}
+    results = {}
     
     for name, combatant in combatants.items():
-        # Calculate shock damage
-        base_damage = 1  # Base shock damage
-        damage_mod = 1.0
+        result = {"damage": 0, "effects": [], "description": ""}
         
-        # Resistances and vulnerabilities
-        if hasattr(combatant, 'strong_domains') and Domain.MIND in combatant.strong_domains:
-            damage_mod *= 0.3  # Significant resistance
+        # Apply bonus to spark domain users
+        if hasattr(combatant, 'domain_ratings') and Domain.SPARK.value in combatant.domain_ratings:
+            spark_rating = combatant.domain_ratings[Domain.SPARK.value]
+            if spark_rating > 3:  # High spark domain users benefit
+                result["effects"].append("Charged with energy")
+                result["description"] = f"{name} channels the electrical energy of the surroundings."
+                if hasattr(combatant, 'statuses') and Status.ENERGIZED not in combatant.statuses:
+                    combatant.statuses.append(Status.ENERGIZED)
             
-        if hasattr(combatant, 'weak_domains') and Domain.MIND in combatant.weak_domains:
-            damage_mod *= 1.8  # Significant vulnerability
+        # Apply effects to combatants without protection
+        protected = False
+        if hasattr(combatant, 'statuses'):
+            protected = Status.SHOCK_RESISTANT in combatant.statuses
             
-        # Apply damage
-        final_damage = round(base_damage * damage_mod)
-        original_health = combatant.current_health
-        combatant.current_health = max(0, combatant.current_health - final_damage)
-        actual_damage = original_health - combatant.current_health
+        if not protected:
+            # Random chance for minor shock damage
+            if random.random() < 0.4:  # 40% chance
+                damage = random.randint(1, 4)
+                combatant.current_health = max(0, combatant.current_health - damage)
+                result["damage"] = damage
+                result["description"] = f"{name} takes {damage} damage from electrical discharges."
+                
+                # Chance to apply stunned status
+                if random.random() < 0.25 and hasattr(combatant, 'statuses'):  # 25% chance
+                    combatant.statuses.append(Status.STUNNED)
+                    result["effects"].append("Stunned")
+                    result["description"] += f" {name} is momentarily stunned!"
         
-        # Random chance to apply stunned status (25% chance)
-        effect_applied = False
-        if random.random() < 0.25 and Status.STUNNED not in combatant.statuses:
-            combatant.statuses.add(Status.STUNNED)
-            effect_applied = True
-            
-        # Track effects
-        round_effects[name] = {
-            "environment": "electrified",
-            "damage": actual_damage,
-            "status_applied": "STUNNED" if effect_applied else None
-        }
-    
-    return round_effects
+        results[name] = result
+        
+    return results
 
 
 def _apply_inspirational_environment(combatants: Dict[str, Combatant]) -> Dict[str, Dict[str, Any]]:
@@ -202,35 +194,27 @@ def _apply_inspirational_environment(combatants: Dict[str, Combatant]) -> Dict[s
     Returns:
         Dictionary mapping combatant names to effect results
     """
-    round_effects = {}
+    results = {}
     
     for name, combatant in combatants.items():
-        # Calculate spirit boost based on personality
-        spirit_boost = 1  # Base spirit gain
+        result = {"damage": 0, "effects": [], "description": ""}
         
-        # Boost is higher for those with spirit domain
-        if Domain.SPIRIT in combatant.domain_ratings and combatant.domain_ratings[Domain.SPIRIT] > 2:
-            spirit_boost += 1
+        # Restore spirit
+        if hasattr(combatant, 'current_spirit') and hasattr(combatant, 'max_spirit'):
+            spirit_gain = random.randint(1, 3)
+            combatant.current_spirit = min(combatant.max_spirit, combatant.current_spirit + spirit_gain)
+            result["effects"].append(f"Spirit increased by {spirit_gain}")
+            result["description"] = f"{name} is inspired by the surroundings, gaining {spirit_gain} spirit."
             
-        # Apply the boost
-        original_spirit = combatant.current_spirit
-        combatant.current_spirit = min(combatant.max_spirit, combatant.current_spirit + spirit_boost)
-        actual_boost = combatant.current_spirit - original_spirit
+            # Chance to apply inspired status
+            if random.random() < 0.3 and hasattr(combatant, 'statuses'):  # 30% chance
+                combatant.statuses.append(Status.INSPIRED)
+                result["effects"].append("Inspired")
+                result["description"] += f" {name} feels inspired!"
         
-        # Chance to apply inspired status (50% chance)
-        effect_applied = False
-        if random.random() < 0.5 and Status.INSPIRED not in combatant.statuses:
-            combatant.statuses.add(Status.INSPIRED)
-            effect_applied = True
-            
-        # Track effects
-        round_effects[name] = {
-            "environment": "inspirational",
-            "spirit_gain": actual_boost,
-            "status_applied": "INSPIRED" if effect_applied else None
-        }
-    
-    return round_effects
+        results[name] = result
+        
+    return results
 
 
 def _apply_toxic_environment(combatants: Dict[str, Combatant]) -> Dict[str, Dict[str, Any]]:
@@ -243,41 +227,41 @@ def _apply_toxic_environment(combatants: Dict[str, Combatant]) -> Dict[str, Dict
     Returns:
         Dictionary mapping combatant names to effect results
     """
-    round_effects = {}
+    results = {}
     
     for name, combatant in combatants.items():
-        # Calculate poison damage
-        base_damage = 1  # Base poison damage
-        damage_mod = 1.0
+        result = {"damage": 0, "effects": [], "description": ""}
         
-        # Resistances and vulnerabilities
-        if hasattr(combatant, 'strong_domains') and Domain.BODY in combatant.strong_domains:
-            damage_mod *= 0.5  # Resistance
+        # Apply bonus to users with poison/toxin affinity
+        poison_affinity = False
+        if hasattr(combatant, 'domain_ratings') and Domain.NATURE.value in combatant.domain_ratings:
+            nature_rating = combatant.domain_ratings[Domain.NATURE.value]
+            if nature_rating > 4:  # High nature domain users can control toxins
+                poison_affinity = True
+                result["effects"].append("Toxin control")
+                result["description"] = f"{name} manipulates the toxic elements in the environment."
             
-        # Status effects
-        if Status.WOUNDED in combatant.statuses:
-            damage_mod *= 1.5  # More vulnerable when wounded
+        # Apply poison to combatants without protection
+        protected = False
+        if hasattr(combatant, 'statuses'):
+            protected = Status.POISON_RESISTANT in combatant.statuses
             
-        # Apply damage
-        final_damage = round(base_damage * damage_mod)
-        original_health = combatant.current_health
-        combatant.current_health = max(0, combatant.current_health - final_damage)
-        actual_damage = original_health - combatant.current_health
+        if not (protected or poison_affinity):
+            # Apply poison damage
+            damage = random.randint(1, 2)
+            combatant.current_health = max(0, combatant.current_health - damage)
+            result["damage"] = damage
+            result["description"] = f"{name} takes {damage} damage from the toxic atmosphere."
+            
+            # Chance to apply poisoned status
+            if random.random() < 0.35 and hasattr(combatant, 'statuses'):  # 35% chance
+                combatant.statuses.append(Status.POISONED)
+                result["effects"].append("Poisoned")
+                result["description"] += f" {name} is poisoned!"
         
-        # Chance to apply poisoned status (75% chance)
-        effect_applied = False
-        if random.random() < 0.75 and Status.EXHAUSTED not in combatant.statuses:
-            combatant.statuses.add(Status.EXHAUSTED)
-            effect_applied = True
-            
-        # Track effects
-        round_effects[name] = {
-            "environment": "toxic",
-            "damage": actual_damage,
-            "status_applied": "EXHAUSTED" if effect_applied else None
-        }
-    
-    return round_effects
+        results[name] = result
+        
+    return results
 
 
 def _apply_darkness_environment(combatants: Dict[str, Combatant]) -> Dict[str, Dict[str, Any]]:
@@ -290,29 +274,38 @@ def _apply_darkness_environment(combatants: Dict[str, Combatant]) -> Dict[str, D
     Returns:
         Dictionary mapping combatant names to effect results
     """
-    round_effects = {}
+    results = {}
     
     for name, combatant in combatants.items():
-        # Darkness primarily affects focus and awareness
-        focus_loss = 1  # Base focus loss
+        result = {"damage": 0, "effects": [], "description": ""}
         
-        # Resistance based on awareness domain
-        if Domain.AWARENESS in combatant.domain_ratings and combatant.domain_ratings[Domain.AWARENESS] > 2:
-            focus_loss = 0  # No focus loss for those with high awareness
+        # Apply bonus to stealth-oriented or shadow/darkness users
+        shadow_affinity = False
+        if hasattr(combatant, 'tags') and 'stealth' in combatant.tags:
+            shadow_affinity = True
+            result["effects"].append("Shadow advantage")
+            result["description"] = f"{name} uses the darkness to their advantage."
             
-        # Apply the effects
-        original_focus = combatant.current_focus
-        combatant.current_focus = max(0, combatant.current_focus - focus_loss)
-        actual_loss = original_focus - combatant.current_focus
+        # Apply penalties to those without night vision or similar abilities
+        night_vision = False
+        if hasattr(combatant, 'statuses'):
+            night_vision = Status.NIGHT_VISION in combatant.statuses
+            
+        if not (night_vision or shadow_affinity):
+            # Apply accuracy penalty
+            result["effects"].append("Visibility reduced")
+            result["description"] = f"{name} struggles to see in the darkness."
+            
+            # Simulate missed attacks or reduced combat effectiveness
+            if hasattr(combatant, 'status_modifiers'):
+                if 'accuracy' not in combatant.status_modifiers:
+                    combatant.status_modifiers['accuracy'] = 0
+                combatant.status_modifiers['accuracy'] -= 2
+                result["effects"].append("Accuracy -2")
         
-        # Track effects
-        round_effects[name] = {
-            "environment": "darkness",
-            "focus_loss": actual_loss,
-            "status_applied": None
-        }
-    
-    return round_effects
+        results[name] = result
+        
+    return results
 
 
 def _apply_unstable_ground_environment(combatants: Dict[str, Combatant]) -> Dict[str, Dict[str, Any]]:
@@ -325,46 +318,39 @@ def _apply_unstable_ground_environment(combatants: Dict[str, Combatant]) -> Dict
     Returns:
         Dictionary mapping combatant names to effect results
     """
-    round_effects = {}
+    results = {}
     
     for name, combatant in combatants.items():
-        # Chance of falling based on awareness
-        fall_chance = 0.2  # Base chance
+        result = {"damage": 0, "effects": [], "description": ""}
         
-        # Reduce chance based on awareness
-        if Domain.AWARENESS in combatant.domain_ratings:
-            fall_chance -= combatant.domain_ratings[Domain.AWARENESS] * 0.03
-            fall_chance = max(0.05, fall_chance)  # Minimum 5% chance
+        # Apply bonus to agile combatants
+        agile = False
+        if hasattr(combatant, 'tags') and 'agile' in combatant.tags:
+            agile = True
+            result["effects"].append("Sure-footed")
+            result["description"] = f"{name} maintains balance on the unstable ground."
             
-        # Check if combatant falls
-        if random.random() < fall_chance:
-            # Apply damage and status
-            damage = 1
-            original_health = combatant.current_health
-            combatant.current_health = max(0, combatant.current_health - damage)
-            actual_damage = original_health - combatant.current_health
-            
-            # Apply stunned status
-            effect_applied = False
-            if Status.STUNNED not in combatant.statuses:
-                combatant.statuses.add(Status.STUNNED)
-                effect_applied = True
+        # Apply penalties to those without agility
+        if not agile:
+            # Chance to lose balance and fall
+            if random.random() < 0.25 and hasattr(combatant, 'statuses'):  # 25% chance
+                combatant.statuses.append(Status.PRONE)
+                result["effects"].append("Knocked down")
+                result["description"] = f"{name} loses footing and falls on the unstable ground!"
+            else:
+                result["effects"].append("Off-balance")
+                result["description"] = f"{name} struggles to maintain balance."
                 
-            round_effects[name] = {
-                "environment": "unstable ground",
-                "damage": actual_damage,
-                "fell": True,
-                "status_applied": "STUNNED" if effect_applied else None
-            }
-        else:
-            round_effects[name] = {
-                "environment": "unstable ground",
-                "damage": 0,
-                "fell": False,
-                "status_applied": None
-            }
-    
-    return round_effects
+                # Apply movement penalty
+                if hasattr(combatant, 'status_modifiers'):
+                    if 'movement' not in combatant.status_modifiers:
+                        combatant.status_modifiers['movement'] = 0
+                    combatant.status_modifiers['movement'] -= 1
+                    result["effects"].append("Movement -1")
+        
+        results[name] = result
+        
+    return results
 
 
 def _apply_confined_space_environment(combatants: Dict[str, Combatant]) -> Dict[str, Dict[str, Any]]:
@@ -377,29 +363,44 @@ def _apply_confined_space_environment(combatants: Dict[str, Combatant]) -> Dict[
     Returns:
         Dictionary mapping combatant names to effect results
     """
-    round_effects = {}
+    results = {}
     
     for name, combatant in combatants.items():
-        # Confined spaces mainly affect stamina usage
-        stamina_loss = 1  # Base stamina loss
+        result = {"damage": 0, "effects": [], "description": ""}
         
-        # Body-focused characters are less affected
-        if Domain.BODY in combatant.domain_ratings and combatant.domain_ratings[Domain.BODY] > 3:
-            stamina_loss = 0
+        # Apply bonus to small or nimble combatants
+        small_or_nimble = False
+        if hasattr(combatant, 'tags') and ('small' in combatant.tags or 'nimble' in combatant.tags):
+            small_or_nimble = True
+            result["effects"].append("Spatial advantage")
+            result["description"] = f"{name} maneuvers effectively in the confined space."
             
-        # Apply the effects
-        original_stamina = combatant.current_stamina
-        combatant.current_stamina = max(0, combatant.current_stamina - stamina_loss)
-        actual_loss = original_stamina - combatant.current_stamina
+        # Apply penalties to large combatants
+        large = False
+        if hasattr(combatant, 'tags') and 'large' in combatant.tags:
+            large = True
+            
+        if large:
+            result["effects"].append("Constrained")
+            result["description"] = f"{name} is constrained by the confined space."
+            
+            # Apply evasion penalty
+            if hasattr(combatant, 'status_modifiers'):
+                if 'evasion' not in combatant.status_modifiers:
+                    combatant.status_modifiers['evasion'] = 0
+                combatant.status_modifiers['evasion'] -= 2
+                result["effects"].append("Evasion -2")
+                
+            # Apply force move bonus for all combatants (easier to hit in confined space)
+            if hasattr(combatant, 'status_modifiers'):
+                if 'force_move_power' not in combatant.status_modifiers:
+                    combatant.status_modifiers['force_move_power'] = 0
+                combatant.status_modifiers['force_move_power'] += 1
+                result["effects"].append("Force moves +1")
         
-        # Track effects
-        round_effects[name] = {
-            "environment": "confined space",
-            "stamina_loss": actual_loss,
-            "status_applied": None
-        }
-    
-    return round_effects
+        results[name] = result
+        
+    return results
 
 
 def _apply_high_ground_environment(combatants: Dict[str, Combatant]) -> Dict[str, Dict[str, Any]]:
@@ -412,76 +413,85 @@ def _apply_high_ground_environment(combatants: Dict[str, Combatant]) -> Dict[str
     Returns:
         Dictionary mapping combatant names to effect results
     """
-    # High ground doesn't directly apply effects each round, but instead
-    # provides tactical advantages during move resolution.
-    # This function just returns a placeholder.
-    round_effects = {}
+    results = {}
+    
+    # Determine who has high ground advantage
+    has_high_ground = {}
+    for name, combatant in combatants.items():
+        # Random assignment for demo purposes - in real implementation this would be based on
+        # tactical position or player choices
+        has_high_ground[name] = random.choice([True, False])
     
     for name, combatant in combatants.items():
-        round_effects[name] = {
-            "environment": "high ground",
-            "status_applied": None
-        }
-    
-    return round_effects
+        result = {"damage": 0, "effects": [], "description": ""}
+        
+        if has_high_ground[name]:
+            result["effects"].append("High ground advantage")
+            result["description"] = f"{name} has the high ground advantage."
+            
+            # Apply accuracy bonus
+            if hasattr(combatant, 'status_modifiers'):
+                if 'accuracy' not in combatant.status_modifiers:
+                    combatant.status_modifiers['accuracy'] = 0
+                combatant.status_modifiers['accuracy'] += 2
+                result["effects"].append("Accuracy +2")
+                
+            # Apply damage bonus
+            if hasattr(combatant, 'status_modifiers'):
+                if 'damage' not in combatant.status_modifiers:
+                    combatant.status_modifiers['damage'] = 0
+                combatant.status_modifiers['damage'] += 1
+                result["effects"].append("Damage +1")
+        else:
+            result["effects"].append("Low ground disadvantage")
+            result["description"] = f"{name} is at a disadvantage from lower ground."
+            
+            # Apply accuracy penalty
+            if hasattr(combatant, 'status_modifiers'):
+                if 'accuracy' not in combatant.status_modifiers:
+                    combatant.status_modifiers['accuracy'] = 0
+                combatant.status_modifiers['accuracy'] -= 1
+                result["effects"].append("Accuracy -1")
+        
+        results[name] = result
+        
+    return results
 
 
-# Create a dictionary of all environment effects
+# Dictionary mapping environment tags to effect functions
 ENVIRONMENT_EFFECTS = {
-    "burning": EnvironmentEffect(
-        name="Burning",
-        description="Fire engulfs the area, causing damage and potentially setting targets on fire.",
-        apply_function=_apply_burning_environment,
-        tags=["damage", "fire", "harmful"]
-    ),
-    "freezing": EnvironmentEffect(
-        name="Freezing",
-        description="Extreme cold saps stamina and can cause frostbite.",
-        apply_function=_apply_freezing_environment,
-        tags=["stamina", "cold", "harmful"]
-    ),
-    "electrified": EnvironmentEffect(
-        name="Electrified",
-        description="Electrical discharges can stun and cause damage.",
-        apply_function=_apply_electrified_environment,
-        tags=["damage", "stun", "harmful"]
-    ),
-    "inspirational": EnvironmentEffect(
-        name="Inspirational",
-        description="Something about this place inspires greatness, boosting spirit.",
-        apply_function=_apply_inspirational_environment,
-        tags=["spirit", "buff", "beneficial"]
-    ),
-    "toxic": EnvironmentEffect(
-        name="Toxic",
-        description="Poisonous fumes or substances cause gradual harm.",
-        apply_function=_apply_toxic_environment,
-        tags=["damage", "poison", "harmful"]
-    ),
-    "darkness": EnvironmentEffect(
-        name="Darkness",
-        description="Poor visibility makes it harder to focus and perceive threats.",
-        apply_function=_apply_darkness_environment,
-        tags=["debuff", "perception"]
-    ),
-    "unstable ground": EnvironmentEffect(
-        name="Unstable Ground",
-        description="The footing is treacherous, with risk of falling.",
-        apply_function=_apply_unstable_ground_environment,
-        tags=["movement", "harmful"]
-    ),
-    "confined space": EnvironmentEffect(
-        name="Confined Space",
-        description="Limited room to maneuver increases stamina usage.",
-        apply_function=_apply_confined_space_environment,
-        tags=["stamina", "movement"]
-    ),
-    "high ground": EnvironmentEffect(
-        name="High Ground",
-        description="Elevated position provides tactical advantages.",
-        apply_function=_apply_high_ground_environment,
-        tags=["advantage", "tactical", "beneficial"]
-    )
+    "burning": _apply_burning_environment,
+    "freezing": _apply_freezing_environment,
+    "electrified": _apply_electrified_environment, 
+    "inspirational": _apply_inspirational_environment,
+    "toxic": _apply_toxic_environment,
+    "darkness": _apply_darkness_environment,
+    "unstable": _apply_unstable_ground_environment,
+    "confined": _apply_confined_space_environment,
+    "highground": _apply_high_ground_environment
+}
+
+
+# Dictionary mapping environment tags to descriptions
+ENVIRONMENT_DESCRIPTIONS = {
+    "burning": "The area is engulfed in flames, with heat distorting the air.",
+    "freezing": "A bitter cold permeates the area, with frost covering surfaces.",
+    "electrified": "Electrical energy crackles through the environment, with occasional discharges.",
+    "inspirational": "There's something magical about this place that fills one with hope and determination.",
+    "toxic": "Noxious fumes fill the air, making it difficult to breathe without coughing.",
+    "darkness": "Deep shadows blanket the area, making it difficult to see clearly.",
+    "unstable": "The ground shifts and trembles underfoot, making it challenging to maintain balance.",
+    "confined": "The walls press in from all sides, limiting movement and combat options.",
+    "highground": "The terrain features elevation differences that provide tactical advantages.",
+    "wet": "The ground is slick with water, affecting traction and movement.",
+    "windy": "Strong winds howl through the area, affecting ranged attacks and movement.",
+    "foggy": "A thick fog limits visibility to just a few feet ahead.",
+    "sunny": "Bright sunlight bathes the area, potentially affecting vision for those not used to it.",
+    "sacred": "The area has a spiritual significance that empowers certain abilities.",
+    "corrupted": "Dark energies have twisted this place, enhancing sinister abilities.",
+    "natural": "The untamed wilderness provides advantages to those attuned to nature.",
+    "urban": "The constructed environment offers numerous hiding spots and tactical options.",
+    "underwater": "Combat takes place submerged, dramatically changing movement and breathing."
 }
 
 
@@ -499,23 +509,30 @@ def apply_environment_effects(
     Returns:
         Dictionary with results of effect application
     """
-    # Track all effects applied this round
-    round_effects = {}
+    results = {}
     
-    # Apply each active effect
     for tag in active_tags:
-        tag_lower = tag.lower()
-        if tag_lower in ENVIRONMENT_EFFECTS:
-            effect = ENVIRONMENT_EFFECTS[tag_lower]
-            effect_results = effect.apply(combatants)
+        if tag.lower() in ENVIRONMENT_EFFECTS:
+            effect_function = ENVIRONMENT_EFFECTS[tag.lower()]
+            tag_results = effect_function(combatants)
             
             # Merge results
-            for name, result in effect_results.items():
-                if name not in round_effects:
-                    round_effects[name] = {}
-                round_effects[name][tag_lower] = result
+            for name, result in tag_results.items():
+                if name not in results:
+                    results[name] = {"damage": 0, "effects": [], "descriptions": []}
+                
+                results[name]["damage"] += result["damage"]
+                results[name]["effects"].extend(result["effects"])
+                
+                if result["description"]:
+                    results[name]["descriptions"].append(result["description"])
     
-    return round_effects
+    # Consolidate descriptions for each combatant
+    for name, result in results.items():
+        result["description"] = " ".join(result["descriptions"])
+        del result["descriptions"]
+    
+    return results
 
 
 def get_environment_description(active_tags: List[str]) -> str:
@@ -528,14 +545,15 @@ def get_environment_description(active_tags: List[str]) -> str:
     Returns:
         Description of the environment
     """
-    descriptions = []
+    if not active_tags:
+        return "The environment appears normal with no special features."
     
+    descriptions = []
     for tag in active_tags:
-        tag_lower = tag.lower()
-        if tag_lower in ENVIRONMENT_EFFECTS:
-            descriptions.append(ENVIRONMENT_EFFECTS[tag_lower].description)
+        if tag.lower() in ENVIRONMENT_DESCRIPTIONS:
+            descriptions.append(ENVIRONMENT_DESCRIPTIONS[tag.lower()])
     
     if not descriptions:
-        return "The environment appears normal with no special effects."
+        return "The environment has some unique aspects that might affect combat."
     
     return " ".join(descriptions)

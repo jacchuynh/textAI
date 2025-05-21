@@ -338,6 +338,52 @@ class CombatController:
             )
             combat_state["narrative"] = defeat_narrative
             
+        # Publish events and update memory if the combat has ended
+        if combat_state["status"] != "active" and game_id:
+            outcome = "victory" if combat_state["status"] == "victory" else "defeat"
+            
+            event_bus.publish(GameEvent(
+                type=EventType.COMBAT_ENDED,
+                actor=str(character.id),
+                context={
+                    "enemy_name": enemy_combatant.name,
+                    "outcome": outcome,
+                    "combat_id": combat_id
+                },
+                tags=["combat", "encounter", outcome],
+                game_id=game_id
+            ))
+            
+            # Add to memory
+            memory_manager.add_memory(
+                type=MemoryType.COMBAT,
+                content=f"Combat with {enemy_combatant.name} ended in {outcome}.",
+                importance=7,
+                tier=MemoryTier.MEDIUM_TERM,
+                tags=["combat", "encounter", outcome],
+                game_id=game_id
+            )
+            
+            # Add to combat memory
+            if outcome == "victory":
+                self._record_combat_victory(
+                    player_name=character.name,
+                    enemy_name=enemy_combatant.name,
+                    combat_log=combat_state.get("log", []),
+                    game_id=game_id,
+                    character_id=character_id
+                )
+            else:
+                self._record_combat_defeat(
+                    player_name=character.name,
+                    enemy_name=enemy_combatant.name,
+                    combat_log=combat_state.get("log", []),
+                    game_id=game_id,
+                    character_id=character_id
+                )
+                
+        return combat_state
+    
     def _generate_combat_start_narrative(self,
                                   player_name: str,
                                   enemy_name: str,
