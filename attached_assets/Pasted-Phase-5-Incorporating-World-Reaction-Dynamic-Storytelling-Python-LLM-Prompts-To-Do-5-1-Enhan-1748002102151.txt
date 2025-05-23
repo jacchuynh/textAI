@@ -1,0 +1,43 @@
+Phase 5: Incorporating World Reaction & Dynamic Storytelling (Python + LLM Prompts)
+To-Do 5.1: Enhance Context for LLM with Reputation & Recent Major Actions.
+
+
+NarrativeContextManager (or the Brain itself) needs to be able_to_surface:
+Player's reputation (global, and with key factions/NPCs).
+A short list of the player's recent significant actions that might influence perception.
+This information is added to the context for LLM Prompt Template 1 (NLU) and any new prompts focused on world reaction.
+To-Do 5.2: Develop LLM Prompt Template 3 (World/NPC Reaction Assessment).
+
+
+Goal: When player input doesn't map to a direct action but is interactive (e.g., talking to an NPC, entering a sensitive area), get the LLM's assessment of how the world/NPCs might react based on broader context.
+LLM Prompt Template 3 (World/NPC Reaction):
+ Code
+You are an AI Game Master assistant simulating world reactions.
+Player Input: "{player_raw_input}"
+Player Profile:
+- Name: {player_name}
+- Reputation with {relevant_faction_or_npc_name}: {player_reputation_status}
+- Recent Significant Actions by Player: {list_of_recent_significant_actions}
+
+Current Context:
+- Interacting with: {target_npc_name_or_faction_environment} (Disposition towards player: {npc_disposition_if_known})
+- Location: {location_name}
+- World State: {world_state_summary} (e.g., Political Stability: UNREST, Economic Status: DEPRESSION)
+
+Based on all this:
+1. How does {target_npc_name_or_faction_environment} likely perceive the player's input/presence in this specific situation?
+2. What is a plausible, brief, in-character dialogue snippet or narrative observation reflecting this reaction?
+3. Are there any subtle (non-mechanical) shifts in attitude or immediate environmental responses?
+
+Provide your response in JSON format like this:
+{{
+ "perception_summary": "How the target likely perceives the player's action/presence.",
+ "suggested_reactive_dialogue_or_narration": "Brief dialogue or narrative snippet.",
+ "subtle_attitude_shift_description": "e.g., NPC seems more wary, crowd grows quiet, etc. or null"
+}}
+
+
+AIGMBrain Logic:
+Calls this when appropriate (e.g., player initiates conversation, parser fails in a social context).
+Uses the suggested_reactive_dialogue_or_narration (possibly via AIGMDialogueGenerator if it's dialogue and themes can be inferred) as the primary response.
+The perception_summary and subtle_attitude_shift_description can inform the Brain's internal state or future LLM prompts, or even minor, non-game-breaking temporary modifications to NPC disposition for flavor.
