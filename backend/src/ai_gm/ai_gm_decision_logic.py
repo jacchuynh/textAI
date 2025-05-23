@@ -3,12 +3,14 @@ AI GM Brain - Decision Logic Integration
 
 This module provides the decision-making capabilities for the AI GM Brain,
 allowing it to make intelligent choices about narrative flow and game state.
+It includes a core decision tree for processing player input and determining
+appropriate game actions and narrative responses.
 """
 
 import logging
 import random
 from enum import Enum, auto
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Union
 from datetime import datetime, timedelta
 
 # Import from core brain
@@ -51,6 +53,255 @@ class DecisionResult:
         self.timestamp = datetime.utcnow()
 
 
+class DecisionTreeHandler:
+    """
+    Decision Tree for processing player input and determining game actions.
+    
+    This class implements the core decision tree logic that determines
+    how the AI GM responds to player input, based on a hierarchy of
+    priorities from LLM-identified opportunities to general conversation.
+    """
+    
+    def __init__(self, ai_gm_brain: AIGMBrain):
+        """
+        Initialize the decision tree handler.
+        
+        Args:
+            ai_gm_brain: Reference to the AI GM Brain instance
+        """
+        self.ai_gm_brain = ai_gm_brain
+        self.logger = logging.getLogger(f"DecisionTree_{ai_gm_brain.game_id}")
+        
+        # Track processing metrics
+        self.decisions_processed = 0
+        self.successful_branch_initiations = 0
+        self.successful_branch_actions = 0
+        self.successful_parsed_commands = 0
+        self.general_interpretations = 0
+        
+        self.logger.info("Decision Tree Handler initialized")
+    
+    def process_input(self, 
+                     parsed_command: Optional[Any], 
+                     llm_output: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process player input through the decision tree to determine the appropriate action.
+        
+        Args:
+            parsed_command: Result from the command parser (if successful)
+            llm_output: Output from the LLM interpretation
+            
+        Returns:
+            Processing result with action taken and response details
+        """
+        self.decisions_processed += 1
+        self.logger.info("Processing input through decision tree")
+        
+        result = {
+            "action_taken": None,
+            "mechanical_outcome": None,
+            "response_basis": None,
+            "suggested_response": None,
+            "success": False
+        }
+        
+        # Priority 1: LLM Identified Opportunity Alignment
+        if self._check_aligned_opportunity(llm_output, result):
+            return result
+            
+        # Priority 2: LLM Identified Branch Action
+        if self._check_aligned_branch_action(llm_output, result):
+            return result
+            
+        # Priority 3: Successful ParsedCommand
+        if parsed_command and self._check_parsed_command(parsed_command, result):
+            return result
+            
+        # Priority 4: General LLM Interpretation
+        self._use_general_llm_interpretation(llm_output, result)
+        return result
+    
+    def _check_aligned_opportunity(self, llm_output: Dict[str, Any], result: Dict[str, Any]) -> bool:
+        """
+        Check if the LLM identified an aligned narrative opportunity.
+        
+        Args:
+            llm_output: Output from the LLM interpretation
+            result: Result dictionary to populate
+            
+        Returns:
+            True if an aligned opportunity was found and processed
+        """
+        opportunity_id = llm_output.get("aligned_opportunity_id")
+        if not opportunity_id:
+            return False
+            
+        self.logger.info(f"LLM identified aligned opportunity: {opportunity_id}")
+        
+        # In a full implementation, this would call:
+        # outcome = NarrativeBranchChoiceHandler.attempt_to_initiate_branch_via_gm(
+        #     opportunity_id, self.ai_gm_brain.player_id, self.ai_gm_brain.game_id)
+        
+        # For now, simulate the outcome
+        outcome = {
+            "success": True,
+            "branch_id": "simulated_branch_" + str(self.decisions_processed),
+            "message": "Successfully initiated narrative branch."
+        }
+        
+        if outcome["success"]:
+            self.successful_branch_initiations += 1
+            result["action_taken"] = "initiate_narrative_branch"
+            result["mechanical_outcome"] = outcome
+            result["response_basis"] = "aligned_opportunity"
+            result["suggested_response"] = llm_output.get("suggested_gm_acknowledgement", 
+                                                       "Let's explore this interesting direction...")
+            result["success"] = True
+            return True
+        else:
+            # Branch initiation failed, include reason in response
+            result["action_taken"] = "failed_branch_initiation"
+            result["mechanical_outcome"] = outcome
+            result["response_basis"] = "aligned_opportunity_failed"
+            
+            # Append failure reason to the suggested response
+            base_response = llm_output.get("suggested_gm_acknowledgement", "")
+            failure_reason = f" {outcome.get('message', 'Something prevents you from proceeding that way.')}"
+            result["suggested_response"] = base_response + failure_reason
+            
+            result["success"] = False
+            return True
+            
+        return False
+    
+    def _check_aligned_branch_action(self, llm_output: Dict[str, Any], result: Dict[str, Any]) -> bool:
+        """
+        Check if the LLM identified an aligned branch action.
+        
+        Args:
+            llm_output: Output from the LLM interpretation
+            result: Result dictionary to populate
+            
+        Returns:
+            True if an aligned branch action was found and processed
+        """
+        branch_action = llm_output.get("aligned_branch_action")
+        if not branch_action:
+            return False
+            
+        self.logger.info(f"LLM identified aligned branch action: {branch_action}")
+        
+        # In a full implementation, this would:
+        # 1. Verify this action is valid for the current branch/stage
+        # 2. Trigger the game logic for this specific branch action
+        
+        # For now, simulate the outcome
+        action_outcome = {
+            "success": True,
+            "action": branch_action,
+            "details": {
+                "skill_check": {"result": "success", "roll": 15, "dc": 12},
+                "progression": {"advanced": True, "new_stage": "next_stage"}
+            },
+            "message": "You successfully perform the action."
+        }
+        
+        if action_outcome["success"]:
+            self.successful_branch_actions += 1
+            result["action_taken"] = f"branch_action_{branch_action}"
+            result["mechanical_outcome"] = action_outcome
+            result["response_basis"] = "aligned_branch_action"
+            result["suggested_response"] = llm_output.get("suggested_gm_acknowledgement", 
+                                                       "Your action succeeds...") 
+            result["success"] = True
+            return True
+        else:
+            # Action failed, include reason in response
+            result["action_taken"] = f"failed_branch_action_{branch_action}"
+            result["mechanical_outcome"] = action_outcome
+            result["response_basis"] = "aligned_branch_action_failed"
+            
+            # Append failure reason to the suggested response
+            base_response = llm_output.get("suggested_gm_acknowledgement", "")
+            failure_reason = f" {action_outcome.get('message', 'Your attempt fails.')}"
+            result["suggested_response"] = base_response + failure_reason
+            
+            result["success"] = False
+            return True
+        
+        return False
+    
+    def _check_parsed_command(self, parsed_command: Any, result: Dict[str, Any]) -> bool:
+        """
+        Process a successfully parsed command.
+        
+        Args:
+            parsed_command: Result from the command parser
+            result: Result dictionary to populate
+            
+        Returns:
+            True if the parsed command was successfully processed
+        """
+        if not parsed_command:
+            return False
+            
+        self.logger.info(f"Processing parsed command: {getattr(parsed_command, 'command', 'unknown')}")
+        
+        # In a full implementation, this would execute the mechanics of the ParsedCommand
+        # For now, simulate a successful outcome
+        command_outcome = {
+            "success": True,
+            "command": getattr(parsed_command, "command", "unknown"),
+            "message": "Command executed successfully."
+        }
+        
+        self.successful_parsed_commands += 1
+        result["action_taken"] = f"parsed_command_{command_outcome['command']}"
+        result["mechanical_outcome"] = command_outcome
+        result["response_basis"] = "parsed_command"
+        result["suggested_response"] = command_outcome.get("message", "You take that action.")
+        result["success"] = True
+        return True
+    
+    def _use_general_llm_interpretation(self, llm_output: Dict[str, Any], result: Dict[str, Any]) -> None:
+        """
+        Process general LLM interpretation when no specific action is identified.
+        
+        Args:
+            llm_output: Output from the LLM interpretation
+            result: Result dictionary to populate
+        """
+        self.logger.info("Using general LLM interpretation")
+        self.general_interpretations += 1
+        
+        result["action_taken"] = "general_conversation"
+        result["mechanical_outcome"] = None
+        result["response_basis"] = "llm_interpretation"
+        
+        # Use the LLM's suggested GM acknowledgement as the basis for the response
+        player_intent = llm_output.get("player_intent_summary", "You said something.")
+        suggested_response = llm_output.get("suggested_gm_acknowledgement", 
+                                          "I understand what you're trying to do.")
+        
+        result["suggested_response"] = suggested_response
+        result["success"] = True
+    
+    def get_statistics(self) -> Dict[str, Any]:
+        """
+        Get statistics on decision tree processing.
+        
+        Returns:
+            Dictionary of statistics
+        """
+        return {
+            "decisions_processed": self.decisions_processed,
+            "successful_branch_initiations": self.successful_branch_initiations,
+            "successful_branch_actions": self.successful_branch_actions,
+            "successful_parsed_commands": self.successful_parsed_commands,
+            "general_interpretations": self.general_interpretations
+        }
+
+
 class DecisionLogic:
     """
     Logic engine for making game-related decisions.
@@ -76,6 +327,9 @@ class DecisionLogic:
         # Decision strategy configuration
         self.default_confidence = 0.7
         self.randomness_factor = 0.2  # Inject some randomness for unpredictability
+        
+        # Add the decision tree handler
+        self.decision_tree = DecisionTreeHandler(ai_gm_brain)
         
         self.logger.info("Decision Logic initialized")
     
@@ -424,3 +678,43 @@ def extend_ai_gm_brain_with_decision_logic(ai_gm_brain: AIGMBrain) -> None:
     
     # Store the decision logic for future reference
     ai_gm_brain.decision_logic = decision_logic
+    
+    # Add process_decision_tree method to the AI GM Brain
+    ai_gm_brain.process_decision_tree = lambda parsed_command, llm_output: decision_logic.decision_tree.process_input(
+        parsed_command, llm_output
+    )
+    
+    # Override the existing process_player_input method to use decision tree
+    original_process_player_input = ai_gm_brain.process_player_input
+    
+    def enhanced_process_player_input(player_input: str) -> Dict[str, Any]:
+        """Enhanced player input processing using decision tree logic."""
+        # First, get the basic response using the original method
+        basic_response = original_process_player_input(player_input)
+        
+        # Extract parsed command and LLM output from the response metadata
+        parsed_command = basic_response.get('metadata', {}).get('parsed_command')
+        llm_output = basic_response.get('metadata', {}).get('llm_output', {})
+        
+        # If we have LLM output, use the decision tree to process the input
+        if llm_output:
+            decision_result = decision_logic.decision_tree.process_input(parsed_command, llm_output)
+            
+            # Enhance the response with decision tree results
+            if decision_result.get('success', False):
+                # Use the decision tree's suggested response
+                suggested_response = decision_result.get('suggested_response')
+                if suggested_response:
+                    basic_response['response_text'] = suggested_response
+                
+                # Add decision information to metadata
+                basic_response['metadata']['decision_tree'] = {
+                    'action_taken': decision_result.get('action_taken'),
+                    'response_basis': decision_result.get('response_basis'),
+                    'mechanical_outcome': decision_result.get('mechanical_outcome')
+                }
+        
+        return basic_response
+    
+    # Replace the original method with the enhanced version
+    ai_gm_brain.process_player_input = enhanced_process_player_input

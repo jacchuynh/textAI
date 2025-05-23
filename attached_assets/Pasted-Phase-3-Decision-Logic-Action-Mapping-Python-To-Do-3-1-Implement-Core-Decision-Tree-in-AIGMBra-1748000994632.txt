@@ -1,0 +1,26 @@
+Phase 3: Decision Logic & Action Mapping (Python)
+To-Do 3.1: Implement Core Decision Tree in AIGMBrain.
+
+
+This logic runs after receiving processed input (either a ParsedCommand or the LLM's JSON interpretation).
+Priority 1: LLM Identified Alignment:
+IF llm_output.aligned_opportunity_id is not null:
+Call NarrativeBranchChoiceHandler.attempt_to_initiate_branch_via_gm(llm_output.aligned_opportunity_id, player_id, game_id).
+The outcome (success/failure, new branch ID) will heavily influence the GM's final response.
+ELIF llm_output.aligned_branch_action is not null:
+Verify this action is valid for the current branch/stage.
+Trigger the game logic for this specific branch action (skill checks using WorldStateSkillModifier, updates to branch progress).
+The outcome will influence the GM's final response.
+Priority 2: Successful ParsedCommand (from initial parse):
+This path is taken if the parser succeeded and no overriding LLM interpretation was sought or needed.
+Execute the mechanics of the ParsedCommand.
+Priority 3: General LLM Interpretation (No Specific Action/Branch Alignment):
+The llm_output.player_intent_summary and llm_output.suggested_gm_acknowledgement become the basis for the GM's response.
+No specific game mechanics are triggered, but the conversation flows.
+Priority 4: Parser Failure & LLM provides no clear action:
+Rely heavily on llm_output.suggested_gm_acknowledgement to respond to the player, perhaps asking for clarification or offering general observations.
+To-Do 3.2: Integrate Mechanical Outcomes into GM Response Flow.
+
+
+After a mechanical action (from parser or LLM-identified branch action) is executed, its success/failure/details must feed back into what the AIGMBrain will narrate.
+Example: If attempt_to_initiate_branch fails, the suggested_gm_acknowledgement from the LLM might still be used, but appended with a narrative of why it failed (e.g., "You consider investigating the crypt, but a sudden patrol of guards makes you reconsider approaching it right now.").
