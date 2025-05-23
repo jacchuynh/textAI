@@ -20,9 +20,9 @@ from dataclasses import dataclass
 from ..events.event_bus import event_bus, EventType, GameEvent
 from ..memory.memory_manager import memory_manager, MemoryTier, MemoryType
 
-# These imports will be used later when we integrate these components
-# For now they're commented out to avoid import errors
-# from ..text_parser import parse_input, ParsedCommand, parser_engine, vocabulary_manager
+# Import text parser components
+from ..text_parser import parse_input, ParsedCommand, parser_engine, vocabulary_manager, object_resolver
+# LLM integration will be added later
 # from ..llm_integration import LLMInteractionManager, LLMProvider, PromptMode
 
 
@@ -117,11 +117,11 @@ class AIGMBrain:
         self.last_llm_interaction = None
         self.llm_cooldown_seconds = 5
         
-        # Text parser placeholders
-        self.parser_engine = None
-        self.vocabulary = None
-        self.object_resolver = None
-        self.game_context = None
+        # Initialize text parser components
+        self.parser_engine = parser_engine
+        self.vocabulary = vocabulary_manager
+        self.object_resolver = object_resolver
+        self.game_context = {"player_id": player_id, "game_id": game_id}
         
         # Conversational analysis configuration
         self.conversational_keywords = {
@@ -278,7 +278,7 @@ class AIGMBrain:
     
     def _determine_input_complexity(self, input_text: str) -> InputComplexity:
         """
-        Determine the complexity of the player's input.
+        Determine the complexity of the player's input using the text parser.
         
         Args:
             input_text: Text input from the player
@@ -288,22 +288,83 @@ class AIGMBrain:
         """
         text = input_text.lower().strip()
         
-        # Check for simple commands
-        simple_commands = ["look", "go", "take", "drop", "use", "attack", "help", "inventory"]
-        if any(text.startswith(cmd) for cmd in simple_commands) and len(text.split()) <= 3:
+        # Try to parse with the text parser
+        command = parse_input(input_text)
+        
+        # If parser was successful with high confidence, it's a simple command
+        if command and command.confidence > 0.8:
+            self.logger.debug(f"Input classified as SIMPLE_COMMAND: {command.action}")
             return InputComplexity.SIMPLE_COMMAND
         
+        # Check for disambiguation potential
+        # First update game context to ensure relevant information is available
+        self._update_game_context()
+        candidates = self.object_resolver.find_disambiguation_candidates(input_text, self.game_context)
+        if candidates and len(candidates) > 0:
+            self.logger.debug(f"Input needs DISAMBIGUATION with {len(candidates)} options")
+            return InputComplexity.DISAMBIGUATION
+            
+        # Check for conversational patterns
+        if self._is_conversational(text):
+            self.logger.debug("Input classified as CONVERSATIONAL")
+            return InputComplexity.CONVERSATIONAL
+            
         # Check for moderate complexity
         if len(text.split()) <= 8 and "?" not in text:
+            self.logger.debug("Input classified as MODERATE complexity")
             return InputComplexity.MODERATE
+            
+        # If still can't classify well, it's complex
+        self.logger.debug("Input classified as COMPLEX")
+        return InputComplexity.COMPLEX
         
-        # Check for conversational input
+    def _is_conversational(self, input_text: str) -> bool:
+        """
+        Determine if input is conversational in nature.
+        
+        Args:
+            input_text: Raw text input from the player
+            
+        Returns:
+            True if input appears to be conversational
+        """
+        text = input_text.lower()
+        
+        # Check for question words at start
+        for word in self.conversational_keywords['question_words']:
+            if text.startswith(word + ' '):
+                return True
+                
+        # Check for conversational starters
+        for phrase in self.conversational_keywords['conversational_starters']:
+            if phrase in text:
+                return True
+                
+        # Check for social actions
+        for action in self.conversational_keywords['social_actions']:
+            if action in text:
+                return True
+                
+        # Check for common conversational indicators
         conversational_indicators = ["?", "hello", "hi", "thanks", "thank you", "please"]
         if any(indicator in text for indicator in conversational_indicators):
-            return InputComplexity.CONVERSATIONAL
+            return True
+                
+        # Check for lengthy input (likely conversational)
+        if len(text.split()) > 6:
+            # More complex input that isn't a simple command
+            return True
+            
+        return False
         
-        # Default to complex
-        return InputComplexity.COMPLEX
+    def _update_game_context(self):
+        """Update the game context with current state for text parser."""
+        # This provides context to the parser for better understanding
+        self.game_context.update({
+            "current_location": self.current_location,
+            "timestamp": datetime.utcnow().isoformat(),
+            # Add more context as needed, like nearby NPCs, visible items, etc.
+        })
     
     def _determine_processing_mode(self, input_text: str, complexity: InputComplexity) -> ProcessingMode:
         """
