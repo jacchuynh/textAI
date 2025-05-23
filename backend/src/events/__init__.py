@@ -1,7 +1,8 @@
 """
-Event system for the game engine.
+Event System Package
+
+This package handles the event-driven architecture for the game,
+enabling components to communicate through events.
 """
 
-from .event_bus import GameEventBus, GameEvent, EventLogger
-
-__all__ = ["GameEventBus", "GameEvent", "EventLogger"]
+from .event_bus import event_bus, GameEvent, EventType
