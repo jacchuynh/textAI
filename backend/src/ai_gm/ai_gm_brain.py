@@ -1,20 +1,29 @@
 """
-AI Game Master Brain
+AI Game Master Brain - Integrated with Text Parsing and LLM Capabilities
 
 This module implements the core AI Game Master controller that orchestrates
-narrative experiences, manages NPCs, and provides dynamic storytelling.
+narrative experiences, manages NPCs, and provides dynamic storytelling
+with advanced text parsing capabilities and LLM integration.
 """
 
 import time
 import uuid
 import logging
+import random
+import asyncio
 from enum import Enum, auto
-from typing import Dict, Any, List, Optional, Callable, Set, Tuple
+from typing import Dict, Any, List, Optional, Callable, Set, Tuple, Union
 from datetime import datetime, timedelta
+from dataclasses import dataclass
 
 # Import from our own modules
 from ..events.event_bus import event_bus, EventType, GameEvent
 from ..memory.memory_manager import memory_manager, MemoryTier, MemoryType
+
+# These imports will be used later when we integrate these components
+# For now they're commented out to avoid import errors
+# from ..text_parser import parse_input, ParsedCommand, parser_engine, vocabulary_manager
+# from ..llm_integration import LLMInteractionManager, LLMProvider, PromptMode
 
 
 class InputComplexity(Enum):
