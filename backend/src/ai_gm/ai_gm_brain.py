@@ -1,454 +1,492 @@
 """
-AI GM Brain - Core Controller
+AI Game Master Brain
 
-This module provides the core orchestration logic for the AI Game Master,
-integrating with the existing event system, memory management, and narrative engine.
+This module implements the core AI Game Master controller that orchestrates
+narrative experiences, manages NPCs, and provides dynamic storytelling.
 """
 
-import logging
 import time
+import uuid
+import logging
 from enum import Enum, auto
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable, Set, Tuple
 from datetime import datetime, timedelta
 
-# Import existing components
-from ..events.event_bus import GameEvent, EventType, event_bus
+# Import from our own modules
+from ..events.event_bus import event_bus, EventType, GameEvent
 from ..memory.memory_manager import memory_manager, MemoryTier, MemoryType
 
 
 class InputComplexity(Enum):
-    """Categorizes input complexity to determine processing strategy."""
-    SIMPLE_COMMAND = auto()     # Clear, direct command
-    CONVERSATIONAL = auto()     # Dialog, questions, complex interaction
-    AMBIGUOUS = auto()          # Unclear input
-    PARSING_ERROR = auto()      # Unable to parse
+    """Complexity levels for player input."""
+    SIMPLE = auto()      # Simple commands like "look", "go north"
+    MODERATE = auto()    # More complex but still straight-forward
+    COMPLEX = auto()     # Complex, potentially ambiguous input
+    CONVERSATIONAL = auto()  # Natural language conversation
 
 
 class ProcessingMode(Enum):
-    """Processing modes for different types of interactions."""
-    MECHANICAL = auto()        # Template-based, fast responses
-    NARRATIVE = auto()         # Rich storytelling, moderate LLM usage
-    INTERPRETIVE = auto()      # Heavy LLM usage for complex situations
-    ERROR = auto()             # Error handling mode
+    """Different modes of processing player input."""
+    MECHANICAL = auto()  # Direct mechanical response (movement, etc.)
+    NARRATIVE = auto()   # Narrative-focused response
+    HYBRID = auto()      # A mix of mechanical and narrative
+    OOC = auto()         # Out of character processing
 
 
 class AIGMBrain:
     """
-    The central AI GM orchestrator that intelligently manages game narrative and responses.
+    Core AI Game Master Brain that coordinates all game systems.
     
-    This class serves as the coordinator between:
-    - Player input processing
-    - Event system integration
-    - Memory management
-    - Response generation (template-based and LLM)
+    This class orchestrates the various game systems to provide a cohesive
+    player experience, managing the flow of information and narrative.
     """
     
-    def __init__(self, 
-                 game_id: str,
-                 player_id: str):
+    def __init__(self, game_id: str, player_id: str):
         """
         Initialize the AI GM Brain.
         
         Args:
-            game_id: Unique identifier for the game session
-            player_id: ID of the primary player character
+            game_id: ID of the game session
+            player_id: ID of the player
         """
         self.game_id = game_id
         self.player_id = player_id
+        self.logger = logging.getLogger(f"AIGMBrain:{game_id}")
         
-        # Connect to existing systems
-        self.event_bus = event_bus
-        self.memory_manager = memory_manager
+        # Initialize component flags (will be set by extension modules)
+        self.has_ooc_integration = False
+        self.has_llm_integration = False
+        self.has_combat_integration = False
+        self.has_decision_logic = False
+        self.has_narrative_generator = False
         
-        # Internal state tracking
-        self.current_location = None
-        self.recent_events: List[GameEvent] = []
-        self.active_conversations: Dict[str, Any] = {}
-        self.processing_mode = ProcessingMode.MECHANICAL
-        self.last_llm_interaction = None
-        self.interaction_count = 0
+        # Component extensions will add themselves to this dictionary
+        self.extensions: Dict[str, Any] = {}
         
-        # Configuration
-        self.max_recent_events = 20
-        self.llm_cooldown_seconds = 5
-        self.conversational_keywords = {
-            'question_words': ['what', 'where', 'when', 'why', 'how', 'who', 'which'],
-            'conversational_starters': ['tell me', 'explain', 'describe', 'what about', 'how about'],
-            'social_actions': ['talk to', 'speak with', 'ask', 'greet', 'converse', 'chat with']
+        # Processing statistics
+        self.stats = {
+            "total_inputs_processed": 0,
+            "mechanical_responses": 0,
+            "narrative_responses": 0,
+            "hybrid_responses": 0,
+            "ooc_responses": 0,
+            "simple_inputs": 0,
+            "moderate_inputs": 0,
+            "complex_inputs": 0,
+            "conversational_inputs": 0,
+            "avg_processing_time": 0.0,
+            "total_processing_time": 0.0
         }
         
-        # Event subscriptions
-        self._setup_event_listeners()
+        # Subscribe to relevant events
+        self._subscribe_to_events()
         
-        # Logging
-        self.logger = logging.getLogger(f"AIGMBrain_{game_id}")
-        self.logger.info(f"AI GM Brain initialized for game {game_id}")
+        self.logger.info(f"AI GM Brain initialized for game {game_id} and player {player_id}")
     
-    def _setup_event_listeners(self):
-        """Set up event listeners for relevant game events."""
-        self.event_bus.subscribe(EventType.LOCATION_ENTERED, self._handle_location_change)
-        self.event_bus.subscribe(EventType.NPC_INTERACTION, self._handle_npc_interaction)
-        self.event_bus.subscribe(EventType.COMBAT_STARTED, self._handle_combat_event)
-        self.event_bus.subscribe(EventType.COMBAT_ENDED, self._handle_combat_event)
-        self.event_bus.subscribe(EventType.QUEST_STARTED, self._handle_quest_event)
-        self.event_bus.subscribe(EventType.QUEST_COMPLETED, self._handle_quest_event)
-    
-    def process_player_input(self, input_string: str) -> Dict[str, Any]:
-        """
-        Main entry point for processing player input.
-        
-        Args:
-            input_string: Raw text input from the player
-            
-        Returns:
-            Dictionary containing response data and metadata
-        """
-        self.interaction_count += 1
-        start_time = time.time()
-        
-        self.logger.debug(f"Processing input #{self.interaction_count}: '{input_string}'")
-        
-        # Check for OOC command
-        if input_string.lower().startswith('/ooc'):
-            return self._handle_ooc_command(input_string, start_time)
-        
-        # Analyze input complexity
-        complexity = self._analyze_input_complexity(input_string)
-        
-        # Route to appropriate processing based on complexity
-        if complexity == InputComplexity.SIMPLE_COMMAND:
-            response_data = self._process_mechanical_command(input_string)
-            self.processing_mode = ProcessingMode.MECHANICAL
-        elif complexity == InputComplexity.CONVERSATIONAL:
-            response_data = self._process_conversational_input(input_string)
-            self.processing_mode = ProcessingMode.NARRATIVE
-        elif complexity == InputComplexity.AMBIGUOUS:
-            response_data = self._process_ambiguous_input(input_string)
-            self.processing_mode = ProcessingMode.INTERPRETIVE
-        else:  # PARSING_ERROR
-            response_data = self._handle_parsing_error(input_string)
-            self.processing_mode = ProcessingMode.ERROR
-        
-        # Log the interaction
-        self._log_interaction(input_string, response_data)
-        
-        # Add processing metadata
-        processing_time = time.time() - start_time
-        response_data['metadata'] = {
-            'processing_time': processing_time,
-            'complexity': complexity.name,
-            'processing_mode': self.processing_mode.name,
-            'interaction_count': self.interaction_count,
-            'timestamp': datetime.utcnow().isoformat()
-        }
-        
-        return response_data
-    
-    def _analyze_input_complexity(self, input_string: str) -> InputComplexity:
-        """
-        Analyze complexity of player input.
-        
-        Args:
-            input_string: Raw text input from the player
-            
-        Returns:
-            InputComplexity enum value indicating complexity
-        """
-        input_lower = input_string.lower().strip()
-        
-        # Check for conversational patterns
-        has_question = '?' in input_string or any(
-            word in input_lower for word in self.conversational_keywords['question_words']
-        )
-        
-        has_conversational = any(
-            starter in input_lower for starter in self.conversational_keywords['conversational_starters']
-        )
-        
-        has_social = any(
-            action in input_lower for action in self.conversational_keywords['social_actions']
-        )
-        
-        # Determine complexity
-        if has_question or has_conversational or has_social:
-            return InputComplexity.CONVERSATIONAL
-        
-        # Check if this looks like a simple command
-        # For now we'll use a simple heuristic, but this will be replaced by the parser
-        words = input_lower.split()
-        if 1 <= len(words) <= 4:
-            # Likely a simple command like "look", "take sword", "go north"
-            return InputComplexity.SIMPLE_COMMAND
-        
-        # If we're not sure, consider it ambiguous
-        return InputComplexity.AMBIGUOUS
-    
-    def _process_mechanical_command(self, input_string: str) -> Dict[str, Any]:
-        """
-        Process mechanical commands using templates.
-        
-        Args:
-            input_string: Command string
-            
-        Returns:
-            Response data
-        """
-        # This is a placeholder for now - will implement actual command processing later
-        # In Phase 2, this will connect to the command parser
-        
-        # Simple direction commands
-        directions = ['north', 'south', 'east', 'west', 'up', 'down']
-        words = input_string.lower().split()
-        
-        if input_string.lower() in directions:
-            return {
-                'response_text': f"You move {input_string.lower()}.",
-                'action_executed': True,
-                'requires_llm': False,
-                'command_type': 'movement'
-            }
-        
-        if input_string.lower() == 'look' or input_string.lower() == 'look around':
-            return {
-                'response_text': "You look around the area. [Environment description would go here]",
-                'action_executed': True,
-                'requires_llm': False,
-                'command_type': 'observation'
-            }
-        
-        if words and words[0] == 'take':
-            item = ' '.join(words[1:])
-            return {
-                'response_text': f"You take the {item}.",
-                'action_executed': True,
-                'requires_llm': False,
-                'command_type': 'item_interaction'
-            }
-        
-        # Default to ambiguous handling
-        return self._process_ambiguous_input(input_string)
-    
-    def _process_conversational_input(self, input_string: str) -> Dict[str, Any]:
-        """
-        Process conversational input requiring narrative response.
-        
-        Args:
-            input_string: Conversational input string
-            
-        Returns:
-            Response data
-        """
-        # This is a placeholder for now - will implement LLM call in Phase 2
-        
-        # For now, return a template response
-        response_templates = [
-            "That's an interesting question. [LLM-generated response would go here]",
-            "Let me think about that... [LLM-generated response would go here]",
-            "I understand you're asking about that. [LLM-generated response would go here]"
+    def _subscribe_to_events(self):
+        """Subscribe to relevant game events."""
+        event_types = [
+            EventType.PLAYER_JOINED,
+            EventType.PLAYER_LEFT,
+            EventType.LOCATION_ENTERED,
+            EventType.LOCATION_EXITED,
+            EventType.NPC_INTERACTION,
+            EventType.ITEM_ACQUIRED,
+            EventType.COMBAT_STARTED,
+            EventType.COMBAT_ENDED,
+            EventType.QUEST_STARTED,
+            EventType.QUEST_PROGRESSED,
+            EventType.QUEST_COMPLETED,
+            EventType.DOMAIN_ADVANCED
         ]
         
-        import random
-        response = random.choice(response_templates)
-        
-        return {
-            'response_text': response,
-            'action_executed': False,
-            'requires_llm': True,
-            'response_type': 'narrative'
-        }
+        for event_type in event_types:
+            event_bus.subscribe(event_type, self._handle_event)
     
-    def _process_ambiguous_input(self, input_string: str) -> Dict[str, Any]:
+    def _handle_event(self, event: GameEvent):
         """
-        Process ambiguous input that could have multiple interpretations.
+        Handle a game event.
         
         Args:
-            input_string: Ambiguous input string
+            event: Game event to handle
+        """
+        # Log the event
+        self.logger.debug(f"Handling event: {event}")
+        
+        # Store important events in memory
+        importance = 0.5  # Default importance
+        
+        # Adjust importance based on event type
+        if event.type in [EventType.QUEST_COMPLETED, EventType.COMBAT_ENDED, 
+                         EventType.DOMAIN_ADVANCED, EventType.PLAYER_JOINED]:
+            importance = 0.8
+        elif event.type in [EventType.QUEST_STARTED, EventType.COMBAT_STARTED, 
+                           EventType.NPC_INTERACTION]:
+            importance = 0.6
+        
+        # Store in memory
+        memory_content = {
+            "event_type": event.type.name,
+            "timestamp": event.timestamp.isoformat(),
+            "source_id": event.source_id,
+            "context": event.context
+        }
+        
+        memory_manager.add_memory(
+            memory_type=MemoryType.SYSTEM,
+            content=memory_content,
+            importance=importance,
+            tags=[event.type.name] + event.tags
+        )
+    
+    def process_player_input(self, input_text: str) -> Dict[str, Any]:
+        """
+        Process player input and generate a response.
+        
+        Args:
+            input_text: Text input from the player
             
         Returns:
-            Response data
+            Dictionary containing response and metadata
         """
-        # This is a placeholder for now
+        start_time = time.time()
         
-        return {
-            'response_text': f"I'm not sure what you mean by '{input_string}'. Could you be more specific?",
-            'action_executed': False,
-            'requires_llm': False,
-            'response_type': 'clarification_request'
+        # Log input
+        self.logger.info(f"Processing input: '{input_text}'")
+        
+        # Check for empty input
+        if not input_text or input_text.strip() == "":
+            return {
+                "response_text": "I didn't catch that. What would you like to do?",
+                "metadata": {
+                    "processing_mode": ProcessingMode.NARRATIVE.name,
+                    "complexity": InputComplexity.SIMPLE.name,
+                    "processing_time": 0.0
+                }
+            }
+        
+        # Check for OOC command
+        if input_text.startswith("/") and self.has_ooc_integration:
+            result = self.extensions["ooc_integration"].process_command(input_text)
+            processing_time = time.time() - start_time
+            
+            # Update statistics
+            self._update_stats(ProcessingMode.OOC, InputComplexity.SIMPLE, processing_time)
+            
+            return {
+                "response_text": result["response"],
+                "metadata": {
+                    "processing_mode": ProcessingMode.OOC.name,
+                    "complexity": InputComplexity.SIMPLE.name,
+                    "processing_time": processing_time,
+                    "ooc_response": True,
+                    "ooc_command": result.get("command", "unknown")
+                }
+            }
+        
+        # Determine input complexity
+        complexity = self._determine_input_complexity(input_text)
+        
+        # Determine processing mode
+        processing_mode = self._determine_processing_mode(input_text, complexity)
+        
+        # Generate response based on processing mode
+        response = self._generate_response(input_text, processing_mode, complexity)
+        
+        # Calculate processing time
+        processing_time = time.time() - start_time
+        
+        # Update statistics
+        self._update_stats(processing_mode, complexity, processing_time)
+        
+        # Prepare the result
+        result = {
+            "response_text": response,
+            "metadata": {
+                "processing_mode": processing_mode.name,
+                "complexity": complexity.name,
+                "processing_time": processing_time
+            }
         }
+        
+        return result
     
-    def _handle_parsing_error(self, input_string: str) -> Dict[str, Any]:
+    def _determine_input_complexity(self, input_text: str) -> InputComplexity:
         """
-        Handle input that could not be parsed.
+        Determine the complexity of the player's input.
         
         Args:
-            input_string: Unparseable input string
+            input_text: Text input from the player
             
         Returns:
-            Response data
+            Complexity level of the input
         """
-        return {
-            'response_text': "I don't understand that command. Try something like 'look', 'go north', or 'take item'.",
-            'action_executed': False,
-            'requires_llm': False,
-            'response_type': 'error',
-            'error_type': 'parsing_error'
-        }
+        text = input_text.lower().strip()
+        
+        # Check for simple commands
+        simple_commands = ["look", "go", "take", "drop", "use", "attack", "help", "inventory"]
+        if any(text.startswith(cmd) for cmd in simple_commands) and len(text.split()) <= 3:
+            return InputComplexity.SIMPLE
+        
+        # Check for moderate complexity
+        if len(text.split()) <= 8 and "?" not in text:
+            return InputComplexity.MODERATE
+        
+        # Check for conversational input
+        conversational_indicators = ["?", "hello", "hi", "thanks", "thank you", "please"]
+        if any(indicator in text for indicator in conversational_indicators):
+            return InputComplexity.CONVERSATIONAL
+        
+        # Default to complex
+        return InputComplexity.COMPLEX
     
-    def _handle_ooc_command(self, input_string: str, start_time: float) -> Dict[str, Any]:
+    def _determine_processing_mode(self, input_text: str, complexity: InputComplexity) -> ProcessingMode:
         """
-        Handle out-of-character commands starting with /ooc.
+        Determine the appropriate processing mode for the input.
         
         Args:
-            input_string: OOC command string
-            start_time: Processing start time for metrics
+            input_text: Text input from the player
+            complexity: Complexity level of the input
             
         Returns:
-            Response data
+            Processing mode to use
         """
-        # Strip the /ooc prefix and any leading/trailing whitespace
-        command = input_string.lower().replace('/ooc', '', 1).strip()
+        text = input_text.lower().strip()
         
-        # Handle empty command
-        if not command:
-            help_text = "(OOC) Available commands: help, stats, inventory, quests, time"
-            return {
-                'response_text': help_text,
-                'ooc_response': True,
-                'requires_llm': False,
-                'processing_time': time.time() - start_time
-            }
+        # If OOC, already handled in process_player_input
+        if text.startswith("/"):
+            return ProcessingMode.OOC
         
-        # Process specific OOC commands
-        if command == 'help':
-            help_text = """(OOC) Available commands:
-- help: Show this help message
-- stats: Show character statistics
-- inventory: Show your inventory
-- quests: Show active quests
-- time: Show game time
-"""
-            return {
-                'response_text': help_text,
-                'ooc_response': True,
-                'requires_llm': False,
-                'processing_time': time.time() - start_time
-            }
+        # Check for mechanical commands
+        mechanical_commands = ["go", "take", "drop", "use", "attack", "inventory", "equip"]
+        if any(text.startswith(cmd) for cmd in mechanical_commands):
+            return ProcessingMode.MECHANICAL
         
-        if command == 'stats':
-            # Placeholder for actual stats
-            stats_text = "(OOC) Your stats: [Character stats would go here]"
-            return {
-                'response_text': stats_text,
-                'ooc_response': True,
-                'requires_llm': False,
-                'processing_time': time.time() - start_time
-            }
+        # Check for narrative-focused input
+        narrative_indicators = ["tell me about", "describe", "what is", "who is", "?"]
+        if any(indicator in text for indicator in narrative_indicators):
+            return ProcessingMode.NARRATIVE
         
-        # Default OOC response for unknown commands
-        return {
-            'response_text': f"(OOC) Unknown command: '{command}'. Type '/ooc help' for available commands.",
-            'ooc_response': True,
-            'requires_llm': False,
-            'processing_time': time.time() - start_time
-        }
+        # Default based on complexity
+        if complexity == InputComplexity.SIMPLE:
+            return ProcessingMode.MECHANICAL
+        elif complexity == InputComplexity.CONVERSATIONAL:
+            return ProcessingMode.NARRATIVE
+        else:
+            return ProcessingMode.HYBRID
     
-    def _log_interaction(self, input_string: str, response_data: Dict[str, Any]) -> None:
+    def _generate_response(self, input_text: str, mode: ProcessingMode, 
+                          complexity: InputComplexity) -> str:
         """
-        Log player interaction for analysis and history.
+        Generate a response based on the input and processing mode.
         
         Args:
-            input_string: Player input
-            response_data: Generated response data
+            input_text: Text input from the player
+            mode: Processing mode to use
+            complexity: Complexity of the input
+            
+        Returns:
+            Response text
         """
-        # Add to memory manager if significant
-        is_significant = (
-            self.processing_mode == ProcessingMode.NARRATIVE or
-            response_data.get('action_executed', False) or
-            'error' in response_data
+        # Handle based on processing mode
+        if mode == ProcessingMode.MECHANICAL:
+            return self._handle_mechanical_input(input_text)
+        elif mode == ProcessingMode.NARRATIVE:
+            return self._handle_narrative_input(input_text)
+        elif mode == ProcessingMode.HYBRID:
+            return self._handle_hybrid_input(input_text)
+        else:
+            return "I'm not sure how to respond to that."
+    
+    def _handle_mechanical_input(self, input_text: str) -> str:
+        """
+        Handle mechanical input like movement, inventory, etc.
+        
+        Args:
+            input_text: Text input from the player
+            
+        Returns:
+            Response text
+        """
+        text = input_text.lower().strip()
+        
+        # Basic mechanical commands
+        if text == "look":
+            return "You look around and see the area."
+        elif text.startswith("go "):
+            direction = text[3:].strip()
+            return f"You move {direction}."
+        elif text == "inventory":
+            return "You check your inventory."
+        elif text.startswith("take "):
+            item = text[5:].strip()
+            return f"You take the {item}."
+        elif text.startswith("drop "):
+            item = text[5:].strip()
+            return f"You drop the {item}."
+        elif text.startswith("use "):
+            item = text[4:].strip()
+            return f"You use the {item}."
+        elif text.startswith("attack "):
+            target = text[7:].strip()
+            
+            # Use combat integration if available
+            if self.has_combat_integration:
+                return self.extensions["combat_integration"].initiate_combat(target)
+            
+            return f"You attack the {target}."
+        else:
+            return "I'm not sure how to do that."
+    
+    def _handle_narrative_input(self, input_text: str) -> str:
+        """
+        Handle narrative-focused input.
+        
+        Args:
+            input_text: Text input from the player
+            
+        Returns:
+            Response text
+        """
+        # Use narrative generator if available
+        if self.has_narrative_generator:
+            return self.extensions["narrative_generator"].generate_response(input_text)
+        
+        # Basic fallback responses
+        text = input_text.lower().strip()
+        
+        if "describe" in text:
+            return "You see a detailed scene before you."
+        elif text.endswith("?"):
+            return "That's an interesting question. Let me think about it."
+        elif "hello" in text or "hi" in text:
+            return "Greetings, adventurer. How may I assist you on your journey?"
+        else:
+            return "You ponder the situation before you."
+    
+    def _handle_hybrid_input(self, input_text: str) -> str:
+        """
+        Handle input that requires both mechanical and narrative processing.
+        
+        Args:
+            input_text: Text input from the player
+            
+        Returns:
+            Response text
+        """
+        # Here we'd implement a more sophisticated parsing and response system
+        # For now, we'll provide a basic implementation
+        
+        # Use decision logic if available
+        if self.has_decision_logic:
+            context = {
+                "input": input_text,
+                "recent_memory": self._get_recent_memory()
+            }
+            return self.extensions["decision_logic"].make_response_decision(context)
+        
+        # Simple fallback combining mechanical and narrative
+        mechanical = self._handle_mechanical_input(input_text)
+        narrative = "You consider your next move carefully."
+        
+        return f"{mechanical} {narrative}"
+    
+    def _get_recent_memory(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Get recent memories to provide context.
+        
+        Args:
+            limit: Maximum number of memories to retrieve
+            
+        Returns:
+            List of memory dictionaries
+        """
+        memories = memory_manager.find_memories(
+            include_tiers={MemoryTier.WORKING},
+            limit=limit
         )
         
-        if is_significant:
-            memory_content = f"Player: {input_string}\nAI GM: {response_data.get('response_text', '')}"
-            memory_type = MemoryType.PLAYER_ACTION
-            
-            # Determine importance
-            importance = 3  # Default medium-low importance
-            if self.processing_mode == ProcessingMode.NARRATIVE:
-                importance = 5  # Narrative interactions are more important
-            if response_data.get('action_executed', False):
-                importance = 6  # Actions that change game state are important
-            
-            # Add to memory
-            self.memory_manager.add_memory(
-                type=memory_type,
-                content=memory_content,
-                importance=importance,
-                tier=MemoryTier.SHORT_TERM,
-                game_id=self.game_id
-            )
+        return [memory.content for memory in memories]
     
-    def _handle_location_change(self, event: GameEvent) -> None:
-        """Handle location change events."""
-        self.current_location = event.context.get('location_id')
-        self.logger.debug(f"Location changed to {self.current_location}")
-    
-    def _handle_npc_interaction(self, event: GameEvent) -> None:
-        """Handle NPC interaction events."""
-        npc_id = event.context.get('npc_id')
-        if npc_id:
-            # Track active conversations
-            self.active_conversations[npc_id] = {
-                'started_at': datetime.utcnow(),
-                'last_update': datetime.utcnow(),
-                'context': event.context
-            }
-    
-    def _handle_combat_event(self, event: GameEvent) -> None:
-        """Handle combat-related events."""
-        if event.type == EventType.COMBAT_STARTED:
-            self.logger.info(f"Combat started with {event.context.get('opponent_id')}")
-        elif event.type == EventType.COMBAT_ENDED:
-            self.logger.info(f"Combat ended with result: {event.context.get('result')}")
-    
-    def _handle_quest_event(self, event: GameEvent) -> None:
-        """Handle quest-related events."""
-        quest_id = event.context.get('quest_id')
-        if event.type == EventType.QUEST_STARTED:
-            self.logger.info(f"Quest started: {quest_id}")
-        elif event.type == EventType.QUEST_COMPLETED:
-            self.logger.info(f"Quest completed: {quest_id}")
+    def _update_stats(self, mode: ProcessingMode, complexity: InputComplexity, processing_time: float):
+        """
+        Update processing statistics.
+        
+        Args:
+            mode: Processing mode used
+            complexity: Input complexity
+            processing_time: Time taken to process
+        """
+        self.stats["total_inputs_processed"] += 1
+        
+        # Update mode stats
+        if mode == ProcessingMode.MECHANICAL:
+            self.stats["mechanical_responses"] += 1
+        elif mode == ProcessingMode.NARRATIVE:
+            self.stats["narrative_responses"] += 1
+        elif mode == ProcessingMode.HYBRID:
+            self.stats["hybrid_responses"] += 1
+        elif mode == ProcessingMode.OOC:
+            self.stats["ooc_responses"] += 1
+        
+        # Update complexity stats
+        if complexity == InputComplexity.SIMPLE:
+            self.stats["simple_inputs"] += 1
+        elif complexity == InputComplexity.MODERATE:
+            self.stats["moderate_inputs"] += 1
+        elif complexity == InputComplexity.COMPLEX:
+            self.stats["complex_inputs"] += 1
+        elif complexity == InputComplexity.CONVERSATIONAL:
+            self.stats["conversational_inputs"] += 1
+        
+        # Update timing stats
+        self.stats["total_processing_time"] += processing_time
+        self.stats["avg_processing_time"] = (
+            self.stats["total_processing_time"] / self.stats["total_inputs_processed"]
+        )
     
     def get_processing_statistics(self) -> Dict[str, Any]:
         """
-        Get statistics about the AI GM Brain's processing.
+        Get processing statistics.
         
         Returns:
             Dictionary of statistics
         """
-        return {
-            'total_interactions': self.interaction_count,
-            'current_mode': self.processing_mode.name,
-            'active_conversations': len(self.active_conversations),
-            'current_location': self.current_location,
-            'last_llm_interaction': self.last_llm_interaction.isoformat() if self.last_llm_interaction else None
-        }
+        return self.stats
+    
+    def register_extension(self, name: str, extension: Any) -> None:
+        """
+        Register an extension component.
+        
+        Args:
+            name: Name of the extension
+            extension: Extension object
+        """
+        self.extensions[name] = extension
+        self.logger.info(f"Registered extension: {name}")
+        
+        # Set the appropriate flag
+        if name == "ooc_integration":
+            self.has_ooc_integration = True
+        elif name == "llm_integration":
+            self.has_llm_integration = True
+        elif name == "combat_integration":
+            self.has_combat_integration = True
+        elif name == "decision_logic":
+            self.has_decision_logic = True
+        elif name == "narrative_generator":
+            self.has_narrative_generator = True
 
-
-# Singleton instance pattern
-_ai_gm_brain = None
 
 def get_ai_gm_brain(game_id: str, player_id: str) -> AIGMBrain:
     """
-    Get or create the AI GM Brain instance.
+    Get an AI GM Brain instance for the specified game and player.
     
     Args:
-        game_id: Game session ID
-        player_id: Player character ID
+        game_id: ID of the game session
+        player_id: ID of the player
         
     Returns:
         AIGMBrain instance
     """
-    global _ai_gm_brain
-    if _ai_gm_brain is None:
-        _ai_gm_brain = AIGMBrain(game_id, player_id)
-    return _ai_gm_brain
+    return AIGMBrain(game_id, player_id)

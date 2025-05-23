@@ -1,9 +1,9 @@
 """
-AI GM Package
+AI Game Master Brain Package
 
-This package contains components for the AI Game Master brain that orchestrates
-the narrative engine and game experience.
+This package implements an AI-driven Game Master system that orchestrates
+the narrative experience, manages NPCs, and provides dynamic storytelling.
 """
 
-# Export main components
-from .ai_gm_brain import AIGMBrain, get_ai_gm_brain, InputComplexity, ProcessingMode
+# Import core components
+from .ai_gm_brain import AIGMBrain, get_ai_gm_brain
