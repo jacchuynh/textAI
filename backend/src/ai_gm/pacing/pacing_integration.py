@@ -258,3 +258,58 @@ class PacingIntegration:
                 'session_stale': self.is_session_stale()
             }
         }
+        
+    async def integrate_with_domain_system(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Integrate pacing information with domain system.
+        
+        Args:
+            context: Current context with domain information
+            
+        Returns:
+            Enhanced context with relevant pacing information
+        """
+        enhanced_context = context.copy()
+        
+        # Add pacing state to domain context
+        pacing_state = self.pacing_manager.current_metrics.current_pacing_state.value
+        
+        # Map pacing states to domain considerations
+        if pacing_state == 'active':
+            enhanced_context['domain_pacing_modifier'] = 'high_engagement'
+        elif pacing_state == 'stagnant':
+            enhanced_context['domain_pacing_modifier'] = 'needs_acceleration'
+        else:
+            enhanced_context['domain_pacing_modifier'] = 'normal'
+            
+        # Add story context for domain consideration
+        story_context = self.get_story_context()
+        if story_context.get('story_summary'):
+            enhanced_context['story_context_summary'] = story_context.get('story_summary')
+            
+        return enhanced_context
+    
+    async def integrate_with_combat_system(self, combat_context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Integrate pacing information with combat system.
+        
+        Args:
+            combat_context: Current combat context
+            
+        Returns:
+            Enhanced combat context with relevant pacing information
+        """
+        enhanced_combat = combat_context.copy()
+        
+        # Add time-based combat pacing info
+        time_since_input = self.get_time_since_last_input()
+        
+        # Adjust combat pacing based on player response time
+        if time_since_input > timedelta(minutes=2):
+            enhanced_combat['combat_pace_modifier'] = 'relaxed'
+        elif time_since_input < timedelta(seconds=30):
+            enhanced_combat['combat_pace_modifier'] = 'intense'
+        else:
+            enhanced_combat['combat_pace_modifier'] = 'standard'
+            
+        return enhanced_combat
