@@ -19,6 +19,8 @@ class ObjectResolver:
     Works with the VocabularyManager to find matching objects in the game world.
     """
     
+
+    
     def __init__(self):
         """Initialize the object resolver."""
         self.logger = logging.getLogger("text_parser.resolver")

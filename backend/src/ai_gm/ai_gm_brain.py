@@ -299,7 +299,16 @@ class AIGMBrain:
         # Check for disambiguation potential
         # First update game context to ensure relevant information is available
         self._update_game_context()
-        candidates = self.object_resolver.find_disambiguation_candidates(input_text, self.game_context)
+        # Get disambiguation candidates 
+        # For now use a simple approach to avoid import issues
+        candidates = []
+        try:
+            # Try to use existing method from ObjectResolver
+            if hasattr(self.object_resolver, 'find_disambiguation_candidates'):
+                candidates = self.object_resolver.find_disambiguation_candidates(input_text, self.game_context)
+        except Exception as e:
+            self.logger.error(f"Error finding disambiguation candidates: {e}")
+            candidates = []
         if candidates and len(candidates) > 0:
             self.logger.debug(f"Input needs DISAMBIGUATION with {len(candidates)} options")
             return InputComplexity.DISAMBIGUATION
@@ -360,11 +369,15 @@ class AIGMBrain:
     def _update_game_context(self):
         """Update the game context with current state for text parser."""
         # This provides context to the parser for better understanding
-        self.game_context.update({
+        # Using dictionary comprehension to avoid issue with update method
+        context_updates = {
             "current_location": self.current_location,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.utcnow().isoformat()
             # Add more context as needed, like nearby NPCs, visible items, etc.
-        })
+        }
+        
+        for key, value in context_updates.items():
+            self.game_context[key] = value
     
     def _determine_processing_mode(self, input_text: str, complexity: InputComplexity) -> ProcessingMode:
         """
@@ -576,7 +589,7 @@ class AIGMBrain:
         
     def _handle_disambiguation_request(self, input_text: str) -> str:
         """
-        Handle disambiguation for ambiguous input.
+        Handle disambiguation for ambiguous input using the text parser.
         
         Args:
             input_text: Text input from the player
@@ -584,11 +597,37 @@ class AIGMBrain:
         Returns:
             Response text with disambiguation options
         """
-        if not self.pending_disambiguation:
-            self.pending_disambiguation = {
-                "options": self._generate_disambiguation_options(input_text),
-                "original_input": input_text
-            }
+        # Use the same approach to get disambiguation candidates
+        candidates = []
+        try:
+            # Try to use the method from ObjectResolver
+            if hasattr(self.object_resolver, 'find_disambiguation_candidates'):
+                candidates = self.object_resolver.find_disambiguation_candidates(input_text, self.game_context)
+        except Exception as e:
+            self.logger.error(f"Error finding disambiguation candidates: {e}")
+            candidates = []
+        
+        if not candidates or len(candidates) == 0:
+            # Fall back to basic suggestions if the text parser couldn't find candidates
+            options = self._generate_disambiguation_options(input_text)
+        else:
+            # Convert to the format expected by the rest of the system
+            options = []
+            for candidate in candidates[:5]:  # Limit to top 5
+                option = {
+                    "text": candidate["match"],
+                    "confidence": candidate["confidence"],
+                    "action": candidate.get("action", "examine"),
+                    "object_id": candidate.get("id", ""),
+                    "object_type": candidate.get("type", "")
+                }
+                options.append(option)
+                
+        # Store disambiguation state
+        self.pending_disambiguation = {
+            "options": options,
+            "original_input": input_text
+        }
             
         options = self.pending_disambiguation.get("options", [])
         
