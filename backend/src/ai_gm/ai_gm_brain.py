@@ -231,7 +231,7 @@ class AIGMBrain:
                 "response_text": result["response"],
                 "metadata": {
                     "processing_mode": ProcessingMode.OOC.name,
-                    "complexity": InputComplexity.SIMPLE.name,
+                    "complexity": InputComplexity.SIMPLE_COMMAND.name,
                     "processing_time": processing_time,
                     "ooc_response": True,
                     "ooc_command": result.get("command", "unknown")
@@ -322,10 +322,14 @@ class AIGMBrain:
             return ProcessingMode.NARRATIVE
         
         # Default based on complexity
-        if complexity == InputComplexity.SIMPLE:
+        if complexity == InputComplexity.SIMPLE_COMMAND:
             return ProcessingMode.MECHANICAL
         elif complexity == InputComplexity.CONVERSATIONAL:
             return ProcessingMode.NARRATIVE
+        elif complexity == InputComplexity.DISAMBIGUATION:
+            return ProcessingMode.DISAMBIGUATION
+        elif complexity == InputComplexity.PARSING_ERROR:
+            return ProcessingMode.INTERPRETIVE
         else:
             return ProcessingMode.HYBRID
     
@@ -349,6 +353,16 @@ class AIGMBrain:
             return self._handle_narrative_input(input_text)
         elif mode == ProcessingMode.HYBRID:
             return self._handle_hybrid_input(input_text)
+        elif mode == ProcessingMode.INTERPRETIVE:
+            return self._handle_interpretive_input(input_text)
+        elif mode == ProcessingMode.DISAMBIGUATION:
+            return self._handle_disambiguation_request(input_text)
+        elif mode == ProcessingMode.OOC:
+            # Should be handled earlier, but just in case
+            if self.has_ooc_integration:
+                return self.extensions["ooc_integration"].process_command(input_text)["response"]
+            else:
+                return "OOC commands are not supported."
         else:
             return "I'm not sure how to respond to that."
     
