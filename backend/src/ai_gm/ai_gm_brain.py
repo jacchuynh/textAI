@@ -772,6 +772,11 @@ class AIGMBrain:
             Tuple of (response_text, processing_mode, complexity)
         """
         input_text = input_text.strip().lower()
+        
+        # Make sure we have a valid pending_disambiguation
+        if not self.pending_disambiguation:
+            return "I'm not sure what you're referring to. Could you be more specific?", ProcessingMode.NARRATIVE, InputComplexity.MODERATE
+            
         options = self.pending_disambiguation.get("options", [])
         
         # Handle cancel request
@@ -824,6 +829,89 @@ class AIGMBrain:
             pass
         
         # If we get here, the input wasn't a valid option number or "cancel"
+        # Try to use text parser to match the input to an option
+        best_match = None
+        best_score = 0.0
+        
+        # Use the text parser's similarity calculation if available
+        try:
+            for i, option in enumerate(options):
+                desc = option.get('description', '').lower()
+                target = option.get('target', '').lower()
+                action = option.get('action', '').lower()
+                
+                # Create a combined text to match against
+                option_text = f"{action} {target} {desc}".strip()
+                
+                # Calculate similarity score for this option
+                similarity = 0.0
+                
+                try:
+                    # First try to use the object resolver directly
+                    if hasattr(self.object_resolver, '_calculate_similarity'):
+                        similarity = self.object_resolver._calculate_similarity(input_text, option_text)
+                    else:
+                        # Fallback to simple string matching
+                        if input_text == option_text:
+                            similarity = 1.0
+                        elif input_text in option_text:
+                            similarity = 0.8
+                        elif option_text in input_text:
+                            similarity = 0.6
+                        elif any(word in option_text for word in input_text.split() if len(word) > 3):
+                            similarity = 0.5
+                        else:
+                            similarity = 0.0
+                except Exception as e:
+                    self.logger.error(f"Error calculating similarity: {e}")
+                    # Simple fallback check
+                    if input_text in option_text or any(word in option_text for word in input_text.split()):
+                        similarity = 0.6
+                
+                # Update best match if this one is better
+                if similarity > best_score and similarity > 0.5:  # Threshold
+                    best_score = similarity
+                    best_match = i
+        except Exception as e:
+            self.logger.error(f"Error matching disambiguation response: {e}")
+            
+        # If we found a match, process it
+        if best_match is not None:
+            selected_option = options[best_match]
+            self.logger.info(f"Disambiguation: matched text input to option {best_match}: {selected_option.get('description', '')}")
+            
+            # Clear disambiguation state
+            original_input = self.pending_disambiguation.get("original_input", "")
+            self.pending_disambiguation = None
+            
+            # Generate response based on the selected option
+            if selected_option.get("action") == "go":
+                direction = selected_option.get("target", "")
+                response = f"You move {direction}."
+                return response, ProcessingMode.MECHANICAL, InputComplexity.SIMPLE_COMMAND
+                
+            elif selected_option.get("action") == "look":
+                target = selected_option.get("target")
+                if target:
+                    response = f"You examine the {target} closely."
+                else:
+                    response = "You look around and observe your surroundings."
+                return response, ProcessingMode.NARRATIVE, InputComplexity.SIMPLE_COMMAND
+                
+            elif selected_option.get("action") == "help":
+                response = "Available commands: look, go [direction], take [item], use [item], inventory, help"
+                return response, ProcessingMode.OOC, InputComplexity.SIMPLE_COMMAND
+                
+            elif selected_option.get("action") == "inventory":
+                response = "You check your inventory."
+                return response, ProcessingMode.MECHANICAL, InputComplexity.SIMPLE_COMMAND
+                
+            else:
+                # Generic handling for other actions
+                response = f"You {selected_option.get('action', 'do')} {selected_option.get('target', '')}."
+                return response, ProcessingMode.HYBRID, InputComplexity.MODERATE
+        
+        # No match found
         response = "Please choose an option by number, or type 'cancel' to try something else."
         return response, ProcessingMode.DISAMBIGUATION, InputComplexity.DISAMBIGUATION
         
