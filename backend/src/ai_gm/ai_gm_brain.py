@@ -78,6 +78,9 @@ class AIGMBrain:
             "total_processing_time": 0.0
         }
         
+        # Game state properties
+        self.current_location = None  # Will be updated as the player moves
+        
         # Subscribe to relevant events
         self._subscribe_to_events()
         
@@ -112,6 +115,13 @@ class AIGMBrain:
         """
         # Log the event
         self.logger.debug(f"Handling event: {event}")
+        
+        # Update game state based on the event
+        if event.type == EventType.LOCATION_ENTERED:
+            # Update current location when the player enters a new location
+            if 'location_id' in event.context:
+                self.current_location = event.context['location_id']
+                self.logger.info(f"Updated current location to: {self.current_location}")
         
         # Store important events in memory
         importance = 0.5  # Default importance

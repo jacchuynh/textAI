@@ -44,7 +44,8 @@ class OOCCommandHandler:
             'combat': self._cmd_combat_info,
             'npc': self._cmd_npc_info,
             'system': self._cmd_system_info,
-            'memory': self._cmd_memory_info
+            'memory': self._cmd_memory_info,
+            'look': self._cmd_look
         }
         
     def process_command(self, command_text: str) -> Dict[str, Any]:
@@ -394,6 +395,34 @@ Memory Stats:
 """
         return self._generate_response(memory_text, start_time)
     
+    def _cmd_look(self, args: str, start_time: float) -> Dict[str, Any]:
+        """Handle the 'look' command to give a detailed description of the current location."""
+        # This would connect to the location system to get detailed info
+        # For now, we'll return a placeholder based on what a detailed look would show
+
+        # Try to get the location from the AI GM Brain
+        location_id = getattr(self.ai_gm_brain, 'current_location', None) or "unknown"
+        
+        # Check if we have extra information in the attached_assets directory
+        look_text = f"""You take a careful look around your current location ({location_id}).
+
+Detailed Description:
+A richly detailed environment stretches out around you. The air carries subtle scents and sounds that hint at the area's nature. You notice various objects and features that might be worth investigating further.
+
+Points of Interest:
+- There appear to be several notable features in this area
+- Some items or objects might be interactable
+- There may be hidden details worth a closer inspection
+
+Possible Interactions:
+- You could examine specific features more closely
+- There may be items you can pick up or manipulate
+- NPCs in the area might respond to conversation
+
+This is an expanded view of the area, revealing details that might not be immediately obvious.
+"""
+        return self._generate_response(look_text, start_time)
+
     def _get_command_help(self, command: str) -> str:
         """Get detailed help for a specific command."""
         help_texts = {
@@ -407,7 +436,8 @@ Memory Stats:
             'combat': "combat - Show combat statistics, recent combat encounters, and your combat style",
             'npc': "npc [name] - Show information about a specific NPC (if name is provided) or nearby NPCs",
             'system': "system - Show system information and statistics about the game's operation",
-            'memory': "memory - Show information about the game's memory system and recent memories"
+            'memory': "memory - Show information about the game's memory system and recent memories",
+            'look': "look - Get a detailed description of your current surroundings with points of interest"
         }
         
         return help_texts.get(command, f"No detailed help available for '{command}'")
