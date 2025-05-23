@@ -27,19 +27,23 @@ from ..memory.memory_manager import memory_manager, MemoryTier, MemoryType
 
 
 class InputComplexity(Enum):
-    """Complexity levels for player input."""
-    SIMPLE = auto()      # Simple commands like "look", "go north"
-    MODERATE = auto()    # More complex but still straight-forward
-    COMPLEX = auto()     # Complex, potentially ambiguous input
-    CONVERSATIONAL = auto()  # Natural language conversation
+    """Categorizes input complexity to determine processing strategy."""
+    SIMPLE_COMMAND = auto()      # Clear, direct command (look, go north)
+    MODERATE = auto()           # More complex but still straight-forward
+    COMPLEX = auto()            # Complex, potentially ambiguous input
+    CONVERSATIONAL = auto()     # Natural language conversation
+    DISAMBIGUATION = auto()     # Needs player to choose between options
+    PARSING_ERROR = auto()      # Parser couldn't understand input
 
 
 class ProcessingMode(Enum):
-    """Different modes of processing player input."""
-    MECHANICAL = auto()  # Direct mechanical response (movement, etc.)
-    NARRATIVE = auto()   # Narrative-focused response
-    HYBRID = auto()      # A mix of mechanical and narrative
-    OOC = auto()         # Out of character processing
+    """Processing modes for different types of interactions."""
+    MECHANICAL = auto()     # Direct mechanical response (movement, etc.)
+    NARRATIVE = auto()      # Narrative-focused response
+    HYBRID = auto()         # A mix of mechanical and narrative
+    OOC = auto()            # Out of character processing
+    INTERPRETIVE = auto()   # Heavy processing for complex situations
+    DISAMBIGUATION = auto() # Handling disambiguation between options
 
 
 class AIGMBrain:
@@ -47,19 +51,22 @@ class AIGMBrain:
     Core AI Game Master Brain that coordinates all game systems.
     
     This class orchestrates the various game systems to provide a cohesive
-    player experience, managing the flow of information and narrative.
+    player experience, managing the flow of information and narrative with
+    text parsing, LLM integration, and sophisticated response generation.
     """
     
-    def __init__(self, game_id: str, player_id: str):
+    def __init__(self, game_id: str, player_id: str, llm_client=None):
         """
-        Initialize the AI GM Brain.
+        Initialize the AI GM Brain with advanced features.
         
         Args:
             game_id: ID of the game session
             player_id: ID of the player
+            llm_client: LLM client for complex narrative generation (optional)
         """
         self.game_id = game_id
         self.player_id = player_id
+        self.llm_client = llm_client
         self.logger = logging.getLogger(f"AIGMBrain:{game_id}")
         
         # Initialize component flags (will be set by extension modules)
@@ -68,6 +75,7 @@ class AIGMBrain:
         self.has_combat_integration = False
         self.has_decision_logic = False
         self.has_narrative_generator = False
+        self.has_text_parser = False  # Will be set when text parser is integrated
         
         # Component extensions will add themselves to this dictionary
         self.extensions: Dict[str, Any] = {}
@@ -79,21 +87,48 @@ class AIGMBrain:
             "narrative_responses": 0,
             "hybrid_responses": 0,
             "ooc_responses": 0,
+            "interpretive_responses": 0,
+            "disambiguation_responses": 0,
             "simple_inputs": 0,
             "moderate_inputs": 0,
             "complex_inputs": 0,
             "conversational_inputs": 0,
+            "disambiguation_inputs": 0,
+            "parsing_error_inputs": 0,
             "avg_processing_time": 0.0,
             "total_processing_time": 0.0
         }
         
         # Game state properties
         self.current_location = None  # Will be updated as the player moves
+        self.recent_events = []       # Keep track of recent events
+        self.max_recent_events = 20   # Maximum number of events to track
+        self.active_conversations = {}  # Track active NPC conversations
+        self.last_action_time = datetime.utcnow()
+        self.session_start_time = self.last_action_time
+        
+        # Disambiguation state
+        self.pending_disambiguation = None
+        self.last_llm_interaction = None
+        self.llm_cooldown_seconds = 5
+        
+        # Text parser placeholders
+        self.parser_engine = None
+        self.vocabulary = None
+        self.object_resolver = None
+        self.game_context = None
+        
+        # Conversational analysis configuration
+        self.conversational_keywords = {
+            'question_words': ['what', 'where', 'when', 'why', 'how', 'who'],
+            'conversational_starters': ['tell me', 'explain', 'describe', 'what about'],
+            'social_actions': ['talk to', 'speak with', 'ask', 'greet', 'converse']
+        }
         
         # Subscribe to relevant events
         self._subscribe_to_events()
         
-        self.logger.info(f"AI GM Brain initialized for game {game_id} and player {player_id}")
+        self.logger.info(f"Enhanced AI GM Brain initialized for game {game_id} and player {player_id}")
     
     def _subscribe_to_events(self):
         """Subscribe to relevant game events."""
@@ -179,7 +214,7 @@ class AIGMBrain:
                 "response_text": "I didn't catch that. What would you like to do?",
                 "metadata": {
                     "processing_mode": ProcessingMode.NARRATIVE.name,
-                    "complexity": InputComplexity.SIMPLE.name,
+                    "complexity": InputComplexity.SIMPLE_COMMAND.name,
                     "processing_time": 0.0
                 }
             }
@@ -190,7 +225,7 @@ class AIGMBrain:
             processing_time = time.time() - start_time
             
             # Update statistics
-            self._update_stats(ProcessingMode.OOC, InputComplexity.SIMPLE, processing_time)
+            self._update_stats(ProcessingMode.OOC, InputComplexity.SIMPLE_COMMAND, processing_time)
             
             return {
                 "response_text": result["response"],
@@ -245,7 +280,7 @@ class AIGMBrain:
         # Check for simple commands
         simple_commands = ["look", "go", "take", "drop", "use", "attack", "help", "inventory"]
         if any(text.startswith(cmd) for cmd in simple_commands) and len(text.split()) <= 3:
-            return InputComplexity.SIMPLE
+            return InputComplexity.SIMPLE_COMMAND
         
         # Check for moderate complexity
         if len(text.split()) <= 8 and "?" not in text:
