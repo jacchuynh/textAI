@@ -46,6 +46,33 @@ class OOCCommandHandler:
             'system': self._cmd_system_info,
             'memory': self._cmd_memory_info
         }
+        
+    def process_command(self, command_text: str) -> Dict[str, Any]:
+        """
+        Process an OOC command from the full input (including slash prefix).
+        This method is called by the AI GM Brain to handle OOC commands.
+        
+        Args:
+            command_text: The complete command text (e.g., "/stats")
+            
+        Returns:
+            A response dictionary for the AI GM Brain
+        """
+        # Remove the slash prefix
+        if command_text.startswith('/'):
+            command_text = command_text[1:]
+            
+        # Process with the handler
+        result = self.handle_command(command_text)
+        
+        # Format for AI GM Brain
+        return {
+            "response": result['response_text'],
+            "status": "success",
+            "ooc_command": True,
+            "requires_llm": False,
+            "command": command_text.split()[0] if command_text else ""
+        }
     
     def handle_command(self, command_str: str) -> Dict[str, Any]:
         """
@@ -74,8 +101,29 @@ class OOCCommandHandler:
         
         # Execute the command if it exists
         if cmd in self.commands:
-            return self.commands[cmd](args, start_time)
-        
+            # Get the command function (we're now keeping function references directly)
+            command_func = self.commands[cmd]
+            # Check if it's a function or a dictionary
+            if callable(command_func):
+                return command_func(args, start_time)
+            elif isinstance(command_func, dict) and "handler" in command_func:
+                # If it's a dictionary with a handler, call the handler
+                handler = command_func["handler"]
+                if callable(handler):
+                    # For handlers that expect a different format (from test scripts)
+                    try:
+                        return handler({"text": args}, self.ai_gm_brain)
+                    except Exception:
+                        try:
+                            # Fall back to original format
+                            return handler(args, start_time)
+                        except Exception as e:
+                            return self._generate_response(f"Error executing command: {str(e)}", start_time)
+                else:
+                    return self._generate_response(f"Invalid handler for command: {cmd}", start_time)
+            else:
+                return self._generate_response(f"Invalid command format: {cmd}", start_time)
+            
         # Unknown command
         return self._generate_response(
             f"Unknown command: '{cmd}'. Type '/ooc help' for available commands.",
