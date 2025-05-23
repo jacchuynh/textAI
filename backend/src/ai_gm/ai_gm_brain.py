@@ -80,6 +80,11 @@ class AIGMBrain:
         # Component extensions will add themselves to this dictionary
         self.extensions: Dict[str, Any] = {}
         
+        # State tracking for disambiguation and conversations
+        self.pending_disambiguation = None
+        self.conversation_context = []
+        self.last_input_time = datetime.now()
+        
         # Processing statistics
         self.stats = {
             "total_inputs_processed": 0,
