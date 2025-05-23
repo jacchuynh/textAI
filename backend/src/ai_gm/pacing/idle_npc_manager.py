@@ -139,7 +139,7 @@ class IdleNPCManager:
         
         return True, dialogue_theme
     
-    def generate_npc_initiative(self, 
+    async def generate_npc_initiative(self, 
                               npc_id: str, 
                               dialogue_theme: str, 
                               context: Dict[str, Any]) -> Optional[Dict[str, Any]]:

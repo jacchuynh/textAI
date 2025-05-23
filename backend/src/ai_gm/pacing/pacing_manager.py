@@ -126,8 +126,8 @@ class PacingManager:
             'presence_verb': ['permeates the air', 'makes itself known', 'lingers', 'hangs in the air'],
             'ambient_sound': ['A distant sound catches your attention', 'You hear faint noises in the distance', 'The ambient sounds create a soothing backdrop'],
             'ambient_detail': ['Light filters through in a mesmerizing pattern', 'The ambient sounds form a calming backdrop', 'Everything feels momentarily still'],
-            'sensory_detail': ['A subtle scent fills the air', 'The sounds around you form a tapestry', 'There's a palpable feeling in the atmosphere'],
-            'atmospheric_note': ['There's something intriguing about this place', 'It's quite remarkable how the atmosphere shifts', 'You can't help but take in the surroundings'],
+            'sensory_detail': ['A subtle scent fills the air', 'The sounds around you form a tapestry', 'There is a palpable feeling in the atmosphere'],
+            'atmospheric_note': ['There is something intriguing about this place', 'It is quite remarkable how the atmosphere shifts', 'You cannot help but take in the surroundings'],
             
             'world_state_indicator': ['shouting', 'rumors', 'news', 'discussions', 'messengers', 'events'],
             'reminder_verb': ['reminds you', 'speaks', 'whispers', 'hints', 'serves as testament'],
@@ -139,14 +139,14 @@ class PacingManager:
             'seasonal_verb': ['has a distinctive feeling', 'carries unique scents', 'brings its own character', 'settles on your skin'],
             'seasonal_detail': ['Birds call to one another in the distance', 'The foliage rustles with a natural melody', 'The landscape shows subtle seasonal changes'],
             'weather_verb': ['transforms', 'shapes', 'enhances', 'alters', 'defines'],
-            'weather_effect': ['Light changes quality as clouds shift overhead', 'The air carries hints of the changing weather', 'The environment responds to nature's rhythm'],
+            'weather_effect': ['Light changes quality as clouds shift overhead', 'The air carries hints of the changing weather', 'The environment responds to natural rhythm'],
             'natural_verb': ['continues regardless of human concerns', 'makes itself evident', 'keeps its own time', 'moves at its own pace'],
             'natural_observation': ['Nature continues its unending cycle', 'The ecosystem thrives in its own balance', 'The natural world moves at its own pace'],
             
             'npc_ambient_action': ['works quietly', 'moves about', 'attends to their tasks', 'exists in their own routine'],
             'npc_activity': ['going about their business', 'engaged in routine tasks', 'focused on their own concerns'],
             'npc_detail': ['They seem unaware of your attention', 'Their movements have a practiced efficiency', 'They occasionally glance in your direction'],
-            'npc_observation': ['You wonder about their everyday life', 'There's something intriguing about their mannerisms', 'Their routine seems well-established'],
+            'npc_observation': ['You wonder about their everyday life', 'There is something intriguing about their mannerisms', 'Their routine seems well-established'],
             'background_activity': ['continues with their day', 'maintains their routine', 'exists in their own world', 'attends to various matters']
         }
         
