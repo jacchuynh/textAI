@@ -243,14 +243,20 @@ class AIGMBrain:
                 }
             }
         
-        # Determine input complexity
-        complexity = self._determine_input_complexity(input_text)
-        
-        # Determine processing mode
-        processing_mode = self._determine_processing_mode(input_text, complexity)
-        
-        # Generate response based on processing mode
-        response = self._generate_response(input_text, processing_mode, complexity)
+        # Check if we have a pending disambiguation and this is a response to it
+        if self.pending_disambiguation and self.pending_disambiguation.get("options"):
+            # Handle disambiguation response
+            response, processing_mode, complexity = self._handle_disambiguation_response(input_text)
+        else:
+            # Normal processing path
+            # Determine input complexity
+            complexity = self._determine_input_complexity(input_text)
+            
+            # Determine processing mode
+            processing_mode = self._determine_processing_mode(input_text, complexity)
+            
+            # Generate response based on processing mode
+            response = self._generate_response(input_text, processing_mode, complexity)
         
         # Calculate processing time
         processing_time = time.time() - start_time
@@ -481,6 +487,246 @@ class AIGMBrain:
         
         return [memory.content for memory in memories]
     
+    def _handle_interpretive_input(self, input_text: str) -> str:
+        """
+        Handle complex input that requires interpretive processing.
+        
+        Args:
+            input_text: Text input from the player
+            
+        Returns:
+            Response text
+        """
+        # If LLM integration is available, use it
+        if self.has_llm_integration:
+            try:
+                return self.extensions["llm_integration"].process_complex_input(input_text)
+            except Exception as e:
+                self.logger.error(f"Error in LLM processing: {e}")
+                
+        # Use command suggestions if available
+        suggestions = self._get_command_suggestions(input_text)
+        
+        if suggestions:
+            return f"I'm not sure how to interpret that. Did you mean: {', '.join(suggestions)}?"
+        
+        # Fallback response
+        return "I don't understand that command. Try something more specific."
+        
+    def _handle_disambiguation_request(self, input_text: str) -> str:
+        """
+        Handle disambiguation for ambiguous input.
+        
+        Args:
+            input_text: Text input from the player
+            
+        Returns:
+            Response text with disambiguation options
+        """
+        if not self.pending_disambiguation:
+            self.pending_disambiguation = {
+                "options": self._generate_disambiguation_options(input_text),
+                "original_input": input_text
+            }
+            
+        options = self.pending_disambiguation.get("options", [])
+        
+        if not options:
+            return "I couldn't determine what you meant. Please try again with a more specific command."
+            
+        # Format disambiguation options
+        response_lines = ["I'm not sure what you meant. Could you be more specific?"]
+        
+        for i, option in enumerate(options):
+            response_lines.append(f"{i+1}. {option['description']}")
+            
+        response_lines.append("Please choose an option by number, or type 'cancel' to try something else.")
+        
+        return "\n".join(response_lines)
+        
+    def _generate_disambiguation_options(self, input_text: str) -> List[Dict[str, Any]]:
+        """
+        Generate disambiguation options for ambiguous input.
+        
+        Args:
+            input_text: Text input from the player
+            
+        Returns:
+            List of disambiguation options
+        """
+        # This is a simplified version - the text parser integration would provide better options
+        words = input_text.lower().split()
+        options = []
+        
+        if "go" in words or "move" in words:
+            directions = ["north", "south", "east", "west"]
+            for direction in directions:
+                if direction in words:
+                    options.append({
+                        "id": f"go_{direction}",
+                        "description": f"Go {direction}",
+                        "action": "go",
+                        "target": direction
+                    })
+            
+            # If no direction was found but "go" was used, suggest directions
+            if "go" in words and not options:
+                for direction in directions:
+                    options.append({
+                        "id": f"go_{direction}",
+                        "description": f"Go {direction}",
+                        "action": "go",
+                        "target": direction
+                    })
+                    
+        elif "look" in words or "examine" in words:
+            # Handle look command
+            if "at" in words:
+                target_index = words.index("at") + 1
+                if target_index < len(words):
+                    target = words[target_index]
+                    options.append({
+                        "id": f"look_{target}",
+                        "description": f"Look at the {target}",
+                        "action": "look",
+                        "target": target
+                    })
+            
+            # Add general look option
+            options.append({
+                "id": "look_around",
+                "description": "Look around the area",
+                "action": "look",
+                "target": None
+            })
+            
+        # If no specific options could be generated, use generic ones
+        if not options:
+            options = [
+                {
+                    "id": "help",
+                    "description": "Show help information",
+                    "action": "help",
+                    "target": None
+                },
+                {
+                    "id": "look_around",
+                    "description": "Look around the area",
+                    "action": "look",
+                    "target": None
+                },
+                {
+                    "id": "inventory",
+                    "description": "Check your inventory",
+                    "action": "inventory",
+                    "target": None
+                }
+            ]
+            
+        return options
+        
+    def _get_command_suggestions(self, input_text: str) -> List[str]:
+        """
+        Get command suggestions for failed parsing.
+        
+        Args:
+            input_text: Text input from the player
+            
+        Returns:
+            List of command suggestions
+        """
+        # Simple implementation - to be enhanced with text parser integration
+        words = input_text.lower().split()
+        suggestions = []
+        
+        # Common commands to suggest
+        common_commands = [
+            "look", "examine", "go", "move", "take", "get", "use",
+            "talk", "speak", "attack", "help", "inventory"
+        ]
+        
+        # Check if any word is close to a common command
+        for word in words:
+            for cmd in common_commands:
+                if word in cmd or (len(word) > 2 and word[:3] == cmd[:3]):
+                    if cmd not in suggestions:
+                        suggestions.append(cmd)
+                        
+        # Add some context-specific suggestions
+        if "go" in suggestions or "move" in suggestions:
+            suggestions.append("go north")
+            
+        if "look" in suggestions or "examine" in suggestions:
+            suggestions.append("look around")
+            
+        return suggestions[:3]  # Limit to 3 suggestions
+        
+    def _handle_disambiguation_response(self, input_text: str) -> Tuple[str, ProcessingMode, InputComplexity]:
+        """
+        Handle player response to a disambiguation request.
+        
+        Args:
+            input_text: Player's response to disambiguation
+            
+        Returns:
+            Tuple of (response_text, processing_mode, complexity)
+        """
+        input_text = input_text.strip().lower()
+        options = self.pending_disambiguation.get("options", [])
+        
+        # Handle cancel request
+        if input_text == "cancel":
+            response = "Okay, let's try something else."
+            self.pending_disambiguation = None
+            return response, ProcessingMode.NARRATIVE, InputComplexity.SIMPLE_COMMAND
+        
+        # Try to parse as a number
+        try:
+            choice_num = int(input_text)
+            if 1 <= choice_num <= len(options):
+                # Valid option selected
+                selected_option = options[choice_num - 1]
+                self.logger.info(f"Disambiguation: selected option {choice_num}: {selected_option['description']}")
+                
+                # Clear disambiguation state
+                original_input = self.pending_disambiguation.get("original_input", "")
+                self.pending_disambiguation = None
+                
+                # Generate response based on the selected option
+                if selected_option.get("action") == "go":
+                    direction = selected_option.get("target", "")
+                    response = f"You move {direction}."
+                    return response, ProcessingMode.MECHANICAL, InputComplexity.SIMPLE_COMMAND
+                    
+                elif selected_option.get("action") == "look":
+                    target = selected_option.get("target")
+                    if target:
+                        response = f"You examine the {target} closely."
+                    else:
+                        response = "You look around and observe your surroundings."
+                    return response, ProcessingMode.NARRATIVE, InputComplexity.SIMPLE_COMMAND
+                    
+                elif selected_option.get("action") == "help":
+                    response = "Available commands: look, go [direction], take [item], use [item], inventory, help"
+                    return response, ProcessingMode.OOC, InputComplexity.SIMPLE_COMMAND
+                    
+                elif selected_option.get("action") == "inventory":
+                    response = "You check your inventory."
+                    return response, ProcessingMode.MECHANICAL, InputComplexity.SIMPLE_COMMAND
+                    
+                else:
+                    # Generic handling for other actions
+                    response = f"You {selected_option.get('action', 'do')} {selected_option.get('target', '')}."
+                    return response, ProcessingMode.HYBRID, InputComplexity.MODERATE
+            
+        except ValueError:
+            # Not a number, continue with handling below
+            pass
+        
+        # If we get here, the input wasn't a valid option number or "cancel"
+        response = "Please choose an option by number, or type 'cancel' to try something else."
+        return response, ProcessingMode.DISAMBIGUATION, InputComplexity.DISAMBIGUATION
+        
     def _update_stats(self, mode: ProcessingMode, complexity: InputComplexity, processing_time: float):
         """
         Update processing statistics.
@@ -501,9 +747,13 @@ class AIGMBrain:
             self.stats["hybrid_responses"] += 1
         elif mode == ProcessingMode.OOC:
             self.stats["ooc_responses"] += 1
+        elif mode == ProcessingMode.INTERPRETIVE:
+            self.stats["interpretive_responses"] += 1
+        elif mode == ProcessingMode.DISAMBIGUATION:
+            self.stats["disambiguation_responses"] += 1
         
         # Update complexity stats
-        if complexity == InputComplexity.SIMPLE:
+        if complexity == InputComplexity.SIMPLE_COMMAND:
             self.stats["simple_inputs"] += 1
         elif complexity == InputComplexity.MODERATE:
             self.stats["moderate_inputs"] += 1
@@ -511,6 +761,10 @@ class AIGMBrain:
             self.stats["complex_inputs"] += 1
         elif complexity == InputComplexity.CONVERSATIONAL:
             self.stats["conversational_inputs"] += 1
+        elif complexity == InputComplexity.DISAMBIGUATION:
+            self.stats["disambiguation_inputs"] += 1
+        elif complexity == InputComplexity.PARSING_ERROR:
+            self.stats["parsing_error_inputs"] += 1
         
         # Update timing stats
         self.stats["total_processing_time"] += processing_time
