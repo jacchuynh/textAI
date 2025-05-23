@@ -223,30 +223,133 @@ class ParserEngine:
         Returns:
             List of command suggestions
         """
-        words = input_text.lower().split()
+        # Clean input for processing
+        input_text = input_text.lower().strip()
+        words = input_text.split()
         suggestions = []
         
-        # Common commands to suggest
-        common_commands = [
-            "look", "examine", "go", "move", "take", "get", "use",
-            "talk", "speak", "attack", "help", "inventory"
-        ]
+        # Common action templates with examples for different scenarios
+        action_templates = {
+            "look": [
+                "look around", 
+                "examine item", 
+                "inspect object", 
+                "look at target"
+            ],
+            "movement": [
+                "go north", 
+                "go south",
+                "go east",
+                "go west",
+                "enter building"
+            ],
+            "interaction": [
+                "take item", 
+                "use object", 
+                "open container", 
+                "push button", 
+                "pull lever"
+            ],
+            "social": [
+                "talk to person", 
+                "ask about topic", 
+            ],
+            "combat": [
+                "attack enemy", 
+                "defend", 
+                "retreat", 
+                "use skill"
+            ],
+            "inventory": [
+                "inventory", 
+                "check items", 
+                "equip weapon"
+            ],
+            "meta": [
+                "help", 
+                "status", 
+                "stats", 
+                "skills"
+            ]
+        }
         
-        # Check if any word is close to a common command
+        # First, check for partial matches with action verbs
+        action_verbs = {
+            "look": ["look", "examine", "inspect", "view", "observe", "check"],
+            "movement": ["go", "move", "walk", "run", "travel", "enter", "exit"],
+            "take": ["take", "grab", "pick", "collect", "get"],
+            "use": ["use", "activate", "operate", "apply"],
+            "talk": ["talk", "speak", "chat", "converse", "ask", "tell"],
+            "attack": ["attack", "fight", "strike", "hit"],
+            "inventory": ["inventory", "items", "possessions", "gear"]
+        }
+        
+        # Check for matches in input words
+        matched_categories = set()
         for word in words:
-            for cmd in common_commands:
-                if word in cmd or (len(word) > 2 and word[:3] == cmd[:3]):
-                    if cmd not in suggestions:
-                        suggestions.append(cmd)
-                        
-        # Add some context-specific suggestions
-        if "go" in suggestions or "move" in suggestions:
-            suggestions.append("go north")
+            for category, verbs in action_verbs.items():
+                for verb in verbs:
+                    # Check if word is similar to verb
+                    if len(word) >= 2 and len(verb) >= 2:
+                        if word.startswith(verb[:min(len(word), 3)]) or verb.startswith(word[:min(len(verb), 3)]):
+                            matched_categories.add(category)
+                            break
+        
+        # Extract potential objects/targets from input
+        all_verbs = []
+        for verbs in action_verbs.values():
+            all_verbs.extend(verbs)
             
-        if "look" in suggestions or "examine" in suggestions:
-            suggestions.append("look around")
+        common_words = ["the", "a", "an", "at", "to", "with", "on", "in", "from", "about"]
+        potential_targets = [w for w in words if w not in all_verbs and w not in common_words and len(w) > 2]
+        
+        # Generate suggestions based on matched categories
+        for category in matched_categories:
+            if category in action_templates:
+                # Add category-specific suggestions
+                suggestions.extend(action_templates[category][:2])  # Add a couple from each category
+                
+                # If we have potential targets, add targeted suggestions
+                if potential_targets and len(potential_targets) > 0:
+                    target = " ".join(potential_targets)
+                    
+                    if category == "look":
+                        suggestions.append(f"examine {target}")
+                    elif category == "take":
+                        suggestions.append(f"take {target}")
+                    elif category == "use":
+                        suggestions.append(f"use {target}")
+                    elif category == "talk":
+                        suggestions.append(f"talk to {target}")
+                    elif category == "attack":
+                        suggestions.append(f"attack {target}")
+        
+        # If we don't have enough suggestions, add general ones
+        if len(suggestions) < 3:
+            general_suggestions = [
+                "look around",
+                "inventory",
+                "help",
+                "status",
+                "go north",
+                "go south",
+                "go east",
+                "go west"
+            ]
             
-        return suggestions[:3]  # Limit to 3 suggestions
+            for suggestion in general_suggestions:
+                if suggestion not in suggestions:
+                    suggestions.append(suggestion)
+                    if len(suggestions) >= 5:  # Limit to 5 suggestions
+                        break
+        
+        # Remove duplicates and limit to top 3
+        unique_suggestions = []
+        for suggestion in suggestions:
+            if suggestion not in unique_suggestions:
+                unique_suggestions.append(suggestion)
+                
+        return unique_suggestions[:3]
 
 
 # Create a global instance of the parser engine

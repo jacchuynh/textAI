@@ -654,75 +654,237 @@ class AIGMBrain:
         Returns:
             List of disambiguation options
         """
-        # This is a simplified version - the text parser integration would provide better options
-        words = input_text.lower().split()
+        # Ensure context is up-to-date
+        self._update_game_context()
+        
+        # Make sure we have a cleaned input
+        input_text = input_text.strip().lower()
+        words = input_text.split()
         options = []
         
-        if "go" in words or "move" in words:
-            directions = ["north", "south", "east", "west"]
-            for direction in directions:
-                if direction in words:
-                    options.append({
-                        "id": f"go_{direction}",
-                        "description": f"Go {direction}",
-                        "action": "go",
-                        "target": direction
-                    })
-            
-            # If no direction was found but "go" was used, suggest directions
-            if "go" in words and not options:
-                for direction in directions:
-                    options.append({
-                        "id": f"go_{direction}",
-                        "description": f"Go {direction}",
-                        "action": "go",
-                        "target": direction
-                    })
-                    
-        elif "look" in words or "examine" in words:
-            # Handle look command
-            if "at" in words:
-                target_index = words.index("at") + 1
-                if target_index < len(words):
-                    target = words[target_index]
-                    options.append({
-                        "id": f"look_{target}",
-                        "description": f"Look at the {target}",
-                        "action": "look",
-                        "target": target
-                    })
-            
-            # Add general look option
-            options.append({
-                "id": "look_around",
-                "description": "Look around the area",
-                "action": "look",
-                "target": None
-            })
-            
-        # If no specific options could be generated, use generic ones
+        # First, try to use the text parser to find candidates
+        try:
+            # Try to use object resolver to find candidates
+            candidates = []
+            if isinstance(self.object_resolver, object) and hasattr(self.object_resolver, 'find_disambiguation_candidates'):
+                candidates = self.object_resolver.find_disambiguation_candidates(input_text, self.game_context)
+            elif hasattr(object_resolver, 'find_disambiguation_candidates'):
+                candidates = object_resolver.find_disambiguation_candidates(input_text, self.game_context)
+                
+            # Convert candidates to options
+            for i, candidate in enumerate(candidates[:5]):  # Limit to top 5
+                action = candidate.get("action", "examine")
+                target = candidate.get("match", "")
+                object_type = candidate.get("type", "item")
+                
+                # Format description based on object type and action
+                if object_type == "character" and action == "talk":
+                    description = f"Talk to {target}"
+                elif object_type == "location" and action == "go":
+                    description = f"Go to {target}"
+                else:
+                    description = f"{action.capitalize()} the {target}"
+                
+                option = {
+                    "id": i,
+                    "description": description,
+                    "action": action,
+                    "target": target
+                }
+                options.append(option)
+                
+        except Exception as e:
+            self.logger.error(f"Error generating disambiguation options from text parser: {e}")
+        
+        # If we didn't get candidates from the text parser, use our fallback logic
         if not options:
-            options = [
-                {
-                    "id": "help",
-                    "description": "Show help information",
-                    "action": "help",
-                    "target": None
-                },
-                {
-                    "id": "look_around",
+            # Analyze input for potential action and target
+            action_words = {
+                "go": ["go", "move", "travel", "walk", "run"],
+                "look": ["look", "examine", "inspect", "check"],
+                "take": ["take", "grab", "pick", "get"],
+                "talk": ["talk", "speak", "chat", "ask", "tell"],
+                "use": ["use", "activate", "operate"]
+            }
+            
+            # Identify likely action from keywords
+            detected_action = None
+            for action, keywords in action_words.items():
+                if any(keyword in words for keyword in keywords):
+                    detected_action = action
+                    break
+            
+            # Default to examine if no action detected
+            if not detected_action:
+                detected_action = "examine"
+                
+            # Extract potential target by removing action words and common articles
+            skip_words = []
+            for keywords in action_words.values():
+                skip_words.extend(keywords)
+            skip_words.extend(["the", "a", "an", "at", "to", "with"])
+            
+            potential_target = " ".join([w for w in words if w not in skip_words])
+            
+            if not potential_target:
+                potential_target = input_text
+                
+            # Generate action-specific options
+            if detected_action == "go":
+                directions = ["north", "south", "east", "west", "up", "down"]
+                # If directions are mentioned, prioritize them
+                direction_options = []
+                for direction in directions:
+                    if direction in words:
+                        direction_options.append({
+                            "id": len(direction_options),
+                            "description": f"Go {direction}",
+                            "action": "go",
+                            "target": direction
+                        })
+                
+                if direction_options:
+                    options = direction_options
+                else:
+                    # Suggest common directions
+                    for i, direction in enumerate(directions):
+                        options.append({
+                            "id": i,
+                            "description": f"Go {direction}",
+                            "action": "go",
+                            "target": direction
+                        })
+                    
+                    # Add potential target if provided
+                    if potential_target and potential_target not in ["go", ""]:
+                        options.append({
+                            "id": len(options),
+                            "description": f"Go to {potential_target}",
+                            "action": "go",
+                            "target": potential_target
+                        })
+                        
+            elif detected_action == "look" or detected_action == "examine":
+                # First option is to look at the specific target
+                if potential_target and potential_target not in ["look", "examine", ""]:
+                    options.append({
+                        "id": 0,
+                        "description": f"Examine the {potential_target}",
+                        "action": "examine",
+                        "target": potential_target
+                    })
+                
+                # Add general look around option
+                options.append({
+                    "id": len(options),
                     "description": "Look around the area",
                     "action": "look",
-                    "target": None
-                },
-                {
-                    "id": "inventory",
+                    "target": "around"
+                })
+                
+                # Add inventory check option
+                options.append({
+                    "id": len(options),
                     "description": "Check your inventory",
                     "action": "inventory",
-                    "target": None
-                }
-            ]
+                    "target": "self"
+                })
+                
+            elif detected_action == "take":
+                if potential_target and potential_target not in ["take", ""]:
+                    options.append({
+                        "id": 0,
+                        "description": f"Take the {potential_target}",
+                        "action": "take",
+                        "target": potential_target
+                    })
+                    
+                    # Also suggest examining it
+                    options.append({
+                        "id": 1,
+                        "description": f"Examine the {potential_target} first",
+                        "action": "examine",
+                        "target": potential_target
+                    })
+                else:
+                    options.append({
+                        "id": 0,
+                        "description": "Take an item",
+                        "action": "take",
+                        "target": "item"
+                    })
+                    
+            elif detected_action == "talk":
+                if potential_target and potential_target not in ["talk", ""]:
+                    options.append({
+                        "id": 0,
+                        "description": f"Talk to {potential_target}",
+                        "action": "talk",
+                        "target": potential_target
+                    })
+                    
+                    # Also suggest examining them
+                    options.append({
+                        "id": 1,
+                        "description": f"Examine {potential_target}",
+                        "action": "examine",
+                        "target": potential_target
+                    })
+                else:
+                    options.append({
+                        "id": 0,
+                        "description": "Talk to someone nearby",
+                        "action": "talk",
+                        "target": "npc"
+                    })
+                    
+            elif detected_action == "use":
+                if potential_target and potential_target not in ["use", ""]:
+                    options.append({
+                        "id": 0,
+                        "description": f"Use the {potential_target}",
+                        "action": "use",
+                        "target": potential_target
+                    })
+                    
+                    # Also suggest examining it
+                    options.append({
+                        "id": 1,
+                        "description": f"Examine the {potential_target}",
+                        "action": "examine",
+                        "target": potential_target
+                    })
+                else:
+                    options.append({
+                        "id": 0,
+                        "description": "Use an item",
+                        "action": "use",
+                        "target": "item"
+                    })
             
+            # If we still don't have options, provide some generic ones
+            if not options:
+                options = [
+                    {
+                        "id": "help",
+                        "description": "Show help information",
+                        "action": "help",
+                        "target": None
+                    },
+                    {
+                        "id": "look_around",
+                        "description": "Look around the area",
+                        "action": "look",
+                        "target": "around"
+                    },
+                    {
+                        "id": "inventory",
+                        "description": "Check your inventory",
+                        "action": "inventory",
+                        "target": "self"
+                    }
+                ]
+        
         return options
         
     def _get_command_suggestions(self, input_text: str) -> List[str]:
@@ -735,31 +897,92 @@ class AIGMBrain:
         Returns:
             List of command suggestions
         """
-        # Simple implementation - to be enhanced with text parser integration
-        words = input_text.lower().split()
+        # Update context for better suggestions
+        self._update_game_context()
+        
+        # Clean and prepare input
+        input_text = input_text.strip().lower()
+        words = input_text.split()
         suggestions = []
         
-        # Common commands to suggest
-        common_commands = [
-            "look", "examine", "go", "move", "take", "get", "use",
-            "talk", "speak", "attack", "help", "inventory"
-        ]
+        # Try to use the parser for suggestions if available
+        try:
+            # Check if the parser_engine instance has a get_suggestions method
+            if isinstance(self.parser_engine, object) and hasattr(self.parser_engine, 'get_suggestions'):
+                parser_suggestions = self.parser_engine.get_suggestions(input_text)
+                if parser_suggestions and len(parser_suggestions) > 0:
+                    suggestions.extend(parser_suggestions)
+            # Or try the module function if available
+            elif hasattr(parser_engine, 'get_suggestions'):
+                parser_suggestions = parser_engine.get_suggestions(input_text)
+                if parser_suggestions and len(parser_suggestions) > 0:
+                    suggestions.extend(parser_suggestions)
+        except Exception as e:
+            self.logger.error(f"Error getting suggestions from parser engine: {e}")
         
-        # Check if any word is close to a common command
-        for word in words:
-            for cmd in common_commands:
-                if word in cmd or (len(word) > 2 and word[:3] == cmd[:3]):
-                    if cmd not in suggestions:
-                        suggestions.append(cmd)
-                        
-        # Add some context-specific suggestions
-        if "go" in suggestions or "move" in suggestions:
-            suggestions.append("go north")
+        # If we didn't get suggestions from the parser, use our smart analysis
+        if not suggestions:
+            # Common command patterns with examples
+            command_patterns = {
+                "look": ["look around", "examine item", "look at target", "inspect object"],
+                "movement": ["go north", "move to location", "enter building", "climb object"],
+                "interaction": ["take item", "use item", "open container", "push object", "pull lever"],
+                "social": ["talk to npc", "ask about topic", "tell npc about topic"],
+                "inventory": ["inventory", "check items", "equip item", "unequip item"],
+                "combat": ["attack target", "defend", "cast spell", "use skill on target"],
+                "meta": ["help", "stats", "status", "quit", "save"]
+            }
             
-        if "look" in suggestions or "examine" in suggestions:
-            suggestions.append("look around")
+            # Analyze input for potential intentions
+            potential_actions = []
             
-        return suggestions[:3]  # Limit to 3 suggestions
+            # Check for partially typed commands
+            for category, patterns in command_patterns.items():
+                for pattern in patterns:
+                    # Extract command word (first word in pattern)
+                    command_word = pattern.split()[0]
+                    
+                    # Check if any word in input starts with the command word
+                    for word in words:
+                        if word.startswith(command_word[:min(len(word), len(command_word))]) or \
+                           command_word.startswith(word[:min(len(word), len(command_word))]):
+                            # Word partially matches command
+                            potential_actions.append(pattern)
+                            break
+            
+            # Add the most relevant potential actions to suggestions
+            suggestions.extend(potential_actions[:4])
+            
+            # Extract potential targets from input
+            potential_targets = [word for word in words if len(word) > 3 and 
+                                word not in ["look", "examine", "inspect", "around", "help",
+                                            "take", "get", "drop", "use", "open", "close",
+                                            "talk", "speak", "attack", "move", "go", "enter"]]
+            
+            # Generate targeted suggestions if we found potential targets
+            if potential_targets and len(suggestions) < 5:
+                target = potential_targets[0]  # Use the first potential target
+                targeted_suggestions = [
+                    f"examine the {target}",
+                    f"take the {target}",
+                    f"use the {target}"
+                ]
+                suggestions.extend(targeted_suggestions)
+                
+            # Ensure we always have some default suggestions for common actions
+            if len(suggestions) < 3:
+                default_suggestions = ["look around", "inventory", "help", "status"]
+                for suggestion in default_suggestions:
+                    if suggestion not in suggestions:
+                        suggestions.append(suggestion)
+        
+        # Remove duplicates and limit to a reasonable number
+        unique_suggestions = []
+        for suggestion in suggestions:
+            if suggestion not in unique_suggestions:
+                unique_suggestions.append(suggestion)
+                
+        return unique_suggestions[:3]  # Limit to top 3 suggestions
         
     def _handle_disambiguation_response(self, input_text: str) -> Tuple[str, ProcessingMode, InputComplexity]:
         """
