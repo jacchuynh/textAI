@@ -15,6 +15,13 @@ import json
 from .ai_gm_brain import AIGMBrain
 from .ai_gm_delivery_system import DeliveryChannel, ResponsePriority
 
+# Import decision logic and output generator
+from .ai_gm_decision_logic import AIGMDecisionLogic, DecisionResult, DecisionPriority
+from .ai_gm_output_generator import AIGMOutputGenerator
+
+# Import configuration
+from .ai_gm_config import IntegratedAIGMConfig
+
 # Import world reaction components from phase 5
 from .world_reaction.reputation_manager import ReputationManager
 from .world_reaction.reaction_assessor import ReactionAssessor
@@ -55,6 +62,12 @@ class AIGMBrainPhase6Complete(AIGMBrain):
         
         self.logger.info("Initializing AI GM Brain Phase 6 Complete")
         
+        # Load configuration from AI GM Config if no custom config provided
+        if not config:
+            self.config = IntegratedAIGMConfig.get_config()
+        else:
+            self.config = config
+        
         # Initialize Phase 5 world reaction components if not already present
         if not hasattr(self, 'enhanced_context_manager'):
             self.enhanced_context_manager = EnhancedContextManager(
@@ -79,6 +92,15 @@ class AIGMBrainPhase6Complete(AIGMBrain):
         # Initialize combat integration if not already present
         if not hasattr(self, 'combat_integration'):
             self.combat_integration = AIGMCombatIntegration()
+            
+        # Initialize decision logic system
+        self.decision_logic = AIGMDecisionLogic(IntegratedAIGMConfig)
+        
+        # Initialize output generator
+        self.output_generator = AIGMOutputGenerator(
+            config=IntegratedAIGMConfig,
+            template_processor=getattr(self, 'template_processor', None)
+        )
         
         # Track last activity time for pacing
         self.last_input_time = datetime.utcnow()
@@ -102,14 +124,61 @@ class AIGMBrainPhase6Complete(AIGMBrain):
             # Track input time
             self.last_input_time = datetime.utcnow()
             
-            # Process input with base brain
-            response = await super().process_player_input(input_text)
-            
             # Get current context
             context = self._get_current_context()
             
+            # Enhance context with pacing and world reaction data
+            enhanced_context = await self._enhance_context_with_pacing(context)
+            
+            # Phase 1: Try to parse command using text parser if available
+            parsed_command = None
+            if hasattr(self, 'parser_engine') and self.parser_engine:
+                try:
+                    parsed_command = await self.parser_engine.parse_input(input_text, enhanced_context)
+                except Exception as parser_error:
+                    self.logger.warning(f"Parser error: {parser_error}")
+            
+            # Phase 2: Process with LLM for intent analysis and disambiguation if needed
+            llm_output = None
+            if hasattr(self, 'llm_manager') and self.llm_manager:
+                try:
+                    # Determine if LLM processing is needed (parser failed or input seems conversational)
+                    needs_llm_processing = (
+                        parsed_command is None or 
+                        not parsed_command.get('success', False) or
+                        self._is_input_conversational(input_text)
+                    )
+                    
+                    if needs_llm_processing:
+                        llm_output = await self._process_with_llm(input_text, parsed_command, enhanced_context)
+                except Exception as llm_error:
+                    self.logger.warning(f"LLM processing error: {llm_error}")
+            
+            # Phase 3: Decision Logic - Determine appropriate action based on parsing and LLM
+            decision_result = await self.decision_logic.evaluate_decision_tree(
+                player_input=input_text,
+                parsed_command=parsed_command,
+                llm_output=llm_output,
+                game_context=enhanced_context
+            )
+            
+            # Phase 4: Execute decision and generate appropriate response
+            response = await self.output_generator.generate_response(
+                decision_result=decision_result,
+                player_input=input_text,
+                context=enhanced_context
+            )
+            
             # Update pacing with AI response
-            await self.ai_gm_pacing.process_ai_response(input_text, response, context)
+            await self.ai_gm_pacing.process_ai_response(input_text, response, enhanced_context)
+            
+            # Record significant action if appropriate
+            if decision_result.action_type in ['INITIATE_NARRATIVE_BRANCH', 'EXECUTE_BRANCH_ACTION']:
+                await self.record_significant_action(
+                    action_type=f"PLAYER_{decision_result.action_type}",
+                    description=response['response_text'],
+                    context=decision_result.action_data
+                )
             
             return response
             
@@ -119,6 +188,75 @@ class AIGMBrainPhase6Complete(AIGMBrain):
                 'response_text': f"I encountered a problem processing your input. Please try again.",
                 'metadata': {'error': str(e), 'input_text': input_text}
             }
+            
+    def _is_input_conversational(self, input_text: str) -> bool:
+        """
+        Check if input appears to be conversational rather than a command.
+        
+        Args:
+            input_text: Player's input text
+            
+        Returns:
+            True if input seems conversational
+        """
+        # Get conversational keywords from config
+        conversational_keywords = self.config.get('conversational_keywords', {})
+        
+        # Check if input contains conversational patterns
+        input_lower = input_text.lower()
+        
+        # Check for question words
+        for word in conversational_keywords.get('question_words', []):
+            if input_lower.startswith(word + ' ') or f" {word} " in input_lower:
+                return True
+                
+        # Check for conversational starters
+        for phrase in conversational_keywords.get('conversational_starters', []):
+            if phrase in input_lower:
+                return True
+                
+        # Check for social actions
+        for action in conversational_keywords.get('social_actions', []):
+            if action in input_lower:
+                return True
+        
+        # Check if input is long (likely conversational)
+        if len(input_text.split()) > 6:
+            return True
+            
+        return False
+        
+    async def _process_with_llm(self, 
+                             input_text: str, 
+                             parsed_command: Dict[str, Any] = None, 
+                             context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Process input with LLM for intent analysis.
+        
+        Args:
+            input_text: Player's input text
+            parsed_command: Parser output if available
+            context: Current game context
+            
+        Returns:
+            LLM processing result
+        """
+        if not hasattr(self, 'llm_manager') or not self.llm_manager:
+            return None
+            
+        # Prepare context for LLM
+        llm_context = {
+            'input_text': input_text,
+            'parsed_command': parsed_command,
+            'game_context': context,
+        }
+        
+        # Use LLM manager to interpret input
+        try:
+            return await self.llm_manager.process_conversational_input(llm_context)
+        except Exception as e:
+            self.logger.error(f"Error in LLM processing: {e}")
+            return None
     
     async def _enhance_context_with_pacing(self, base_context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -521,6 +659,46 @@ class AIGMBrainPhase6Complete(AIGMBrain):
             
         # Add pacing stats from Phase 6
         stats['pacing'] = self.get_pacing_statistics()
+        
+        # Add decision logic stats if available
+        if hasattr(self, 'decision_logic'):
+            stats['decision_logic'] = {
+                'decision_count': getattr(self.decision_logic, 'decision_count', 0),
+                'decision_types': getattr(self.decision_logic, 'decision_type_counts', {}),
+                'success_rate': getattr(self.decision_logic, 'success_rate', 1.0)
+            }
+            
+        # Add output generator stats if available
+        if hasattr(self, 'output_generator'):
+            stats['output_generator'] = {
+                'response_count': getattr(self.output_generator, 'response_count', 0),
+                'template_usage': getattr(self.output_generator, 'template_usage', {}),
+                'response_types': getattr(self.output_generator, 'response_type_counts', {})
+            }
+            
+        # Add parser stats if available
+        if hasattr(self, 'parser_engine'):
+            stats['parser'] = {
+                'parse_count': getattr(self.parser_engine, 'parse_count', 0),
+                'success_rate': getattr(self.parser_engine, 'success_rate', 0),
+                'command_distribution': getattr(self.parser_engine, 'command_distribution', {})
+            }
+            
+        # Add llm stats if available
+        if hasattr(self, 'llm_manager'):
+            stats['llm'] = {
+                'request_count': getattr(self.llm_manager, 'request_count', 0),
+                'average_response_time': getattr(self.llm_manager, 'average_response_time', 0),
+                'token_usage': getattr(self.llm_manager, 'token_usage', {})
+            }
+            
+        # Add combat integration stats if available
+        if hasattr(self, 'combat_integration'):
+            stats['combat'] = {
+                'combat_count': getattr(self.combat_integration, 'combat_count', 0),
+                'average_combat_rounds': getattr(self.combat_integration, 'average_rounds', 0),
+                'combat_outcomes': getattr(self.combat_integration, 'combat_outcomes', {})
+            }
         
         # Add session info
         stats['session_info'] = {
