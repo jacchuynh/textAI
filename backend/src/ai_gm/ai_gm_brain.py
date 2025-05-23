@@ -847,9 +847,13 @@ class AIGMBrain:
                 similarity = 0.0
                 
                 try:
-                    # First try to use the object resolver directly
-                    if hasattr(self.object_resolver, '_calculate_similarity'):
+                    # Get the object resolver instance methods
+                    if isinstance(self.object_resolver, object) and hasattr(self.object_resolver, '_calculate_similarity'):
+                        # Use the instance method
                         similarity = self.object_resolver._calculate_similarity(input_text, option_text)
+                    elif hasattr(object_resolver, '_calculate_similarity'):
+                        # Fallback to module function
+                        similarity = object_resolver._calculate_similarity(input_text, option_text)
                     else:
                         # Fallback to simple string matching
                         if input_text == option_text:
