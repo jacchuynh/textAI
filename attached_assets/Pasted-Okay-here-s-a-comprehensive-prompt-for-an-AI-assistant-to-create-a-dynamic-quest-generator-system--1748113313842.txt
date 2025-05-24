@@ -1,0 +1,134 @@
+Okay, here's a comprehensive prompt for an AI assistant to create a dynamic quest generator system, designed to integrate with the concepts of your NPC generator and economy system, using the same technology stack.
+
+---
+
+**Prompt for AI Assistant: Design and Implement a Dynamic Quest Generator System for Text-Based RPG**
+
+**Project Context:**
+We are developing an AI-driven text-based fantasy RPG. The backend will be built using Python, with FastAPI for APIs, Pydantic for data validation/modeling, SQLAlchemy for database interaction (with a relational database like PostgreSQL or SQLite), and potentially Celery with Redis for asynchronous tasks. We are also implementing a dynamic NPC generator and a comprehensive economy system. This quest generator will be a crucial layer to connect these systems and provide engaging, dynamic content for the player.
+
+**Objective:**
+Create a Python-based dynamic quest generation system. This system should be capable of creating diverse and contextually relevant quests based on the state of the game world, including NPC characteristics, economic conditions, and potentially other narrative or world events. The generated quests and the generator itself must be designed for seamless integration with the planned NPC generator, economy system, and other game services.
+
+**I. Core Requirements for the Quest Generator:**
+
+1.  **Quest Data Model (Pydantic & SQLAlchemy):**
+    *   **Pydantic Model:** Define a Pydantic model for a Quest (e.g., `QuestData`, `QuestInstance`). This model will be used for data validation, API interactions, and internal logic.
+        *   **Key Attributes:**
+            *   `id`: Unique identifier (e.g., UUID string).
+            *   `title`: Generated or template-based title for the quest.
+            *   `description_template`: A template string for the quest description, allowing for placeholder substitution (e.g., "Retrieve the {item_name} for {npc_name} from {location_name}.").
+            *   `generated_description`: The fully formed description after placeholder substitution.
+            *   `quest_type`: An enum or string defining the quest archetype (e.g., `FETCH_ITEM`, `DELIVER_ITEM`, `ESCORT_NPC`, `PROTECT_LOCATION`, `INVESTIGATE_AREA`, `CRAFT_ITEM`, `SLAY_CREATURES`, `ECONOMIC_OPPORTUNITY`).
+            *   `status`: An enum or string indicating the current state (e.g., `AVAILABLE`, `ACTIVE`, `COMPLETED_SUCCESS`, `COMPLETED_FAILURE`, `EXPIRED`, `CANCELLED`).
+            *   `objectives`: A list of Pydantic models, each representing a specific objective (e.g., `QuestObjective`). An objective model should include:
+                *   `id`: Unique objective ID.
+                *   `description`: Text description of the objective (e.g., "Acquire 5 Iron Ore," "Speak to Elder Willow").
+                *   `type`: Enum for objective type (e.g., `ACQUIRE_ITEM`, `REACH_LOCATION`, `INTERACT_NPC`, `USE_SKILL`, `DEFEAT_TARGET`).
+                *   `target_id`: (Optional) ID of the item, NPC, location, or creature related to the objective.
+                *   `required_quantity`: (Optional) For item acquisition or similar.
+                *   `current_quantity`: Tracks progress.
+                *   `is_completed`: Boolean.
+            *   `rewards`: A Pydantic model detailing rewards upon successful completion.
+                *   `currency`: Amount of in-game currency.
+                *   `items`: List of `InventorySlot`-like Pydantic models (item_id, quantity) representing item rewards.
+                *   `experience_points`: (Optional) Amount of XP.
+                *   `reputation_changes`: (Optional) Dict mapping faction_id/npc_id to reputation change amount.
+            *   `failure_conditions`: (Optional) A Pydantic model or list of strings describing conditions for quest failure (e.g., "Target NPC dies," "Time limit expires").
+            *   `quest_giver_npc_id`: (Optional) ID of the NPC who offered the quest.
+            *   `target_npc_ids`: (Optional) List of NPC IDs relevant to the quest (e.g., an NPC to escort, an NPC to retrieve an item from).
+            *   `related_location_ids`: (Optional) List of Location IDs relevant to the quest.
+            *   `prerequisites`: (Optional) Conditions that must be met to start the quest (e.g., player level, previous quest completion, specific faction standing, possession of an item).
+            *   `time_limit_seconds`: (Optional) Duration in seconds after which the quest might expire if not completed.
+            *   `creation_timestamp`: Timestamp of when the quest was generated.
+            *   `acceptance_timestamp`: (Optional) Timestamp of when the player accepted the quest.
+            *   `completion_timestamp`: (Optional) Timestamp of when the quest was completed or failed.
+    *   **SQLAlchemy Model:** Define a corresponding SQLAlchemy model (e.g., `DBQuest`) for database persistence, mirroring the Pydantic model's structure. Use appropriate column types (e.g., `String`, `Integer`, `Float`, `JSON` for lists/dicts like objectives and rewards, `Enum` for status/type).
+    *   **CRUD Operations:** Implement standard Create, Read, Update, Delete (CRUD) operations for this `DBQuest` SQLAlchemy model.
+
+2.  **Quest Generation Service (`QuestGeneratorService`):**
+    *   Create a Python class `QuestGeneratorService`.
+    *   **Core Generation Method:** `generate_quest(self, db: Session, generation_context: QuestGenerationContext) -> Optional[DBQuest]`:
+        *   `QuestGenerationContext` (a Pydantic model) would provide inputs for generation, such as:
+            *   `triggering_npc_id`: (Optional) If an NPC is initiating.
+            *   `triggering_location_id`: (Optional) If a location event is the source.
+            *   `triggering_economic_event`: (Optional) Details of an economic event (e.g., "shortage of iron_ore in region_x").
+            *   `player_character_id`: (Optional) For tailoring to player level/skills.
+            *   `desired_quest_type`: (Optional) To request a specific kind of quest.
+        *   **Quest Template Selection:** Based on the `generation_context`, select an appropriate quest template/archetype.
+        *   **Parameterization & Placeholder Filling:**
+            *   Identify relevant NPCs (from the NPC system, using `triggering_npc_id` or querying for NPCs matching criteria like role or location).
+            *   Identify relevant items (from the economy system's item master list/DB).
+            *   Identify relevant locations.
+            *   Fill placeholders in the `title` and `description_template`.
+            *   Define specific objectives based on the template and context.
+            *   Determine appropriate rewards (e.g., based on quest difficulty, player level, economic value of items involved).
+        *   **Prerequisite & Failure Condition Setting:** Define these based on the quest template and context.
+        *   **Persistence:** Save the newly generated `DBQuest` to the database.
+    *   **Quest Availability Logic:** Determine if a generated quest should be immediately available to a player or if it enters a pool of potential quests.
+    *   **Quest Template System:**
+        *   Define quest templates (e.g., in JSON, YAML, or Python dictionaries). A template would specify:
+            *   `quest_type`.
+            *   `title_format_string`.
+            *   `description_format_string`.
+            *   Objective structures (e.g., "Objective 1: Go to {location_A}. Objective 2: Retrieve {item_X} from {npc_B}.").
+            *   Potential reward ranges/types.
+            *   Common prerequisites or failure conditions.
+            *   Rules for selecting parameters (e.g., "{item_X} should be a 'rare_resource'").
+
+3.  **Quest Management & Progression Service (`QuestManagerService`):**
+    *   Create a Python class `QuestManagerService`.
+    *   **Methods:**
+        *   `accept_quest(self, db: Session, player_id: str, quest_id: str) -> bool`: Updates quest status to `ACTIVE`, sets `acceptance_timestamp`.
+        *   `update_quest_objective_progress(self, db: Session, player_id: str, quest_id: str, objective_id: str, progress_update_data: Any)`: Updates `current_quantity` for an objective. Checks if objective or entire quest is completed.
+        *   `complete_quest(self, db: Session, player_id: str, quest_id: str, success: bool)`: Updates quest status, grants rewards if successful, sets `completion_timestamp`.
+        *   `get_active_quests_for_player(self, db: Session, player_id: str) -> List[DBQuest]`.
+        *   `get_available_quests(self, db: Session, player_id: str, location_id: Optional[str] = None, npc_id: Optional[str] = None) -> List[DBQuest]`.
+        *   `abandon_quest(self, db: Session, player_id: str, quest_id: str)`.
+        *   `check_quest_expiration(self, db: Session)`: A method (potentially run by Celery) to check and update statuses of time-limited quests.
+
+4.  **Configuration & Data for Generation:**
+    *   Manage quest templates, reward tables, objective type definitions, and rules for parameter selection in an easily modifiable format (e.g., JSON/YAML files).
+
+**II. Integration with Other Systems:**
+
+1.  **NPC Generator & NPC Data:**
+    *   NPCs (identified by `npc_id` from the NPC system) will be primary sources for `quest_giver_npc_id` and `target_npc_ids`.
+    *   NPC roles, skills, inventory, needs, personality, and backstory hooks (from the NPC model) should inform the types of quests they offer or are involved in.
+    *   Quest completion might affect an NPC's state or relationship with the player.
+
+2.  **Economy System:**
+    *   Quests can involve acquiring, delivering, or crafting items (identified by `item_id` from the economy system's item models).
+    *   Economic conditions (e.g., resource shortages, surplus, price fluctuations from the `MarketService`) can be triggers or context for quests.
+    *   Businesses (from the economy system's `Business` model) can be quest locations or objectives (e.g., "Help Business X increase production," "Sabotage Business Y").
+    *   Quest rewards will include currency and items managed by the economy system.
+
+3.  **Location System:**
+    *   Quests will often be tied to specific `Location` entities (identified by `location_id`).
+    *   The type of location, its current state, or events occurring there can influence quest generation.
+
+4.  **Narrative System (Conceptual Integration - details depend on Narrative Engine's final form):**
+    *   Quest descriptions and NPC dialogue related to quests should be generatable or templated, potentially leveraging narrative generation capabilities.
+    *   Quest completion or failure should be events that the narrative context manager can track and react to, influencing ongoing narrative threads.
+    *   The world_event_trigger_system.py from `narrative engine 0.1.3 3` could be a source of triggers for quests.
+
+5.  **AI GM Brain (Conceptual Integration - details depend on AI GM Brain's final form):**
+    *   The AI GM could direct the `QuestGeneratorService` to create specific types of quests to influence player experience, introduce challenges, or guide the narrative.
+    *   The AI GM could monitor player progress on quests and react dynamically.
+
+**III. Persistence & Management:**
+
+*   All active and completed/failed quests associated with a player should be persistently stored in the database using the `DBQuest` SQLAlchemy model.
+*   A system for cleaning up or archiving very old, irrelevant available quests might be needed.
+
+**IV. Future Considerations (Mention for Architectural Awareness):**
+
+*   **Dynamic Objective Generation:** Instead of fixed objectives per template, procedurally generate a series of steps.
+*   **Quest Chains:** Multi-part quests where completing one unlocks the next.
+*   **Reputation Impact:** Quest outcomes significantly affecting player reputation with NPCs, factions, or locations.
+*   **Player Choice & Branching Quests:** Quests where player decisions lead to different objectives or outcomes.
+*   **Scalability:** Ensure the system can handle a large number of potential and active quests without performance degradation.
+
+Please design this system with modularity, configurability, and clear interfaces for interaction with other game systems. The goal is a robust foundation for a deeply engaging and dynamic questing experience.
+
+---
