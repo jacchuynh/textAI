@@ -37,6 +37,9 @@ from .ai_gm_pacing_integration import AIGMPacingIntegration
 # Import domain and combat integration
 from .ai_gm_combat_integration import AIGMCombatIntegration
 
+# Import Celery integration
+from .ai_gm_celery_integration import AIGMCeleryIntegration
+
 
 class AIGMBrainPhase6Complete(AIGMBrain):
     """
@@ -102,10 +105,14 @@ class AIGMBrainPhase6Complete(AIGMBrain):
             template_processor=getattr(self, 'template_processor', None)
         )
         
+        # Initialize Celery integration for asynchronous tasks
+        self.celery_integration = AIGMCeleryIntegration()
+        self.pending_async_tasks = {}  # Track pending tasks by session
+        
         # Track last activity time for pacing
         self.last_input_time = datetime.utcnow()
         
-        self.logger.info("AI GM Brain Phase 6 Complete initialized")
+        self.logger.info("AI GM Brain Phase 6 Complete initialized with Celery integration")
     
     async def process_player_input(self, input_text: str) -> Dict[str, Any]:
         """
@@ -634,6 +641,241 @@ class AIGMBrainPhase6Complete(AIGMBrain):
                     entity['reputation'] = reputation
         
         return enhanced_domain
+    
+    async def process_with_llm_async(self, 
+                              input_text: str, 
+                              context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Process input with LLM asynchronously.
+        This method dispatches a Celery task and returns task information.
+        
+        Args:
+            input_text: Player's input text
+            context: Current game context
+            
+        Returns:
+            Task information with task_id
+        """
+        try:
+            self.logger.info(f"Processing input asynchronously: {input_text[:50]}...")
+            
+            # Prepare context
+            if not context:
+                context = self._get_current_context()
+                
+            # Prepare prompt
+            prompt = f"Player input: {input_text}\nGenerate an appropriate response based on the game context."
+            
+            # Dispatch task
+            task_info = await self.celery_integration.process_llm_async(
+                prompt=prompt,
+                context=context
+            )
+            
+            # Track task
+            session_id = context.get("session_id", "default")
+            if session_id not in self.pending_async_tasks:
+                self.pending_async_tasks[session_id] = []
+                
+            self.pending_async_tasks[session_id].append(task_info)
+            
+            return task_info
+            
+        except Exception as e:
+            self.logger.error(f"Error in async LLM processing: {e}")
+            return {
+                'error': str(e),
+                'status': 'failed'
+            }
+    
+    async def generate_ambient_content_async(self) -> Dict[str, Any]:
+        """
+        Generate ambient content asynchronously.
+        
+        Returns:
+            Task information with task_id
+        """
+        try:
+            # Get current context
+            context = self._get_current_context()
+            location = context.get("current_location", "unknown location")
+            time_of_day = context.get("time_of_day", "day")
+            recent_events = context.get("recent_significant_events", [])
+            mood = context.get("ambient_mood", "neutral")
+            
+            self.logger.info(f"Generating ambient content asynchronously for {location}...")
+            
+            # Dispatch task
+            task_info = await self.celery_integration.generate_ambient_content_async(
+                location=location,
+                time_of_day=time_of_day,
+                recent_events=recent_events,
+                mood=mood
+            )
+            
+            # Track task
+            session_id = context.get("session_id", "default")
+            if session_id not in self.pending_async_tasks:
+                self.pending_async_tasks[session_id] = []
+                
+            self.pending_async_tasks[session_id].append(task_info)
+            
+            return task_info
+            
+        except Exception as e:
+            self.logger.error(f"Error in async ambient content generation: {e}")
+            return {
+                'error': str(e),
+                'status': 'failed'
+            }
+    
+    async def resolve_combat_async(self, 
+                                combat_data: Dict[str, Any], 
+                                participants: List[Dict[str, Any]], 
+                                environment_factors: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Resolve combat asynchronously.
+        
+        Args:
+            combat_data: Combat configuration and state
+            participants: List of combatants
+            environment_factors: Environmental effects on combat
+            
+        Returns:
+            Task information with task_id
+        """
+        try:
+            self.logger.info(f"Resolving combat asynchronously with {len(participants)} participants...")
+            
+            # Dispatch task
+            task_info = await self.celery_integration.resolve_complex_combat_async(
+                combat_data=combat_data,
+                participants=participants,
+                environment_factors=environment_factors
+            )
+            
+            # Track task
+            context = self._get_current_context()
+            session_id = context.get("session_id", "default")
+            if session_id not in self.pending_async_tasks:
+                self.pending_async_tasks[session_id] = []
+                
+            self.pending_async_tasks[session_id].append(task_info)
+            
+            return task_info
+            
+        except Exception as e:
+            self.logger.error(f"Error in async combat resolution: {e}")
+            return {
+                'error': str(e),
+                'status': 'failed'
+            }
+    
+    async def process_world_reaction_async(self, action_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process world reaction asynchronously.
+        
+        Args:
+            action_data: Details of the player's action
+            
+        Returns:
+            Task information with task_id
+        """
+        try:
+            self.logger.info(f"Processing world reaction asynchronously for action: {action_data.get('action_type', 'unknown')}...")
+            
+            # Get current context
+            context = self._get_current_context()
+            
+            # Dispatch task
+            task_info = await self.celery_integration.process_world_reaction_async(
+                action_data=action_data,
+                world_context=context
+            )
+            
+            # Track task
+            session_id = context.get("session_id", "default")
+            if session_id not in self.pending_async_tasks:
+                self.pending_async_tasks[session_id] = []
+                
+            self.pending_async_tasks[session_id].append(task_info)
+            
+            return task_info
+            
+        except Exception as e:
+            self.logger.error(f"Error in async world reaction processing: {e}")
+            return {
+                'error': str(e),
+                'status': 'failed'
+            }
+    
+    async def check_pending_tasks(self, session_id: str = "default") -> Dict[str, Any]:
+        """
+        Check status of pending tasks for a session.
+        
+        Args:
+            session_id: The session ID to check
+            
+        Returns:
+            Task status information
+        """
+        try:
+            # Check if we have pending tasks for this session
+            if session_id not in self.pending_async_tasks:
+                return {
+                    'session_id': session_id,
+                    'pending_tasks': 0,
+                    'message': "No pending tasks for this session."
+                }
+                
+            # Get status from Celery integration
+            task_statuses = await self.celery_integration.check_pending_tasks()
+            
+            # Filter to only this session's tasks
+            session_tasks = self.pending_async_tasks.get(session_id, [])
+            session_task_ids = [task.get('task_id') for task in session_tasks if 'task_id' in task]
+            
+            completed_tasks = [task_id for task_id in task_statuses['completed_tasks'] if task_id in session_task_ids]
+            pending_tasks = [task_id for task_id in task_statuses['pending_tasks'] if task_id in session_task_ids]
+            failed_tasks = [task_id for task_id in task_statuses['failed_tasks'] if task_id in session_task_ids]
+            
+            # Clean up completed and failed tasks
+            self.pending_async_tasks[session_id] = [task for task in session_tasks 
+                                                if task.get('task_id') not in completed_tasks 
+                                                and task.get('task_id') not in failed_tasks]
+            
+            return {
+                'session_id': session_id,
+                'completed_count': len(completed_tasks),
+                'pending_count': len(pending_tasks),
+                'failed_count': len(failed_tasks),
+                'completed_tasks': completed_tasks,
+                'pending_tasks': pending_tasks,
+                'failed_tasks': failed_tasks
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error checking pending tasks: {e}")
+            return {
+                'error': str(e),
+                'status': 'failed'
+            }
+    
+    async def get_task_result(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get the result of a specific task.
+        
+        Args:
+            task_id: The task ID
+            
+        Returns:
+            Task result or None if not ready or error
+        """
+        try:
+            return await self.celery_integration.get_task_result(task_id)
+        except Exception as e:
+            self.logger.error(f"Error getting task result: {e}")
+            return None
     
     def get_phase6_comprehensive_statistics(self) -> Dict[str, Any]:
         """
