@@ -1,0 +1,167 @@
+
+
+
+**Project Context:**
+We are developing an AI-driven text-based fantasy RPG. The backend will be built using Python, with FastAPI for APIs, Pydantic for data validation/modeling, SQLAlchemy for database interaction (with a relational database like PostgreSQL or SQLite), and Celery with Redis for asynchronous tasks. We are also planning/implementing dynamic NPC generation, a comprehensive economy system, and a dynamic quest system.
+
+This new system will focus on allowing the player character to establish, own, and meticulously manage a business (e.g., a blacksmith forge, an apothecary, a bakery, a scribe's shop, a tailor, a fletcher, etc.) with a strong "slice-of-life" campaign feel. The emphasis is on the detailed day-to-day operations, meaningful player choices, customization, interaction with the local community, and the personal journey of being a business owner in a medieval fantasy world.
+
+**Objective:**
+Create a detailed and dynamic simulation system that allows a player character to fully experience the lifecycle of owning and operating a small to medium-sized business. This includes acquisition of property, navigating legalities, managing resources and production, interacting with customers and staff, customizing their establishment, and feeling the impact of their business on the local game world.
+
+**I. Core Data Models (Pydantic & SQLAlchemy - New or to be Extended/Detailed):**
+
+1.  **`PlayerBusinessProfile` (This might wrap or extend the existing `Business` Pydantic/SQLAlchemy model):**
+    *   `id`: Unique identifier.
+    *   `player_character_id`: Link to the player character.
+    *   `base_business_id`: Link to the core `DBBusiness` entity (which holds general operational data like capital, core inventory, production capacity, etc., as previously defined).
+    *   `business_name_player_chosen`: The specific name the player gives their establishment.
+    *   `shop_ledger`: (JSON or separate table) Detailed transaction log (income, expenses, material purchases, wages paid, custom order payments).
+    *   `customization_options_applied`: (JSON) Stores player choices for visual/functional customization (e.g., shop sign design, interior layout choices, specific equipment models).
+    *   `current_apprentices`: (List of `StaffMember` IDs or more detailed apprentice progression data).
+    *   `mastery_level`: (Optional) A measure of the player's skill/reputation in their chosen trade through this business.
+
+2.  **`PropertyDeed` / `LeaseAgreement`:**
+    *   `id`: Unique identifier.
+    *   `owner_character_id`: Player character ID (for deeds) or `lessor_npc_id`/`lessor_faction_id` (for leases).
+    *   `location_id`: Link to the game world `Location`.
+    *   `property_type`: Enum (e.g., `UNDEVELOPED_LAND`, `EXISTING_BUILDING_RUDIMENTARY`, `EXISTING_BUILDING_ESTABLISHED`).
+    *   `address_description`: Textual description of its location within the broader `Location`.
+    *   `size_sq_meters`: Numerical size.
+    *   `purchase_price` / `lease_setup_fee`: Currency amount.
+    *   `property_tax_per_period` / `rent_per_period`: Currency amount.
+    *   `tax_rent_due_date_rule`: Rule for when payment is due (e.g., "1st of each month").
+    *   `building_blueprints`: (Optional JSON for player-constructed buildings) Stores chosen layout/features.
+    *   `current_condition_percentage`: (0-100) Affects upkeep.
+    *   `zoning_permissions`: (List of `BusinessType` enums) What kind of businesses are allowed on this property.
+
+3.  **`BusinessLicense` / `GuildMembershipCharter`:**
+    *   `id`: Unique identifier.
+    *   `player_business_profile_id`: Link to the player's business.
+    *   `license_type_name`: (e.g., "Town Smithing Permit," "Merchants' Guild Trading Seal," "Royal Apothecary Charter").
+    *   `issuing_authority_name`: (e.g., "Town Council of Oakhaven," "Ironhand Blacksmiths' Guild," "King's Chamberlain").
+    *   `issuing_authority_contact_npc_id`: (Optional) NPC to interact with for this.
+    *   `application_date`, `issue_date`, `expiry_date` (if applicable).
+    *   `application_fee`, `renewal_fee`.
+    *   `status`: Enum (`PENDING_APPLICATION`, `ACTIVE`, `EXPIRED`, `REVOKED`, `UNDER_REVIEW`).
+    *   `requirements_met`: (JSON) Log of prerequisites fulfilled for obtaining it (e.g., skill level, reputation, specific quest completion).
+
+4.  **`CustomOrderRequest`:**
+    *   `id`: Unique identifier.
+    *   `requesting_npc_id`: NPC placing the order.
+    *   `target_player_business_profile_id`: The player's business receiving the request.
+    *   `item_description_by_npc`: Detailed text from NPC (e.g., "A sturdy longsword, nothing fancy, but sharp and balanced, with a simple leather-wrapped hilt").
+    *   `item_category_hint`: (e.g., `WEAPON`, `ARMOR`).
+    *   `desired_materials_hint`: (Optional, e.g., "Prefers steel over iron if possible").
+    *   `quantity`: Typically 1 for custom work, but could be more.
+    *   `offered_price_initial`: What the NPC initially offers.
+    *   `negotiated_price_final`: Price agreed upon if different.
+    *   `deadline_preference_days`: How soon the NPC wants it.
+    *   `status`: Enum (`AWAITING_PLAYER_REVIEW`, `PLAYER_ACCEPTED`, `PLAYER_REJECTED`, `MATERIALS_GATHERING`, `CRAFTING_IN_PROGRESS`, `AWAITING_PICKUP`, `COMPLETED_DELIVERED`, `CANCELLED_BY_NPC`, `CANCELLED_BY_PLAYER`).
+    *   `player_notes_on_order`: Player's internal notes.
+    *   `npc_satisfaction_rating`: (Optional, post-completion) 1-5 stars or similar.
+    *   `npc_feedback_text`: (Optional, post-completion).
+
+5.  **`StaffMemberContract` (More detailed than just an NPC ID in `Business.employees`):**
+    *   `id`: Unique identifier.
+    *   `player_business_profile_id`.
+    *   `npc_id`: Link to the `DBNpc` being employed.
+    *   `role_title`: (e.g., "Forge Apprentice," "Shop Assistant," "Journeyman Alchemist").
+    *   `agreed_wage_per_period`, `wage_payment_schedule`.
+    *   `assigned_tasks_description`: (Text or list of task types).
+    *   `working_hours_description`: (e.g., "Sunup to Sundown, day of rest on Freyasdaeg").
+    *   `contract_start_date`, `contract_end_date` (if not permanent).
+    *   `current_morale_level`: Specific to their job at player's business.
+    *   `performance_notes_by_player`.
+
+6.  **`BusinessFixtureOrUpgrade`:**
+    *   `id`: Unique identifier.
+    *   `player_business_profile_id`.
+    *   `fixture_type_name`: (e.g., "Masterwork Anvil," "Alchemist's Retort - Reinforced Glass," "Large Display Counter - Oak," "Expanded Cellar Storage").
+    *   `description`: What it is and does.
+    *   `cost_materials_json`: (Dict of item_id: quantity).
+    *   `cost_currency`.
+    *   `installation_time_hours`: Time it takes to set up.
+    *   `prerequisites_text`: (e.g., "Requires Journeyman Smithing Skill," "Needs Level 2 Shop Building").
+    *   `benefits_description`: (e.g., "+15% crafting speed for swords," "Unlocks Tier 3 potions," "+10 daily customer capacity").
+    *   `is_installed_and_active`: Boolean.
+    *   `condition_percentage`: (0-100) May require maintenance.
+
+**II. Core Services (New or to be Extended/Detailed):**
+
+1.  **`PlayerBusinessFoundingService`:**
+    *   `scout_available_properties(db, player_id, location_id) -> List[PropertyDeed/LeaseOption]`.
+    *   `purchase_property_deed(db, player_id, property_id_for_sale) -> PropertyDeed`.
+    *   `negotiate_lease_agreement(db, player_id, property_id_for_lease, lessor_npc_id) -> LeaseAgreement`.
+    *   `commission_building_construction(db, player_id, property_id, building_blueprint_id_or_type, initial_funding) -> ConstructionProjectTracker`. (Simulates time and resource drain).
+    *   `apply_for_business_license(db, player_id, business_type, issuing_authority_details) -> BusinessLicenseApplication`. (May trigger interactions or mini-quests).
+    *   `officially_open_business(db, player_id, player_business_profile_id, initial_stock_items_list)`.
+
+2.  **`PlayerBusinessDailyOperationsService` (This would be the heart of the slice-of-life loop):**
+    *   **Customer Order Workflow:**
+        *   `review_incoming_custom_order_requests(db, player_business_profile_id) -> List[CustomOrderRequest]`.
+        *   `accept_or_decline_custom_order(db, player_id, order_id, accept: bool, counter_offer_price: Optional[float])`.
+        *   `plan_material_sourcing_for_order(db, player_id, order_id)` (Check current stock, flag needed purchases).
+    *   **Player-Driven Crafting/Production:**
+        *   `initiate_crafting_session(db, player_id, business_id, item_to_craft_id_or_custom_order_id, assigned_staff_ids_list_or_player_as_crafter) -> CraftingJob`.
+        *   This could be more involved than just setting and forgetting. Perhaps it consumes "Player Focus Points" or requires periodic check-ins/mini-decisions if the player is the primary crafter. Quality/speed might depend on player skill (if not using staff) or staff skill.
+    *   **Staff Management & Delegation:**
+        *   `post_job_listing_for_staff(db, player_id, business_id, role_description, desired_skills, offered_wage_range)`.
+        *   `interview_npc_applicant(db, player_id, npc_id_applicant)` (Dialogue/skill check based).
+        *   `assign_daily_or_weekly_tasks_to_staff(db, player_id, staff_contract_id, task_list)`.
+        *   `conduct_staff_performance_review(db, player_id, staff_contract_id)` (Affects morale, skill gain).
+        *   `pay_staff_wages(db, player_id, business_id)` (Triggered periodically).
+    *   **Inventory & Resource Management (Detailed):**
+        *   `check_material_stock_levels(db, player_id, business_id) -> Dict[item_id, current_qty]`.
+        *   `order_materials_from_supplier(db, player_id, business_id, item_id, quantity, supplier_npc_id_or_market_source)` (May involve price negotiation, delivery times).
+        *   `manage_spoilage_or_degradation_of_materials(db, player_id, business_id)` (For perishable goods).
+    *   **Shop Front Operations (If applicable, e.g., for a retail shop):**
+        *   `set_daily_prices_for_stock_items(db, player_id, business_id, item_id_to_price_map)`.
+        *   `interact_with_browsing_customer_npc(db, player_id, customer_npc_id)` (Dialogue, sales pitch).
+        *   `process_direct_sale_to_npc(db, player_id, business_id, customer_npc_id, item_id, quantity)`.
+    *   **Financial Oversight:**
+        *   `review_daily_or_weekly_ledger(db, player_id, business_id) -> LedgerSummary`.
+        *   `pay_rent_or_taxes(db, player_id, business_id, property_id_or_lease_id)`.
+
+3.  **`BusinessDevelopmentService`:**
+    *   `research_new_crafting_recipes_or_techniques(db, player_id, business_id, research_subject) -> ResearchProject`.
+    *   `invest_in_business_fixture_or_upgrade(db, player_id, business_id, fixture_type_name_to_purchase)`.
+    *   `expand_property_or_building(db, player_id, property_id, expansion_details)`.
+    *   `build_reputation_with_guild_or_community(db, player_id, business_id, action_taken_description)` (e.g., donating goods, sponsoring local event).
+
+**III. Detailed Simulation Mechanics (Slice-of-Life Focus):**
+
+*   **Time Management:** Player actions (crafting, managing, sourcing) should consume in-game time. The player might only have so many "action hours" in a day.
+*   **Skill Progression for Player:** The player's own crafting/merchantile/management skills should improve through direct involvement in the business.
+*   **NPC Interaction Depth:**
+    *   **Customers:** May have personalities, specific needs, haggle, become repeat customers, or spread word-of-mouth (good or bad).
+    *   **Staff:** Can get sick, have personal requests, gain skills, make mistakes, or even be poached by competitors if not treated well.
+    *   **Suppliers:** Building relationships can lead to better prices, access to rare materials, or reliable delivery.
+    *   **Authorities/Guilds:** Interactions for licenses, inspections, or disputes.
+*   **Local Market Fluctuations:** Beyond broad regional prices, local events (e.g., a festival, a caravan arriving/departing, a local disaster) should impact demand for specific goods or availability of materials more immediately.
+*   **Business Ambiance & Reputation:** Player choices in shop decor (if visual elements are planned), cleanliness, and customer service contribute to a local reputation that affects customer traffic and NPC disposition.
+*   **Maintenance & Random Events:** Equipment breaking down, unexpected material shortages, staff conflicts, sudden large orders, tax audits, guild inspections, etc.
+
+**IV. Integration with Other Systems:**
+
+*   **Economy System:** The player's business is a significant node. It sources from and sells to the broader economy. Its success or failure impacts local supply/demand.
+*   **NPC System:** Provides the cast of characters: customers, staff, suppliers, officials. NPC attributes (skills, needs, personality) from the `NpcGeneratorService` are crucial.
+*   **Quest System:**
+    *   The process of setting up (finding a rare tool for the forge, getting a specific guild's approval) can be a series of mini-quests.
+    *   The business itself can be a source of quests for the player (e.g., "A noble has placed a rush order for a unique ceremonial armor set!").
+    *   NPCs might offer the player quests related to their business (e.g., "My forge is too busy, can your apprentice handle this simple repair?").
+*   **Location System:** Business is tied to a `Location`. The location's resources, population, existing businesses, and faction control heavily influence the player's business.
+*   **Calendar/Time System:** Crucial for wages, rent/taxes, production cycles, order deadlines, license renewals, seasonal effects on materials/demand. Celery tasks will drive periodic updates.
+
+**V. Persistence & Management:**
+
+*   All new Pydantic models must have corresponding SQLAlchemy models and robust CRUD operations.
+*   The state of the player's business, including all its facets (staff, orders, finances, upgrades), must be meticulously saved.
+
+**VI. Future Considerations (Beyond initial implementation):***  
+**Business Sabotage/Competition:** NPC or even other player businesses actively competing, potentially leading to price wars or even underhanded tactics.
+*   **Macro-Economic Impact:** A highly successful player business significantly altering a region's economic landscape.
+
+This system should aim to provide a deeply immersive and rewarding experience for players who enjoy detailed management, crafting, social interaction, and building something tangible within the game world. The "slice-of-life" aspect comes from the focus on the personal journey and the detailed, often mundane yet satisfying, tasks of running their chosen enterprise.
+
+---
