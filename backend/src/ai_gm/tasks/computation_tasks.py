@@ -10,19 +10,19 @@ import logging
 import time
 import json
 from datetime import datetime
-import random
+from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
-# Attempt to import the computation components if available
+# Attempt to import the combat system if available
 try:
     from backend.src.ai_gm.ai_gm_combat_integration import AIGMCombatIntegration
-    computation_components_available = True
+    combat_system_available = True
 except ImportError:
-    logger.warning("Computation components not available. Using mock responses for development.")
-    computation_components_available = False
+    logger.warning("Combat system not available. Using mock responses for development.")
+    combat_system_available = False
 
-@celery_app.task(bind=True, max_retries=2)
+@celery_app.task(bind=True, max_retries=3)
 def resolve_complex_combat(self, combat_data, participants, environment_factors):
     """
     Resolve a complex combat scenario with multiple participants.
@@ -37,63 +37,61 @@ def resolve_complex_combat(self, combat_data, participants, environment_factors)
     """
     try:
         logger.info(f"Resolving complex combat with {len(participants)} participants...")
+        start_time = datetime.utcnow()
         
-        if computation_components_available:
+        if combat_system_available:
+            # Use the actual combat system
             combat_system = AIGMCombatIntegration()
-            
-            # Resolve the combat
-            results = combat_system.resolve_full_combat(
+            result = combat_system.resolve_multi_participant_combat(
                 combat_data=combat_data,
                 participants=participants,
                 environment_factors=environment_factors
             )
         else:
-            # Log that we'd normally resolve combat here
-            logger.info(f"Would resolve combat for {len(participants)} participants...")
-            # Simulate complex calculations
+            # Create mock combat resolution for development
+            # Simulate processing time for complex combat
             time.sleep(3)
             
-            # Create mock combat results for development
-            rounds = []
-            for i in range(1, 4):  # Simulate 3 rounds
-                round_actions = []
-                for participant in participants:
-                    damage = random.randint(0, 10)
-                    action = {
-                        'actor': participant.get('id', 'unknown'),
-                        'target': participants[random.randint(0, len(participants)-1)].get('id', 'unknown'),
-                        'action': random.choice(['attack', 'defend', 'special']),
-                        'damage_dealt': damage,
-                        'status_effects': []
-                    }
-                    round_actions.append(action)
-                rounds.append({'round': i, 'actions': round_actions})
-            
-            # Determine outcome
-            player_won = random.choice([True, False])
-            results = {
-                'rounds': rounds,
-                'outcome': {
-                    'victor': 'player' if player_won else 'opponents',
-                    'rounds_total': len(rounds),
-                    'decisive_moment': f"Round {random.randint(1, len(rounds))}"
-                },
-                'experience': {p.get('id', 'unknown'): random.randint(10, 50) for p in participants}
+            # Create mock results
+            result = {
+                'rounds': 3,
+                'victor': participants[0]['id'] if len(participants) > 0 else None,
+                'participants_status': {},
+                'key_moments': [
+                    "Player landed a critical hit in round 1",
+                    "Enemy used defensive stance in round 2",
+                    "Environmental effect 'heavy rain' reduced accuracy for all participants"
+                ],
+                'loot_generated': [
+                    {'item_id': 'rusty_sword', 'quality': 'common'},
+                    {'item_id': 'healing_potion', 'quality': 'uncommon'}
+                ]
             }
+            
+            # Add status for each participant
+            for participant in participants:
+                participant_id = participant.get('id', 'unknown')
+                result['participants_status'][participant_id] = {
+                    'health_remaining': 65,
+                    'status_effects': ['bleeding', 'focused'],
+                    'actions_used': ['heavy_attack', 'dodge', 'defensive_stance']
+                }
         
+        end_time = datetime.utcnow()
+        processing_time = (end_time - start_time).total_seconds()
+        
+        # Return the combat results with metadata
         return {
+            'result': result,
             'combat_id': combat_data.get('id', 'unknown'),
-            'rounds': results.get('rounds', []),
-            'outcome': results.get('outcome', {}),
-            'experience': results.get('experience', {}),
-            'environment_impact': environment_factors,
+            'processing_time_seconds': processing_time,
             'timestamp': datetime.utcnow().isoformat()
         }
     except Exception as exc:
         logger.error(f"Combat resolution failed: {exc}")
-        self.retry(exc=exc)
+        raise self.retry(exc=exc)
 
-@celery_app.task(bind=True, max_retries=2)
+@celery_app.task(bind=True)
 def update_reputation_network(self, player_id, action_data, affected_factions):
     """
     Update reputation across a network of interconnected factions.
@@ -107,54 +105,73 @@ def update_reputation_network(self, player_id, action_data, affected_factions):
         Updated reputation values and cascading effects
     """
     try:
-        logger.info(f"Updating reputation network for player {player_id} affecting {len(affected_factions)} factions...")
+        logger.info(f"Updating reputation network for player {player_id}, affecting {len(affected_factions)} factions...")
         
-        # Simulate complex reputation calculations
+        # Simulate processing time for complex reputation calculations
         time.sleep(2)
         
-        # Initialize reputation changes
+        # Mock reputation updates
         direct_changes = {}
-        cascading_changes = {}
+        indirect_changes = {}
         
-        # Mock faction relationships (in a real system, this would come from the database)
-        faction_relationships = {
-            'village': {'merchants_guild': 0.5, 'city_guard': 0.7},
-            'merchants_guild': {'village': 0.5, 'thieves_guild': -0.8},
-            'city_guard': {'village': 0.7, 'thieves_guild': -0.9},
-            'thieves_guild': {'merchants_guild': -0.8, 'city_guard': -0.9}
-        }
-        
-        # Calculate direct reputation changes
-        for faction, impact in affected_factions.items():
-            direct_changes[faction] = impact
+        # Generate direct changes for directly affected factions
+        for faction in affected_factions:
+            # Simulate reputation change based on action
+            faction_id = faction.get('id', 'unknown')
+            faction_attitude = faction.get('attitude', 'neutral')
             
-            # Calculate cascading effects on related factions
-            if faction in faction_relationships:
-                for related_faction, relationship in faction_relationships[faction].items():
-                    # Reputation change diminishes based on relationship strength
-                    # Positive relationships cause similar changes, negative ones cause opposite
-                    cascading_effect = impact * relationship * 0.5
-                    
-                    if related_faction in cascading_changes:
-                        cascading_changes[related_faction] += cascading_effect
-                    else:
-                        cascading_changes[related_faction] = cascading_effect
+            # Different impact based on faction's initial attitude
+            if faction_attitude == 'friendly':
+                change = 5
+            elif faction_attitude == 'hostile':
+                change = -2
+            else:
+                change = 3
+                
+            direct_changes[faction_id] = change
         
-        # Round cascading changes to reasonable values
-        cascading_changes = {f: round(v, 2) for f, v in cascading_changes.items()}
+        # Generate cascading effects for related factions
+        # In a real implementation, this would use a faction relationship graph
+        if len(affected_factions) > 0:
+            # Simulate related factions
+            related_factions = [
+                {'id': 'forest_dwellers', 'relationship': 'allied', 'with': affected_factions[0]['id']},
+                {'id': 'mountain_clan', 'relationship': 'rival', 'with': affected_factions[0]['id']},
+                {'id': 'coastal_traders', 'relationship': 'neutral', 'with': affected_factions[0]['id']}
+            ]
+            
+            for related in related_factions:
+                related_id = related['id']
+                relationship = related['relationship']
+                with_faction = related['with']
+                
+                # The change for related factions depends on their relationship with the directly affected faction
+                if with_faction in direct_changes:
+                    direct_change = direct_changes[with_faction]
+                    
+                    if relationship == 'allied':
+                        # Allied factions react similarly but less strongly
+                        indirect_changes[related_id] = int(direct_change * 0.7)
+                    elif relationship == 'rival':
+                        # Rival factions react oppositely
+                        indirect_changes[related_id] = int(direct_change * -0.5)
+                    else:
+                        # Neutral factions are affected minimally
+                        indirect_changes[related_id] = int(direct_change * 0.2)
         
         return {
             'player_id': player_id,
-            'action_type': action_data.get('action_type', 'unknown'),
+            'action_type': action_data.get('type', 'unknown'),
             'direct_changes': direct_changes,
-            'cascading_changes': cascading_changes,
+            'indirect_changes': indirect_changes,
             'timestamp': datetime.utcnow().isoformat()
         }
+        
     except Exception as exc:
         logger.error(f"Reputation network update failed: {exc}")
-        self.retry(exc=exc)
+        raise self.retry(exc=exc)
 
-@celery_app.task(bind=True, max_retries=2)
+@celery_app.task
 def analyze_player_patterns(self, player_id, action_history, time_period):
     """
     Analyze patterns in player behavior.
@@ -167,66 +184,88 @@ def analyze_player_patterns(self, player_id, action_history, time_period):
     Returns:
         Analysis of player behavior patterns
     """
-    try:
-        logger.info(f"Analyzing behavior patterns for player {player_id} over {time_period}...")
-        
-        # Simulate complex pattern analysis
-        time.sleep(2.5)
-        
-        # Count action types
-        action_counts = {}
-        for action in action_history:
-            action_type = action.get('action_type', 'unknown')
-            if action_type in action_counts:
-                action_counts[action_type] += 1
-            else:
-                action_counts[action_type] = 1
-        
-        # Find most common actions
-        most_common = sorted(action_counts.items(), key=lambda x: x[1], reverse=True)[:3]
-        
-        # Identify time patterns (mock analysis)
-        time_patterns = []
-        if len(action_history) > 10:
-            if random.random() > 0.5:
-                time_patterns.append("Player tends to engage in combat during evening hours")
-            if random.random() > 0.5:
-                time_patterns.append("Player explores new areas primarily in the morning")
-            if random.random() > 0.5:
-                time_patterns.append("Social interactions peak in afternoon sessions")
-        
-        # Detect play style
-        combat_actions = sum(1 for a in action_history if a.get('action_type', '').startswith('COMBAT'))
-        social_actions = sum(1 for a in action_history if a.get('action_type', '').startswith('SOCIAL'))
-        exploration_actions = sum(1 for a in action_history if a.get('action_type', '').startswith('EXPLORE'))
-        
-        total_actions = len(action_history) or 1  # Avoid division by zero
-        
-        play_style = {
-            'combat_focus': round(combat_actions / total_actions, 2),
-            'social_focus': round(social_actions / total_actions, 2),
-            'exploration_focus': round(exploration_actions / total_actions, 2)
-        }
-        
-        # Determine primary play style
-        max_style = max(play_style.items(), key=lambda x: x[1])
-        primary_style = f"{max_style[0].replace('_focus', '').title()} focused"
-        
-        return {
-            'player_id': player_id,
-            'time_period': time_period,
-            'action_counts': action_counts,
-            'most_common_actions': most_common,
-            'time_patterns': time_patterns,
-            'play_style_metrics': play_style,
-            'primary_play_style': primary_style,
-            'timestamp': datetime.utcnow().isoformat()
-        }
-    except Exception as exc:
-        logger.error(f"Player pattern analysis failed: {exc}")
-        self.retry(exc=exc)
+    logger.info(f"Analyzing behavior patterns for player {player_id}...")
+    
+    # Simulate processing time
+    time.sleep(3)
+    
+    # Count action types
+    action_counts = {}
+    for action in action_history:
+        action_type = action.get('type', 'unknown')
+        if action_type in action_counts:
+            action_counts[action_type] += 1
+        else:
+            action_counts[action_type] = 1
+    
+    # Find most common action
+    most_common_action = max(action_counts.items(), key=lambda x: x[1], default=('none', 0))
+    
+    # Calculate playtime distribution by time of day
+    time_distribution = {
+        'morning': 0,
+        'afternoon': 0,
+        'evening': 0,
+        'night': 0
+    }
+    
+    for action in action_history:
+        # Extract hour from timestamp (assuming ISO format)
+        timestamp = action.get('timestamp', '')
+        if timestamp:
+            try:
+                dt = datetime.fromisoformat(timestamp)
+                hour = dt.hour
+                
+                if 5 <= hour < 12:
+                    time_distribution['morning'] += 1
+                elif 12 <= hour < 17:
+                    time_distribution['afternoon'] += 1
+                elif 17 <= hour < 22:
+                    time_distribution['evening'] += 1
+                else:
+                    time_distribution['night'] += 1
+            except (ValueError, TypeError):
+                pass
+    
+    # Convert counts to percentages
+    total_actions = len(action_history)
+    time_percentages = {}
+    if total_actions > 0:
+        for key, value in time_distribution.items():
+            time_percentages[key] = round((value / total_actions) * 100, 1)
+    
+    # Generate insights
+    preferred_playtime = max(time_percentages.items(), key=lambda x: x[1], default=('none', 0))[0]
+    
+    # Analyze social interactions
+    social_actions = [a for a in action_history if a.get('type') in ['dialogue', 'trade', 'quest_accept']]
+    social_percentage = round((len(social_actions) / total_actions) * 100 if total_actions > 0 else 0, 1)
+    
+    # Analyze combat frequency
+    combat_actions = [a for a in action_history if a.get('type') in ['attack', 'defend', 'cast_spell']]
+    combat_percentage = round((len(combat_actions) / total_actions) * 100 if total_actions > 0 else 0, 1)
+    
+    return {
+        'player_id': player_id,
+        'time_period': time_period,
+        'action_counts': action_counts,
+        'most_common_action': most_common_action[0],
+        'time_distribution': time_percentages,
+        'preferred_playtime': preferred_playtime,
+        'social_interaction_percentage': social_percentage,
+        'combat_percentage': combat_percentage,
+        'total_actions_analyzed': total_actions,
+        'insights': [
+            f"Player prefers {preferred_playtime} gameplay sessions",
+            f"Player's most common action is '{most_common_action[0]}'",
+            f"Player engages in social interactions {social_percentage}% of the time",
+            f"Player engages in combat {combat_percentage}% of the time"
+        ],
+        'timestamp': datetime.utcnow().isoformat()
+    }
 
-@celery_app.task(bind=True, max_retries=2)
+@celery_app.task
 def calculate_domain_synergies(self, domain_values, available_synergies):
     """
     Calculate complex domain synergies based on character attributes.
@@ -238,38 +277,61 @@ def calculate_domain_synergies(self, domain_values, available_synergies):
     Returns:
         Calculated domain synergies
     """
-    try:
-        logger.info(f"Calculating domain synergies for {len(domain_values)} domains...")
-        
-        # Simulate complex synergy calculations
-        time.sleep(1.5)
-        
-        # Calculate base synergies
-        synergies = {}
-        for synergy_type in available_synergies:
-            # Get the domains involved in this synergy
-            domains = synergy_type.get('domains', [])
-            if len(domains) < 2:
-                continue
-                
-            # Calculate the synergy value based on domain values
-            domain_scores = [domain_values.get(d, 0) for d in domains]
-            # Basic synergy formula: average of domains multiplied by a synergy factor
-            synergy_value = (sum(domain_scores) / len(domain_scores)) * synergy_type.get('factor', 1.0)
+    logger.info(f"Calculating domain synergies for {len(domain_values)} domains...")
+    
+    # Simulate complex calculation time
+    time.sleep(1.5)
+    
+    # Calculate primary synergies (direct combinations)
+    primary_synergies = {}
+    
+    # In a real implementation, this would use the actual synergy formulas
+    # For now, we'll create mock synergies based on domain combinations
+    for i, (domain1, value1) in enumerate(domain_values.items()):
+        for domain2, value2 in list(domain_values.items())[i+1:]:
+            synergy_key = f"{domain1}_{domain2}"
             
-            # Apply thresholds
-            min_threshold = synergy_type.get('min_threshold', 0)
-            if synergy_value >= min_threshold:
-                synergies[synergy_type.get('name', 'unknown')] = round(synergy_value, 2)
-        
-        # Find the strongest synergies
-        top_synergies = sorted(synergies.items(), key=lambda x: x[1], reverse=True)[:3]
-        
-        return {
-            'synergies': synergies,
-            'top_synergies': top_synergies,
-            'timestamp': datetime.utcnow().isoformat()
-        }
-    except Exception as exc:
-        logger.error(f"Domain synergy calculation failed: {exc}")
-        self.retry(exc=exc)
+            # Only calculate for available synergy types
+            if synergy_key in available_synergies:
+                # Mock synergy calculation - in reality would be more complex
+                synergy_value = round((value1 * value2) ** 0.5 / 10, 1)
+                
+                # Apply minimum threshold for meaningful synergies
+                if synergy_value >= 1.0:
+                    primary_synergies[synergy_key] = synergy_value
+    
+    # Calculate secondary effects (derived benefits)
+    secondary_effects = {}
+    for synergy, value in primary_synergies.items():
+        # Each primary synergy may provide secondary benefits to other domains
+        domains = synergy.split('_')
+        for domain in domain_values.keys():
+            if domain not in domains:
+                # Secondary effect is weaker than primary
+                effect_value = round(value * 0.3, 1)
+                if effect_value >= 0.5:
+                    secondary_effects[f"{synergy}_affects_{domain}"] = effect_value
+    
+    # Calculate overall synergy rating
+    total_synergy = sum(primary_synergies.values()) + sum(secondary_effects.values()) * 0.5
+    
+    # Determine synergy tier
+    if total_synergy >= 20:
+        tier = "Legendary"
+    elif total_synergy >= 15:
+        tier = "Master"
+    elif total_synergy >= 10:
+        tier = "Expert"
+    elif total_synergy >= 5:
+        tier = "Adept"
+    else:
+        tier = "Novice"
+    
+    return {
+        'primary_synergies': primary_synergies,
+        'secondary_effects': secondary_effects,
+        'total_synergy_value': total_synergy,
+        'synergy_tier': tier,
+        'domain_count': len(domain_values),
+        'timestamp': datetime.utcnow().isoformat()
+    }
