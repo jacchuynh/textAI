@@ -1,0 +1,64 @@
+I. Core Player Economic Roles
+
+Players can:
+Buy & Sell — Items, resources, relics, services.
+Operate a Business — Shop, forge, caravan, apothecary, farm, etc.
+Invest or Trade — Fund ventures, move goods between cities.
+Manipulate Markets — Through smuggling, sabotage, monopolies, or politics.
+Interact with NPC Economy — Compete with or partner alongside dynamic NPC traders, guilds, or cities.
+II. Core Interface Format (Text Commands)
+
+Example Player Commands:
+> enter market
+> browse shop "The Arcane Spur"
+> buy [item] [quantity]
+> sell [item] [quantity]
+> open business "Ashvale Tinctures"
+> hire worker [name or class]
+> send caravan [goods] to [city]
+> view market report [city]
+> manipulate market "Stonewake" sabotage forge production
+III. Shop & Trading Mechanics
+
+1. Buying/Selling
+Prices = Base Price × Regional Modifier × Supply-Demand Ratio × Relationship Modifier
+Sample Output:
+> browse shop "The Cracked Anvil"
+Items:
+1. Iron Sword — 22g (standard quality)
+2. Reinforced Boots — 18g (rare due to cold weather demand)
+3. Repair Kit — 12g (bulk discount available)
+2. Running a Business
+Costs: startup gold, location license, supplies.
+Daily/weekly tick system simulates:
+Stock production.
+Worker output based on skill/morale.
+Demand fluctuations.
+Status Check Output:
+
+> check business "Ashvale Tinctures"
+
+Ashvale Tinctures | Apothecary, Ashkar Vale
+Income: 74g/week | Expenses: 32g/week
+Stock: 4x Minor Healing Potions, 2x Dream Root Elixirs
+Reputation: Trusted (local)
+Risk: Low (protected by beastfolk kin)
+IV. Dynamic Market System
+
+City Snapshot Command
+> view market report "Skarport"
+
+Market Status:
+- Enchanted Textiles: Surplus (prices down)
+- Mana-Filters: High demand
+- Smuggling Activity: Medium
+- Faction Influence: Crimson Accord High Council
+- Suggested Ventures: Import healing draughts from Thal-Zirad
+V. Long-Term Player Impact
+
+Action	Effect Example
+Undercut Prices	Local shops lose stock faster, cause NPC unrest
+Smuggle Banned Goods	High risk, high reward, possible reputation/faction hit
+Invest in Infrastructure	Boosts city prosperity over time, opens new services
+Support/Undermine Guild	Affects policy, shop taxes, player’s business success
+Trade Rare Items/Relics	Unlocks hidden quests, political attention, or arcane backlash
