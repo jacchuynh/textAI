@@ -5,12 +5,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .combat_api import router as combat_router
+from . import economy
 
 
 def create_app() -> FastAPI:
     """
     Create and configure the FastAPI application.
-    
+
     Returns:
         Configured FastAPI application
     """
@@ -19,7 +20,7 @@ def create_app() -> FastAPI:
         description="API for the RPG game engine",
         version="1.0.0"
     )
-    
+
     # Configure CORS
     app.add_middleware(
         CORSMiddleware,
@@ -28,10 +29,11 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # Add routers
     app.include_router(combat_router, prefix="/api/combat", tags=["Combat"])
-    
+    app.include_router(economy.router, prefix="/api/economy", tags=["Economy"])
+
     # Add root endpoint
     @app.get("/")
     async def root():
@@ -41,11 +43,11 @@ def create_app() -> FastAPI:
             "version": "1.0.0",
             "status": "running"
         }
-    
+
     # Add health check endpoint
     @app.get("/health")
     async def health_check():
         """Health check endpoint."""
         return {"status": "healthy"}
-    
+
     return app

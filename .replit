@@ -16,7 +16,7 @@ localPort = 5000
 externalPort = 80
 
 [workflows]
-runButton = "Project"
+runButton = "Run API Server"
 
 [[workflows.workflow]]
 name = "Project"
@@ -35,3 +35,21 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Test Economy System"
+author = 42346542
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python test_economy_system.py"
+
+[[workflows.workflow]]
+name = "Run API Server"
+author = 42346542
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "uvicorn backend.src.api.app:app --host 0.0.0.0 --port 5000 --reload"
