@@ -426,3 +426,86 @@ class NarrativeEngineCeleryIntegration:
             'pending_tasks': task_statuses['pending'],
             'failed_tasks': task_statuses['failed']
         }
+    
+    async def dispatch_custom_task(self, 
+                                task_name: str, 
+                                task_args: List[Any] = None,
+                                task_kwargs: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Dispatch a custom Celery task by name.
+        
+        This allows other systems (like the economy system) to use the
+        Celery integration for their own tasks.
+        
+        Args:
+            task_name: Full import path to the task function
+            task_args: Positional arguments for the task
+            task_kwargs: Keyword arguments for the task
+            
+        Returns:
+            Task information
+        """
+        self.logger.info(f"Dispatching custom task: {task_name}")
+        
+        task_args = task_args or []
+        task_kwargs = task_kwargs or {}
+        
+        try:
+            # Import the task module dynamically
+            module_path, task_func = task_name.rsplit('.', 1)
+            
+            try:
+                module = __import__(module_path, fromlist=[task_func])
+                task = getattr(module, task_func)
+                
+                # Call the task's delay method
+                result = task.delay(*task_args, **task_kwargs)
+                
+                # Get task ID
+                task_id = getattr(result, 'id', f"mock-task-{datetime.utcnow().timestamp()}")
+                
+                # Track the pending task
+                task_info = {
+                    'task_id': task_id,
+                    'task_name': task_name,
+                    'created_at': datetime.utcnow().isoformat(),
+                    'status': 'pending'
+                }
+                
+                self.pending_tasks[task_id] = task_info
+                
+                return {
+                    'task_id': task_id,
+                    'task_name': task_name,
+                    'status': 'dispatched',
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+            except (ImportError, AttributeError) as e:
+                self.logger.error(f"Error importing task {task_name}: {e}")
+                
+                # Fall back to mock task ID for development
+                mock_task_id = f"mock-task-{datetime.utcnow().timestamp()}"
+                
+                # Track as a pending task even in mock mode
+                self.pending_tasks[mock_task_id] = {
+                    'task_id': mock_task_id,
+                    'task_name': task_name,
+                    'created_at': datetime.utcnow().isoformat(),
+                    'status': 'mock_pending'
+                }
+                
+                return {
+                    'task_id': mock_task_id,
+                    'task_name': task_name,
+                    'status': 'mock_dispatched',
+                    'error': str(e),
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+        except Exception as e:
+            self.logger.error(f"Error dispatching custom task: {e}")
+            return {
+                'error': str(e),
+                'task_name': task_name,
+                'status': 'error',
+                'timestamp': datetime.utcnow().isoformat()
+            }
