@@ -2415,6 +2415,25 @@ TAILORING_MATERIALS = [
         }
     },
     {
+        "name": "Cotton Bolt (10m)",
+        "description": "Soft cotton fabric from delta plantations. Breathable and comfortable, with excellent dye affinity.",
+        "material_type": MaterialType.CLOTH,
+        "rarity": Rarity.COMMON,
+        "base_value": 8,
+        "weight": 0.8,
+        "is_craftable": True,
+        "source_tags": ["harvested_cotton_rivemark_delta_plantations", "soft_common_textile"],
+        "illicit_in_regions": [],
+        "properties": {
+            "thread_count": "medium",
+            "durability": "medium",
+            "comfort": "good",
+            "dye_affinity": "excellent",
+            "breathability": "high",
+            "length_meters": 10
+        }
+    },
+    {
         "name": "Woolsey (5m)",
         "description": "Sturdy wool-linen blend fabric suitable for commoner clothing. Practical rather than luxurious.",
         "material_type": MaterialType.CLOTH,
@@ -2430,6 +2449,119 @@ TAILORING_MATERIALS = [
             "comfort": "modest",
             "insulation_value": "medium",
             "water_resistance": "low",
+            "length_meters": 5
+        }
+    },
+    {
+        "name": "Woolen Cloth Bolt (Heavy, 5m)",
+        "description": "Thick wool from highland sheep. Provides excellent insulation and natural water resistance.",
+        "material_type": MaterialType.CLOTH,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 15,
+        "weight": 1.5,
+        "is_craftable": True,
+        "source_tags": ["sheared_highland_sheep_crystal_highlands_processed_human_settlements", "warm_textile"],
+        "illicit_in_regions": [],
+        "properties": {
+            "thread_count": "medium_thick",
+            "durability": "high",
+            "comfort": "good_itchy_if_coarse",
+            "dye_affinity": "good",
+            "insulation_value": "high_water_resistant_naturally",
+            "length_meters": 5
+        }
+    },
+    {
+        "name": "Skarport Merchant's Silk (5m)",
+        "description": "Luxurious silk fabric imported and processed by Skarport guilds. A status symbol among the wealthy.",
+        "material_type": MaterialType.CLOTH,
+        "rarity": Rarity.RARE,
+        "base_value": 70,
+        "weight": 0.3,
+        "is_craftable": True,
+        "source_tags": ["imported_silkworm_cocoons_processed_skarport_guilds", "luxury_textile"],
+        "illicit_in_regions": [],
+        "properties": {
+            "thread_count": "very_high_fine",
+            "durability": "medium_delicate",
+            "comfort": "excellent_smooth",
+            "dye_affinity": "superb_vibrant_colors",
+            "insulation_value": "medium_surprisingly_warm",
+            "length_meters": 5,
+            "status_symbol": True
+        }
+    },
+    {
+        "name": "Lethandrel Spider-Silk Thread (Spool)",
+        "description": "Magical thread spun from mana-infused spiders. Incredibly strong for its weight and conducts mana.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.EPIC,
+        "base_value": 200,
+        "weight": 0.05,
+        "is_craftable": False,
+        "source_tags": ["harvested_lethandrel_mana_infused_spiders_whispering_woods_elven_collection", "magical_fiber"],
+        "illicit_in_regions": [],
+        "properties": {
+            "strength_to_weight_ratio": "extremely_high",
+            "mana_conductivity": "low_but_stable",
+            "durability": "exceptional",
+            "use": "enchanted_clothing_bowstrings_suture_thread",
+            "length_meters_per_spool": 50
+        }
+    },
+    {
+        "name": "Beastfolk Woven Reed Matting (Large)",
+        "description": "Woven reed matting from marsh reeds. Rugged material good for backing crude armor or floor mats.",
+        "material_type": MaterialType.PLANT_FIBER,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 10,
+        "weight": 2.0,
+        "is_craftable": True,
+        "source_tags": ["harvested_shimmering_marshes_reeds_beastfolk_weaving_ashkar_vale", "rugged_natural_material"],
+        "illicit_in_regions": [],
+        "properties": {
+            "durability": "good_for_mats_crude_armor_backing",
+            "comfort": "rough",
+            "water_resistance": "moderate",
+            "insulation_value": "low",
+            "size": "2x2_meters"
+        }
+    },
+    {
+        "name": "Ferverl Desert Linen (Heat-Treated, 5m)",
+        "description": "Specially processed linen from Thal-Zirad that provides excellent heat protection and breathability.",
+        "material_type": MaterialType.CLOTH,
+        "rarity": Rarity.RARE,
+        "base_value": 40,
+        "weight": 0.7,
+        "is_craftable": True,
+        "source_tags": ["thal_zirad_flax_processed_ferverl_heat_ritual", "heat_resistant_breathable_cloth"],
+        "illicit_in_regions": [],
+        "properties": {
+            "thread_count": "medium_fine",
+            "durability": "good",
+            "comfort": "excellent_in_heat",
+            "dye_affinity": "poor_resists_most_dyes",
+            "insulation_value_vs_heat": "high",
+            "length_meters": 5
+        }
+    },
+    {
+        "name": "Canvas Bolt (Heavy Duty, 5m)",
+        "description": "Thick, coarse fabric ideal for sails, tents, and heavy-duty applications. Very durable but stiff.",
+        "material_type": MaterialType.CLOTH,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 12,
+        "weight": 2.0,
+        "is_craftable": True,
+        "source_tags": ["thick_hemp_or_cotton_weave_rivemark_sailmakers_skarport_docks", "tough_utility_fabric"],
+        "illicit_in_regions": [],
+        "properties": {
+            "thread_count": "very_thick_coarse",
+            "durability": "very_high_abrasion_resistant",
+            "comfort": "low_stiff",
+            "water_resistance": "good_if_waxed",
+            "uses": ["sails", "tents", "heavy_bags", "workwear"],
             "length_meters": 5
         }
     },
@@ -2468,6 +2600,326 @@ TAILORING_MATERIALS = [
             "comfort": "good",
             "water_resistance": "low_unless_treated",
             "uses": ["light_armor", "clothing", "pouches"]
+        }
+    },
+    {
+        "name": "Boar Hide (Tough)",
+        "description": "Thick, bristly hide from wild boar. Requires bristle removal but tans into very tough leather.",
+        "material_type": MaterialType.HIDE,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 12,
+        "weight": 2.5,
+        "is_craftable": False,
+        "source_tags": ["hunted_whispering_woods_boar_rivemark_farmland_pest", "thick_bristly_hide"],
+        "illicit_in_regions": [],
+        "properties": {
+            "tans_into": "Tough Boar Leather",
+            "size_approx_sq_meters": 1.2,
+            "quality_potential": "medium_high_scarring_common",
+            "bristle_removal_required": True
+        }
+    },
+    {
+        "name": "Tough Boar Leather (Piece)",
+        "description": "Rigid, protective leather from boar hide. Favored by orcs for its impact resistance but requires padding.",
+        "material_type": MaterialType.LEATHER,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 25,
+        "weight": 1.2,
+        "is_craftable": True,
+        "source_tags": ["tanned_boar_hide_orcish_preference", "rigid_protective_leather"],
+        "illicit_in_regions": [],
+        "properties": {
+            "thickness_mm": 3,
+            "flexibility": "low",
+            "durability": "high_impact_resistant",
+            "comfort": "low_requires_padding",
+            "uses": ["medium_armor_jackets", "shield_facings", "tool_sheaths"]
+        }
+    },
+    {
+        "name": "Giant Lizard Scale Hide (Large)",
+        "description": "Scaled hide from ember wastes sand lizards. Natural scales provide armor-like protection.",
+        "material_type": MaterialType.EXOTIC_HIDE,
+        "rarity": Rarity.RARE,
+        "base_value": 60,
+        "weight": 3.0,
+        "is_craftable": False,
+        "source_tags": ["hunted_ember_wastes_sand_lizard_beastfolk_ferverl_hunt", "scaled_reptilian_hide"],
+        "illicit_in_regions": [],
+        "properties": {
+            "tans_into": "Scaled Leather",
+            "size_approx_sq_meters": 2.0,
+            "scale_hardness": "medium",
+            "flexibility_between_scales": "good",
+            "heat_resistance": "good"
+        }
+    },
+    {
+        "name": "Scaled Leather (Large Piece)",
+        "description": "Naturally armored leather with intact scales. Provides good pierce resistance while maintaining flexibility.",
+        "material_type": MaterialType.EXOTIC_LEATHER,
+        "rarity": Rarity.RARE,
+        "base_value": 120,
+        "weight": 1.4,
+        "is_craftable": True,
+        "source_tags": ["tanned_lizard_scale_hide_ashkar_vale_specialty", "naturally_armored_leather"],
+        "illicit_in_regions": [],
+        "properties": {
+            "thickness_mm_scales": 4,
+            "flexibility": "medium",
+            "durability": "high_good_pierce_resistance",
+            "comfort": "medium_can_be_stiff",
+            "uses": ["exotic_armor", "decorative_pieces", "helmets"]
+        }
+    },
+    {
+        "name": "Shadow Panther Pelt (Prime)",
+        "description": "Rare pelt from a master shadow panther. Retains magical properties that blend with shadows.",
+        "material_type": MaterialType.EXOTIC_HIDE,
+        "rarity": Rarity.EPIC,
+        "base_value": 350,
+        "weight": 1.0,
+        "is_craftable": False,
+        "source_tags": ["hunted_whispering_woods_master_shadow_panther_elven_beastfolk_stalkers", "magically_infused_pelt"],
+        "illicit_in_regions": [],
+        "properties": {
+            "tans_into": "Shadow-Walker Leather",
+            "size_approx_sq_meters": 1.0,
+            "innate_property": "blends_with_shadows",
+            "fur_quality": "exceptional_soft_dark",
+            "magical_aura": "faint_illusion"
+        }
+    },
+    {
+        "name": "Shadow-Walker Leather (Piece)",
+        "description": "Legendary leather that grants stealth abilities. Crafted through secret elven processes from shadow panther pelts.",
+        "material_type": MaterialType.EXOTIC_LEATHER,
+        "rarity": Rarity.LEGENDARY,
+        "base_value": 700,
+        "weight": 0.4,
+        "is_craftable": True,
+        "source_tags": ["tanned_shadow_panther_pelt_secret_elven_process", "leather_of_stealth_and_night"],
+        "illicit_in_regions": [],
+        "properties": {
+            "thickness_mm": 1,
+            "flexibility": "very_high",
+            "durability": "good_magically_resilient",
+            "comfort": "superb",
+            "innate_ability": "minor_stealth_bonus_in_dim_light",
+            "enchantment_affinity": "illusion_shadow_magic"
+        }
+    },
+    {
+        "name": "Crude Beastfolk Hide Scraps",
+        "description": "Mixed quality hide scraps from various beasts. Useful for padding and repairs but little else.",
+        "material_type": MaterialType.HIDE,
+        "rarity": Rarity.COMMON,
+        "base_value": 1,
+        "weight": 0.5,
+        "is_craftable": False,
+        "source_tags": ["butchering_byproduct_ashkar_vale_various_beasts", "untanned_mixed_quality_scraps"],
+        "illicit_in_regions": [],
+        "properties": {
+            "tans_into": "Rough Patchwork Leather",
+            "size_approx_sq_meters": "variable_small_pieces",
+            "usability": "low_good_for_bindings_padding_filler"
+        }
+    },
+    {
+        "name": "Rough Patchwork Leather",
+        "description": "Low-grade leather stitched from various hide scraps. Prone to tearing but functional for basic needs.",
+        "material_type": MaterialType.LEATHER,
+        "rarity": Rarity.COMMON,
+        "base_value": 3,
+        "weight": 0.2,
+        "is_craftable": True,
+        "source_tags": ["tanned_stitched_hide_scraps_beastfolk_utility_craft", "low_grade_functional_leather"],
+        "illicit_in_regions": [],
+        "properties": {
+            "thickness_mm": "variable",
+            "flexibility": "medium",
+            "durability": "low_prone_to_tearing_at_seams",
+            "comfort": "poor",
+            "uses": ["crude_pouches", "armor_padding", "tent_repairs"]
+        }
+    },
+    # Threads, Fasteners & Dyes
+    {
+        "name": "Linen Thread Spool (100m)",
+        "description": "Standard linen thread for basic sewing and repairs. Natural undyed color.",
+        "material_type": MaterialType.THREAD,
+        "rarity": Rarity.COMMON,
+        "base_value": 2,
+        "weight": 0.02,
+        "is_craftable": True,
+        "source_tags": ["spun_flax_fibers_common_sewing_thread"],
+        "illicit_in_regions": [],
+        "properties": {
+            "tensile_strength_kg": 2,
+            "thickness": "standard",
+            "color": "natural_undyed",
+            "length_meters": 100
+        }
+    },
+    {
+        "name": "Heavy Woolen Yarn (50m)",
+        "description": "Thick yarn spun from wool fibers. Good for knitting and heavy stitching work.",
+        "material_type": MaterialType.THREAD,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 5,
+        "weight": 0.05,
+        "is_craftable": True,
+        "source_tags": ["spun_wool_fibers_thick_yarn_for_knitting_heavy_stitching"],
+        "illicit_in_regions": [],
+        "properties": {
+            "tensile_strength_kg": 5,
+            "thickness": "thick",
+            "color": "natural_undyed_cream",
+            "length_meters": 50,
+            "insulating_when_stitched": True
+        }
+    },
+    {
+        "name": "Sinew Thread (Dried, 20m)",
+        "description": "Strong thread made from processed animal tendons. Shrinks when drying, creating very tight seams.",
+        "material_type": MaterialType.THREAD,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 8,
+        "weight": 0.01,
+        "is_craftable": True,
+        "source_tags": ["processed_animal_tendons_beastfolk_orcish_craft_strong_natural_thread"],
+        "illicit_in_regions": [],
+        "properties": {
+            "tensile_strength_kg": 10,
+            "thickness": "medium_variable",
+            "color": "brownish_translucent",
+            "length_meters": 20,
+            "water_resistance_swells_when_wet": True,
+            "notes": "Shrinks as it dries, making tight seams."
+        }
+    },
+    {
+        "name": "Silk Thread Spool (Gilded, 20m)",
+        "description": "Luxurious silk thread infused with gold dust. Used for decorative embroidery and minor enchantments.",
+        "material_type": MaterialType.THREAD,
+        "rarity": Rarity.RARE,
+        "base_value": 30,
+        "weight": 0.005,
+        "is_craftable": True,
+        "source_tags": ["skarport_silk_thread_infused_with_gold_dust_decorative_embroidery"],
+        "illicit_in_regions": [],
+        "properties": {
+            "tensile_strength_kg": 1,
+            "thickness": "very_fine",
+            "color": "gold_shimmer",
+            "length_meters": 20,
+            "decorative_only": True,
+            "enchantment_conduit_minor": True
+        }
+    },
+    {
+        "name": "Wooden Buttons (Dozen)",
+        "description": "Simple wooden buttons carved from common wood. Basic but functional clothing fasteners.",
+        "material_type": MaterialType.FASTENER,
+        "rarity": Rarity.COMMON,
+        "base_value": 1,
+        "weight": 0.01,
+        "is_craftable": True,
+        "source_tags": ["carved_common_wood_simple_clothing_fasteners"],
+        "illicit_in_regions": [],
+        "properties": {
+            "material": "ash_pine",
+            "size_mm": 15,
+            "durability": "medium_can_split",
+            "quantity": 12
+        }
+    },
+    {
+        "name": "Bone Toggles (Half Dozen)",
+        "description": "Polished bone toggles in beastfolk style. Rugged fasteners for tribal and rustic clothing.",
+        "material_type": MaterialType.FASTENER,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 4,
+        "weight": 0.02,
+        "is_craftable": True,
+        "source_tags": ["carved_polished_animal_bone_beastfolk_ashkar_vale_style", "rugged_fasteners"],
+        "illicit_in_regions": [],
+        "properties": {
+            "material": "deer_boar_bone",
+            "size_mm_length": 30,
+            "durability": "high_can_chip",
+            "quantity": 6,
+            "style": "tribal_rustic"
+        }
+    },
+    {
+        "name": "Bronze Clasps (Pair)",
+        "description": "Decorative bronze clasps with interlocking mechanism. Sturdy fasteners for cloaks and armor.",
+        "material_type": MaterialType.FASTENER,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 10,
+        "weight": 0.03,
+        "is_craftable": True,
+        "source_tags": ["cast_bronze_fittings_skarport_human_craft", "sturdy_decorative_clasps_for_cloaks_armor"],
+        "illicit_in_regions": [],
+        "properties": {
+            "material": "bronze",
+            "size_mm_each": "25x40",
+            "durability": "very_good",
+            "mechanism": "hook_and_eye_interlocking",
+            "quantity": 2
+        }
+    },
+    {
+        "name": "Madder Root Dye (Red Pigment)",
+        "description": "Natural red dye processed from madder root. Produces rustic red and orange tones.",
+        "material_type": MaterialType.DYE,
+        "rarity": Rarity.COMMON,
+        "base_value": 3,
+        "weight": 0.05,
+        "is_craftable": True,
+        "source_tags": ["processed_madder_root_verdant_frontier_natural_dye"],
+        "illicit_in_regions": [],
+        "properties": {
+            "color_imparted": "rustic_red_orange_tones",
+            "fabric_suitability": ["linen", "cotton", "wool"],
+            "permanence": "good_fades_slowly_with_sun",
+            "quantity_sufficient_for_bolt_of_cloth": 1
+        }
+    },
+    {
+        "name": "Indigo Leaf Paste (Blue Pigment)",
+        "description": "Rich blue dye from fermented indigo leaves. Produces deep blue to sky blue colors with excellent permanence.",
+        "material_type": MaterialType.DYE,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 8,
+        "weight": 0.05,
+        "is_craftable": True,
+        "source_tags": ["fermented_indigo_leaves_rivemark_specialty_crop", "rich_blue_dye"],
+        "illicit_in_regions": [],
+        "properties": {
+            "color_imparted": "deep_blue_to_sky_blue_depending_on_concentration",
+            "fabric_suitability": ["cotton", "silk", "linen"],
+            "permanence": "excellent",
+            "quantity_sufficient_for_bolt_of_cloth": 1
+        }
+    },
+    {
+        "name": "Soot Black Pigment Pouch",
+        "description": "Basic black dye made from purified soot. Produces dull black and greyish tones.",
+        "material_type": MaterialType.DYE,
+        "rarity": Rarity.COMMON,
+        "base_value": 2,
+        "weight": 0.03,
+        "is_craftable": True,
+        "source_tags": ["collected_fine_soot_purified_basic_black_dye"],
+        "illicit_in_regions": [],
+        "properties": {
+            "color_imparted": "dull_black_greyish_tones",
+            "fabric_suitability": ["wool", "rough_leathers"],
+            "permanence": "medium_can_rub_off",
+            "quantity_sufficient_for_garment_or_leather_piece": 1
         }
     }
 ]
