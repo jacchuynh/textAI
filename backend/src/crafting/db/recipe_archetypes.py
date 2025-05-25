@@ -941,6 +941,163 @@ WOODWORKING_RECIPES = [
             {"skill_name": "Carpentry", "level": 3, "affects_quality": True},
             {"skill_name": "Furniture Making", "level": 2, "affects_quality": True}
         ]
+    },
+    # Additional Carpentry Recipes
+    {
+        "name": "Simple Pine Crate",
+        "description": "A roughly constructed pine crate, suitable for storing or transporting common goods. Not very secure, but cheap and easy to make.",
+        "recipe_category": "Container - Crate (Small)",
+        "crafting_time_seconds": 900,
+        "required_station_type": "Carpenter's Sawhorse & Basic Tools",
+        "difficulty_level": 1,
+        "is_discoverable": False,
+        "experience_gained": [{"skill_name": "Carpentry", "amount": 20}],
+        "quality_range": {"min": 1, "max": 3},
+        "ingredients": [
+            {"item_id": "Pine Planks (Bundle of 5)", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Iron Nails (Bag of 100)", "quantity": 0.2, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Simple Pine Crate", "quantity": 1.0},
+        "required_skills": [
+            {"skill_name": "Carpentry", "level": 1, "affects_quality": True}
+        ],
+        "custom_data": {"internal_volume_liters": 50, "max_weight_capacity_kg": 20, "lid_type": "loose_or_nailed_shut"}
+    },
+    {
+        "name": "Sturdy Oak Stool",
+        "description": "A robust, four-legged stool made from solid oak. Built to last and can withstand heavy use in a home, workshop, or tavern.",
+        "recipe_category": "Furniture - Seating (Basic)",
+        "crafting_time_seconds": 2400,
+        "required_station_type": "Woodworker's Bench with Joinery Tools",
+        "difficulty_level": 3,
+        "is_discoverable": False,
+        "experience_gained": [{"skill_name": "Woodworking (Furniture)", "amount": 50}],
+        "quality_range": {"min": 2, "max": 6},
+        "ingredients": [
+            {"item_id": "Oak Planks (Bundle of 3)", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Wooden Dowels (Bag of 50)", "quantity": 0.2, "consumed_in_crafting": True},
+            {"item_id": "Animal Hide Glue (Pot)", "quantity": 0.1, "consumed_in_crafting": True},
+            {"item_id": "Beeswax Polish (Tin)", "quantity": 0.1, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Sturdy Oak Stool", "quantity": 1.0},
+        "required_skills": [
+            {"skill_name": "Woodworking (Furniture)", "level": 2, "affects_quality": True},
+            {"skill_name": "Joinery", "level": 1, "affects_quality": True}
+        ],
+        "custom_data": {"seat_height_cm": 45, "weight_capacity_kg": 150, "joinery_type": "mortise_and_tenon_pegged"}
+    },
+    {
+        "name": "Ash Tool Handle (Axe/Hammer)",
+        "description": "A strong and flexible tool handle crafted from ash wood, suitable for axes, hammers, or similar hafted tools. Provides good shock absorption.",
+        "recipe_category": "Tool Component - Handle",
+        "crafting_time_seconds": 600,
+        "required_station_type": "Shaving Horse & Spokeshave",
+        "difficulty_level": 2,
+        "is_discoverable": False,
+        "experience_gained": [{"skill_name": "Woodworking (Toolmaking)", "amount": 25}],
+        "quality_range": {"min": 1, "max": 5},
+        "ingredients": [
+            {"item_id": "Ash Wood Branches (Bundle)", "quantity": 1.0, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Ash Tool Handle", "quantity": 1.0},
+        "required_skills": [
+            {"skill_name": "Woodworking (Toolmaking)", "level": 1, "affects_quality": True}
+        ],
+        "custom_data": {"length_cm": 60, "grip_shape": "oval_ergonomic", "grain_orientation_critical": True}
+    },
+    {
+        "name": "Orcish Ironwood Warclub Head",
+        "description": "A brutally heavy and dense warclub head carved from a block of ironwood. Designed by Orcish crafters for maximum impact. Often has protrusions or a roughly shaped point.",
+        "recipe_category": "Weapon Component - Bludgeon Head",
+        "crafting_time_seconds": 3600,
+        "required_station_type": "Orcish Carving Stump & Heavy Chisels",
+        "difficulty_level": 5,
+        "is_discoverable": True,
+        "unlock_conditions": {"observed_orcish_weaponmaster_crafting": True, "skill_name": "Orcish Woodcraft", "level": 3},
+        "experience_gained": [{"skill_name": "Woodworking (Weapons)", "amount": 100}, {"skill_name": "Orcish Woodcraft", "amount": 70}],
+        "quality_range": {"min": 3, "max": 7},
+        "ingredients": [
+            {"item_id": "Ironwood Log (Small)", "quantity": 0.5, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Orcish Ironwood Warclub Head", "quantity": 1.0},
+        "required_skills": [
+            {"skill_name": "Woodworking (Weapons)", "level": 4, "affects_quality": True},
+            {"skill_name": "Orcish Woodcraft", "level": 2, "affects_quality": True, "affects_speed": True}
+        ],
+        "custom_data": {"weight_kg": 3.5, "impact_modifier_blunt": 1.3, "haft_socket_type": "large_reinforced_taper"}
+    },
+    {
+        "name": "Elven Spiritwood Staff Core (Unenchanted)",
+        "description": "A perfectly balanced and resonant staff core carved from a branch of Lethandrel Spiritwood. It hums faintly with latent mana and is ready for enchanting or further magical embellishment.",
+        "recipe_category": "Weapon Component - Magical Staff Core",
+        "crafting_time_seconds": 10800,
+        "required_station_type": "Elven Moonlit Carving Grove",
+        "difficulty_level": 7,
+        "is_discoverable": True,
+        "unlock_conditions": {"elven_master_guidance_lethandrel": True, "skill_name": "Elven Sacred Carving", "level": 5, "item_possessed": "Lethandrel Spiritwood Branch"},
+        "experience_gained": [{"skill_name": "Woodworking (Magical)", "amount": 500}, {"skill_name": "Elven Sacred Carving", "amount": 300}, {"skill_name": "Mana Attunement", "amount": 50}],
+        "quality_range": {"min": 5, "max": 9},
+        "ingredients": [
+            {"item_id": "Lethandrel Spiritwood Branch", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Purified Leyline Water", "quantity": 0.1, "consumed_in_crafting": True},
+            {"item_id": "Elven Carving Knives", "quantity": 1.0, "consumed_in_crafting": False}
+        ],
+        "primary_output": {"item_id": "Elven Spiritwood Staff Core", "quantity": 1.0},
+        "secondary_outputs": [
+            {"item_id": "Spiritwood Shavings", "quantity": 1.0, "chance": 0.5}
+        ],
+        "required_skills": [
+            {"skill_name": "Woodworking (Magical)", "level": 6, "affects_quality": True},
+            {"skill_name": "Elven Sacred Carving", "level": 4, "affects_quality": True, "affects_speed": False}
+        ],
+        "custom_data": {"length_cm": 150, "mana_conductivity_rating_base": 7, "weight_kg": 0.8, "natural_wards_strength": "quality_dependent", "requires_finishing_varnish": True}
+    },
+    {
+        "name": "Round Pine Shield (Basic)",
+        "description": "A simple, lightweight round shield made from cross-laminated pine planks. Offers minimal protection but is easy to carry. Often used by bandits or very green recruits.",
+        "recipe_category": "Armor - Shield (Light Wood)",
+        "crafting_time_seconds": 1800,
+        "required_station_type": "Shieldwright's Bench",
+        "difficulty_level": 2,
+        "is_discoverable": False,
+        "experience_gained": [{"skill_name": "Woodworking (Armor)", "amount": 40}],
+        "quality_range": {"min": 1, "max": 3},
+        "ingredients": [
+            {"item_id": "Pine Planks (Bundle of 5)", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Animal Hide Glue (Pot)", "quantity": 0.2, "consumed_in_crafting": True},
+            {"item_id": "Rough Patchwork Leather", "quantity": 0.5, "consumed_in_crafting": True},
+            {"item_id": "Iron Ingot", "quantity": 0.2, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Round Pine Shield", "quantity": 1.0},
+        "required_skills": [
+            {"skill_name": "Woodworking (Armor)", "level": 1, "affects_quality": True},
+            {"skill_name": "Carpentry", "level": 1, "affects_quality": False}
+        ],
+        "custom_data": {"block_chance_modifier": 0.05, "durability_hp_base": 50, "weight_kg": 2.0, "requires_boss_and_straps": True}
+    },
+    {
+        "name": "Laminated Ash Recurve Bow (Unstrung)",
+        "description": "The carefully shaped wooden body of a recurve bow, made from laminated strips of ash wood for flexibility and power. Requires a bowstring to be functional. Favored by Rivemark hunters.",
+        "recipe_category": "Weapon - Bow (Unstrung)",
+        "crafting_time_seconds": 5400,
+        "required_station_type": "Bowyer's Bench with Steaming Rig",
+        "difficulty_level": 5,
+        "is_discoverable": True,
+        "unlock_conditions": {"apprenticeship_with_rivemark_bowyer": True, "skill_name": "Bowyer/Fletcher", "level": 3},
+        "experience_gained": [{"skill_name": "Woodworking (Weapons)", "amount": 150}, {"skill_name": "Bowyer/Fletcher", "amount": 100}],
+        "quality_range": {"min": 3, "max": 7},
+        "ingredients": [
+            {"item_id": "Ash Wood Branches (Bundle)", "quantity": 3.0, "consumed_in_crafting": True},
+            {"item_id": "Animal Hide Glue (Pot)", "quantity": 0.3, "consumed_in_crafting": True},
+            {"item_id": "Linen Thread Spool (100m)", "quantity": 0.1, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Laminated Ash Recurve Bow (Unstrung)", "quantity": 1.0},
+        "required_skills": [
+            {"skill_name": "Woodworking (Weapons)", "level": 4, "affects_quality": True},
+            {"skill_name": "Bowyer/Fletcher", "level": 2, "affects_quality": True, "affects_speed": True},
+            {"skill_name": "Wood Bending & Lamination", "level": 2, "affects_quality": True}
+        ],
+        "custom_data": {"potential_draw_weight_lbs_base": 40, "arrow_velocity_modifier_base": 1.1, "requires_stringing_skill": True}
     }
 ]
 
