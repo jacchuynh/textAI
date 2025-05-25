@@ -1,429 +1,1229 @@
 """
-Magic Crafting Integration System
+Magic Crafting Integration Module
 
-This module integrates the magic system with the crafting system, providing
-a unified interface for magical materials, enchantments, and leyline-enhanced crafting.
+This module integrates the magic system with the crafting system,
+allowing for the creation of magical items, enchantments, and
+imbuing items with magical properties.
 """
 
-import logging
-from typing import Dict, List, Any, Optional, Tuple
-import redis
-import asyncio
-from datetime import datetime
+import random
+from typing import Dict, List, Any, Optional, Tuple, Union
+from enum import Enum, auto
+from datetime import datetime, timedelta
 
-from .magic_system import MagicSystem, MagicUser
-from .advanced_magic_features import (
-    EnvironmentalMagicResonance, DomainMagicSynergy, SpellCraftingSystem
+# Import magic system components
+from game_engine.magic_system import (
+    MagicSystem,
+    MagicUser,
+    Enchantment,
+    ItemMagicProfile,
+    MagicTier,
+    DamageType,
+    Domain,
+    LocationMagicProfile
 )
-from .enchantment_service import EnchantmentService
-from .magical_material_service import MagicalMaterialService
-from .leyline_crafting_service import LeylineCraftingService
 
-# Configure logging
-logger = logging.getLogger(__name__)
+class CraftingMaterial:
+    """A material that can be used in crafting."""
+    
+    def __init__(
+        self,
+        id: str,
+        name: str,
+        description: str,
+        rarity: str,
+        material_type: str,
+        magical_properties: List[str] = None,
+        resonance: List[DamageType] = None,
+        value: int = 0,
+        source_locations: List[str] = None
+    ):
+        self.id = id
+        self.name = name
+        self.description = description
+        self.rarity = rarity
+        self.material_type = material_type
+        self.magical_properties = magical_properties or []
+        self.resonance = resonance or []
+        self.value = value
+        self.source_locations = source_locations or []
+    
+    def __str__(self) -> str:
+        return f"{self.name} ({self.rarity} {self.material_type})"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the material to a dictionary."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "rarity": self.rarity,
+            "material_type": self.material_type,
+            "magical_properties": self.magical_properties,
+            "resonance": [r.name for r in self.resonance] if self.resonance else [],
+            "value": self.value,
+            "source_locations": self.source_locations
+        }
 
-# Redis client for caching frequently accessed data
-try:
-    redis_client = redis.Redis(host='localhost', port=6379, db=2, decode_responses=True)
-    redis_available = True
-except Exception as e:
-    logger.warning(f"Redis not available for magic-crafting integration: {e}")
-    redis_available = False
+class EnchantmentRecipe:
+    """A recipe for creating an enchantment."""
+    
+    def __init__(
+        self,
+        id: str,
+        name: str,
+        description: str,
+        tier: MagicTier,
+        required_materials: Dict[str, int],
+        required_domain_values: Dict[Domain, int],
+        enchanting_difficulty: int,
+        effects: List[str],
+        enchantment_duration: Optional[int] = None,  # in days, None for permanent
+        enchantment_charges: Optional[int] = None,  # None for unlimited
+        compatible_item_types: List[str] = None,
+        incompatible_enchantments: List[str] = None
+    ):
+        self.id = id
+        self.name = name
+        self.description = description
+        self.tier = tier
+        self.required_materials = required_materials
+        self.required_domain_values = required_domain_values
+        self.enchanting_difficulty = enchanting_difficulty
+        self.effects = effects
+        self.enchantment_duration = enchantment_duration
+        self.enchantment_charges = enchantment_charges
+        self.compatible_item_types = compatible_item_types or []
+        self.incompatible_enchantments = incompatible_enchantments or []
+    
+    def __str__(self) -> str:
+        return f"{self.name} ({self.tier.name} enchantment)"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the recipe to a dictionary."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "tier": self.tier.name,
+            "required_materials": self.required_materials,
+            "required_domain_values": {d.name: v for d, v in self.required_domain_values.items()},
+            "enchanting_difficulty": self.enchanting_difficulty,
+            "effects": self.effects,
+            "enchantment_duration": self.enchantment_duration,
+            "enchantment_charges": self.enchantment_charges,
+            "compatible_item_types": self.compatible_item_types,
+            "incompatible_enchantments": self.incompatible_enchantments
+        }
 
+class MagicalItemType(Enum):
+    """Types of magical items that can be crafted."""
+    WAND = auto()
+    STAFF = auto()
+    AMULET = auto()
+    RING = auto()
+    ROBE = auto()
+    CRYSTAL = auto()
+    TOME = auto()
+    POTION = auto()
+    SCROLL = auto()
+    RUNE = auto()
+    TALISMAN = auto()
+    WEAPON = auto()
+    ARMOR = auto()
 
-class MagicCraftingIntegration:
-    """
-    Main integration class that provides a unified interface for
-    all magic-crafting related functionality.
-    """
+class ItemEnchanter:
+    """Manages the enchantment of items."""
     
     def __init__(self, magic_system: MagicSystem):
         """
-        Initialize the magic crafting integration
+        Initialize the item enchanter.
         
         Args:
-            magic_system: The magic system instance
+            magic_system: The magic system
         """
         self.magic_system = magic_system
+        self.enchantment_recipes = self._get_mock_enchantment_recipes()
+        self.materials = self._get_mock_materials()
+    
+    def _get_mock_enchantment_recipes(self) -> Dict[str, EnchantmentRecipe]:
+        """Get mock enchantment recipes for demonstration."""
+        recipes = {}
         
-        # Initialize services
-        self.enchantment_service = EnchantmentService(magic_system)
-        self.material_service = MagicalMaterialService(magic_system)
-        self.crafting_service = LeylineCraftingService(magic_system)
+        # Basic fire enchantment
+        fire_weapon = EnchantmentRecipe(
+            id="enchant_recipe_fire_weapon",
+            name="Flaming Weapon",
+            description="Enchants a weapon to deal additional fire damage.",
+            tier=MagicTier.ADEPT,
+            required_materials={
+                "fire_essence": 2,
+                "resonant_crystal": 1,
+                "dragon_scale": 1
+            },
+            required_domain_values={
+                Domain.FIRE: 3,
+                Domain.CRAFT: 2
+            },
+            enchanting_difficulty=40,
+            effects=[
+                "Adds 5 fire damage to attacks",
+                "Weapon emits light equivalent to a torch",
+                "Weapon ignites flammable materials on contact"
+            ],
+            enchantment_duration=7,  # 7 days
+            enchantment_charges=None,  # Unlimited uses while active
+            compatible_item_types=["weapon", "staff", "wand"]
+        )
+        recipes[fire_weapon.id] = fire_weapon
         
-        # Initialize utility systems
-        self.environmental_resonance = EnvironmentalMagicResonance()
-        self.domain_synergy = DomainMagicSynergy()
-        self.spell_crafting = SpellCraftingSystem(magic_system)
+        # Basic protection enchantment
+        protection_armor = EnchantmentRecipe(
+            id="enchant_recipe_protection_armor",
+            name="Arcane Protection",
+            description="Enchants armor to provide protection against magical damage.",
+            tier=MagicTier.ADEPT,
+            required_materials={
+                "arcane_dust": 3,
+                "moonstone": 1,
+                "ethereal_silk": 2
+            },
+            required_domain_values={
+                Domain.CRAFT: 3,
+                Domain.MIND: 2
+            },
+            enchanting_difficulty=45,
+            effects=[
+                "Reduces magical damage by 10%",
+                "Grants advantage on saving throws against magical effects",
+                "Emits a faint blue glow when magic is nearby"
+            ],
+            enchantment_duration=14,  # 14 days
+            enchantment_charges=None,  # Unlimited uses while active
+            compatible_item_types=["armor", "robe", "amulet"]
+        )
+        recipes[protection_armor.id] = protection_armor
         
-        # Performance tracking
-        self.performance_metrics = {
-            'enchantment_operations': 0,
-            'material_operations': 0,
-            'crafting_operations': 0,
-            'cache_hits': 0,
-            'cache_misses': 0
-        }
-    
-    # ======================================================================
-    # Enchantment Integration
-    # ======================================================================
-    
-    def get_available_enchantments(self, player_id: str, magic_profile: MagicUser) -> List[Dict[str, Any]]:
-        """
-        Get enchantments available to a player based on their magic abilities
+        # Mana storage enchantment
+        mana_storage = EnchantmentRecipe(
+            id="enchant_recipe_mana_storage",
+            name="Mana Reservoir",
+            description="Enchants an item to store mana for later use.",
+            tier=MagicTier.EXPERT,
+            required_materials={
+                "mana_crystal": 3,
+                "arcane_dust": 2,
+                "celestial_prism": 1
+            },
+            required_domain_values={
+                Domain.MIND: 3,
+                Domain.CRAFT: 3,
+                Domain.SPIRIT: 2
+            },
+            enchanting_difficulty=60,
+            effects=[
+                "Stores up to 50 mana",
+                "Can be drawn from to cast spells",
+                "Glows with intensity proportional to stored mana"
+            ],
+            enchantment_duration=None,  # Permanent
+            enchantment_charges=None,  # Unlimited uses
+            compatible_item_types=["crystal", "staff", "wand", "ring", "amulet"]
+        )
+        recipes[mana_storage.id] = mana_storage
         
-        Args:
-            player_id: ID of the player
-            magic_profile: Player's magic profile
-            
-        Returns:
-            List of available enchantments with requirements met/not met
-        """
-        self.performance_metrics['enchantment_operations'] += 1
-        return self.enchantment_service.get_available_enchantments(player_id, magic_profile)
+        return recipes
     
-    def apply_enchantment(self, player_id: str, item_id: str, enchantment_id: str, 
-                       materials: List[Dict[str, Any]], location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """
-        Apply an enchantment to a crafted item
+    def _get_mock_materials(self) -> Dict[str, CraftingMaterial]:
+        """Get mock crafting materials for demonstration."""
+        materials = {}
         
-        Args:
-            player_id: ID of the player performing the enchantment
-            item_id: ID of the item to enchant
-            enchantment_id: ID of the enchantment to apply
-            materials: List of materials being used
-            location: Optional location data for environmental bonuses
-            
-        Returns:
-            Result of the enchantment attempt
-        """
-        self.performance_metrics['enchantment_operations'] += 1
-        return self.enchantment_service.apply_enchantment(player_id, item_id, enchantment_id, materials, location)
-    
-    def get_enchanted_items(self, player_id: str) -> List[Dict[str, Any]]:
-        """
-        Get all enchanted items owned by a player
+        # Fire essence
+        fire_essence = CraftingMaterial(
+            id="fire_essence",
+            name="Fire Essence",
+            description="A volatile substance that embodies the element of fire.",
+            rarity="uncommon",
+            material_type="essence",
+            magical_properties=["Volatile", "Ignites at high concentrations", "Radiates heat"],
+            resonance=[DamageType.FIRE],
+            value=75,
+            source_locations=["volcano", "fire_plane", "dragon_lair"]
+        )
+        materials[fire_essence.id] = fire_essence
         
-        Args:
-            player_id: ID of the player
-            
-        Returns:
-            List of enchanted items
-        """
-        self.performance_metrics['enchantment_operations'] += 1
-        return self.enchantment_service.get_enchanted_items(player_id)
-    
-    def use_enchanted_item_charge(self, item_id: str) -> Dict[str, Any]:
-        """
-        Use a charge from an enchanted item
+        # Resonant crystal
+        resonant_crystal = CraftingMaterial(
+            id="resonant_crystal",
+            name="Resonant Crystal",
+            description="A crystal that resonates with magical energy, amplifying spells.",
+            rarity="uncommon",
+            material_type="crystal",
+            magical_properties=["Amplifies magic", "Resonates with magical frequencies", "Stores energy"],
+            resonance=[DamageType.ARCANE],
+            value=60,
+            source_locations=["crystal_cave", "magic_node", "ancient_ruins"]
+        )
+        materials[resonant_crystal.id] = resonant_crystal
         
-        Args:
-            item_id: ID of the enchanted item
-            
-        Returns:
-            Result of using the charge
-        """
-        self.performance_metrics['enchantment_operations'] += 1
-        return self.enchantment_service.use_enchanted_item_charge(item_id)
-    
-    # ======================================================================
-    # Material Integration
-    # ======================================================================
-    
-    def get_gathering_locations(self, region_id: str) -> List[Dict[str, Any]]:
-        """
-        Get all gathering locations in a region
+        # Dragon scale
+        dragon_scale = CraftingMaterial(
+            id="dragon_scale",
+            name="Dragon Scale",
+            description="A scale from a dragon, highly resistant to fire and magic.",
+            rarity="rare",
+            material_type="monster_part",
+            magical_properties=["Fire resistant", "Magic resistant", "Durable"],
+            resonance=[DamageType.FIRE, DamageType.ARCANE],
+            value=200,
+            source_locations=["dragon_lair", "monster_hunter", "ancient_battlefield"]
+        )
+        materials[dragon_scale.id] = dragon_scale
         
-        Args:
-            region_id: ID of the region
-            
-        Returns:
-            List of gathering locations
-        """
-        self.performance_metrics['material_operations'] += 1
-        return self.material_service.get_gathering_locations_in_region(region_id)
-    
-    def discover_gathering_location(self, player_id: str, region_id: str, 
-                                 character_skills: Dict[str, int],
-                                 magic_profile: MagicUser) -> Dict[str, Any]:
-        """
-        Attempt to discover a new gathering location in a region
+        # Arcane dust
+        arcane_dust = CraftingMaterial(
+            id="arcane_dust",
+            name="Arcane Dust",
+            description="Fine dust that contains pure magical energy.",
+            rarity="common",
+            material_type="reagent",
+            magical_properties=["Magical catalyst", "Dissolves in liquid", "Glows in darkness"],
+            resonance=[DamageType.ARCANE],
+            value=30,
+            source_locations=["wizard_tower", "magic_node", "enchanted_forest"]
+        )
+        materials[arcane_dust.id] = arcane_dust
         
-        Args:
-            player_id: ID of the player
-            region_id: ID of the region
-            character_skills: Character's skills
-            magic_profile: Player's magic profile
-            
-        Returns:
-            Result of the discovery attempt
-        """
-        self.performance_metrics['material_operations'] += 1
-        return self.material_service.discover_gathering_location(
-            player_id, region_id, character_skills, magic_profile)
-    
-    def gather_materials(self, player_id: str, location_id: str, 
-                      character_skills: Dict[str, int],
-                      magic_profile: MagicUser,
-                      tool_id: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Gather magical materials from a location
+        # Moonstone
+        moonstone = CraftingMaterial(
+            id="moonstone",
+            name="Moonstone",
+            description="A stone that absorbs and channels lunar energy.",
+            rarity="uncommon",
+            material_type="gem",
+            magical_properties=["Lunar resonance", "Light manipulation", "Enhances illusion magic"],
+            resonance=[DamageType.ARCANE, DamageType.LIGHT],
+            value=85,
+            source_locations=["mountain_peak", "ancient_shrine", "lunar_temple"]
+        )
+        materials[moonstone.id] = moonstone
         
-        Args:
-            player_id: ID of the player
-            location_id: ID of the gathering location
-            character_skills: Character's skills
-            magic_profile: Player's magic profile
-            tool_id: Optional ID of the gathering tool being used
-            
-        Returns:
-            Result of the gathering attempt
-        """
-        self.performance_metrics['material_operations'] += 1
-        return self.material_service.gather_materials(
-            player_id, location_id, character_skills, magic_profile, tool_id)
-    
-    def get_player_materials(self, player_id: str) -> List[Dict[str, Any]]:
-        """
-        Get all materials owned by a player
+        # Ethereal silk
+        ethereal_silk = CraftingMaterial(
+            id="ethereal_silk",
+            name="Ethereal Silk",
+            description="Silk woven from the strands of extraplanar beings.",
+            rarity="rare",
+            material_type="fabric",
+            magical_properties=["Lightweight", "Disrupts magical effects", "Semi-translucent"],
+            resonance=[DamageType.ARCANE, DamageType.LIGHT],
+            value=150,
+            source_locations=["planar_rift", "spirit_realm", "ancient_temple"]
+        )
+        materials[ethereal_silk.id] = ethereal_silk
         
-        Args:
-            player_id: ID of the player
-            
-        Returns:
-            List of material instances
-        """
-        self.performance_metrics['material_operations'] += 1
-        return self.material_service.get_player_materials(player_id)
-    
-    def process_material(self, player_id: str, instance_id: str, 
-                       processing_type: str,
-                       character_skills: Dict[str, int],
-                       magic_profile: Optional[MagicUser] = None) -> Dict[str, Any]:
-        """
-        Process a material to enhance its properties
+        # Mana crystal
+        mana_crystal = CraftingMaterial(
+            id="mana_crystal",
+            name="Mana Crystal",
+            description="A crystal that naturally stores magical energy.",
+            rarity="uncommon",
+            material_type="crystal",
+            magical_properties=["Stores mana", "Conducts magical energy", "Self-recharging"],
+            resonance=[DamageType.ARCANE],
+            value=100,
+            source_locations=["leyline_nexus", "crystal_cave", "wizard_tower"]
+        )
+        materials[mana_crystal.id] = mana_crystal
         
-        Args:
-            player_id: ID of the player
-            instance_id: ID of the material instance
-            processing_type: Type of processing to perform
-            character_skills: Character's skills
-            magic_profile: Optional player's magic profile for magical processing
-            
-        Returns:
-            Result of the processing attempt
-        """
-        self.performance_metrics['material_operations'] += 1
-        return self.material_service.process_material(
-            player_id, instance_id, processing_type, character_skills, magic_profile)
-    
-    # ======================================================================
-    # Crafting Integration
-    # ======================================================================
-    
-    def get_crafting_stations(self, region_id: str) -> List[Dict[str, Any]]:
-        """
-        Get all crafting stations in a region
+        # Celestial prism
+        celestial_prism = CraftingMaterial(
+            id="celestial_prism",
+            name="Celestial Prism",
+            description="A prism that refracts light from other planes of existence.",
+            rarity="rare",
+            material_type="gem",
+            magical_properties=["Refracts planar energy", "Enhances scrying", "Splits magical energy"],
+            resonance=[DamageType.ARCANE, DamageType.LIGHT],
+            value=225,
+            source_locations=["celestial_plane", "ancient_observatory", "wizard_sanctum"]
+        )
+        materials[celestial_prism.id] = celestial_prism
         
-        Args:
-            region_id: ID of the region
-            
-        Returns:
-            List of crafting stations
-        """
-        self.performance_metrics['crafting_operations'] += 1
-        return self.crafting_service.get_crafting_stations_in_region(region_id)
+        return materials
     
-    def craft_item_with_magic(self, player_id: str, station_id: str, recipe_id: str,
-                           materials: List[Dict[str, Any]], magic_profile: MagicUser,
-                           character_skills: Dict[str, int] = None) -> Dict[str, Any]:
+    def get_enchantment_recipe_by_id(self, recipe_id: str) -> Optional[EnchantmentRecipe]:
         """
-        Craft an item with magical enhancement from a leyline crafting station
-        
-        Args:
-            player_id: ID of the player
-            station_id: ID of the crafting station
-            recipe_id: ID of the recipe being crafted
-            materials: List of materials being used
-            magic_profile: Player's magic profile
-            character_skills: Optional character skills
-            
-        Returns:
-            Result of the crafting attempt
-        """
-        self.performance_metrics['crafting_operations'] += 1
-        return self.crafting_service.craft_item_with_magic(
-            player_id, station_id, recipe_id, materials, magic_profile, character_skills)
-    
-    def create_crafting_station(self, name: str, location_id: str, station_type: str,
-                             leyline_strength: float = 1.0) -> Dict[str, Any]:
-        """
-        Create a new leyline crafting station
+        Get an enchantment recipe by its ID.
         
         Args:
-            name: Name of the station
-            location_id: ID of the location
-            station_type: Type of crafting station
-            leyline_strength: Initial leyline strength
+            recipe_id: The recipe ID
             
         Returns:
-            Newly created station data
+            The recipe or None if not found
         """
-        self.performance_metrics['crafting_operations'] += 1
-        return self.crafting_service.create_crafting_station(
-            name, location_id, station_type, leyline_strength)
+        return self.enchantment_recipes.get(recipe_id)
     
-    # ======================================================================
-    # System Maintenance and Updates
-    # ======================================================================
-    
-    def refresh_all_systems(self) -> Dict[str, Any]:
+    def get_material_by_id(self, material_id: str) -> Optional[CraftingMaterial]:
         """
-        Refresh all magic-crafting systems
-        Should be run periodically (e.g., daily)
+        Get a crafting material by its ID.
         
+        Args:
+            material_id: The material ID
+            
         Returns:
-            Status of the refresh operations
+            The material or None if not found
         """
-        # Refresh gathering locations
-        try:
-            material_refresh = self.material_service.refresh_gathering_locations()
-        except Exception as e:
-            logger.error(f"Error refreshing gathering locations: {e}")
-            material_refresh = {"success": False, "reason": str(e)}
+        return self.materials.get(material_id)
+    
+    def get_available_enchantment_recipes(self, character_domains: Dict[Domain, int]) -> List[Dict[str, Any]]:
+        """
+        Get available enchantment recipes based on character domains.
         
-        # Update leyline connections
-        try:
-            station_refresh = self.crafting_service.update_leyline_connections()
-        except Exception as e:
-            logger.error(f"Error updating leyline connections: {e}")
-            station_refresh = {"success": False, "reason": str(e)}
+        Args:
+            character_domains: The character's domain values
+            
+        Returns:
+            List of available recipe information
+        """
+        available_recipes = []
+        
+        for recipe_id, recipe in self.enchantment_recipes.items():
+            # Check if the character meets the domain requirements
+            meets_requirements = True
+            for domain, required_value in recipe.required_domain_values.items():
+                if domain not in character_domains or character_domains[domain] < required_value:
+                    meets_requirements = False
+                    break
+            
+            available_recipes.append({
+                "id": recipe_id,
+                "name": recipe.name,
+                "description": recipe.description,
+                "tier": recipe.tier.name,
+                "meets_requirements": meets_requirements,
+                "required_materials": recipe.required_materials,
+                "effects": recipe.effects,
+                "compatible_item_types": recipe.compatible_item_types
+            })
+        
+        return available_recipes
+    
+    def enchant_item(
+        self,
+        enchanter: MagicUser,
+        enchanter_domains: Dict[Domain, int],
+        item_id: str,
+        item_type: str,
+        recipe_id: str,
+        available_materials: Dict[str, int],
+        location_magic: Optional[LocationMagicProfile] = None
+    ) -> Dict[str, Any]:
+        """
+        Enchant an item using a recipe.
+        
+        Args:
+            enchanter: The magic user performing the enchantment
+            enchanter_domains: The enchanter's domain values
+            item_id: The ID of the item to enchant
+            item_type: The type of the item
+            recipe_id: The ID of the enchantment recipe
+            available_materials: Dict mapping material IDs to quantities
+            location_magic: Optional magic profile of the location
+            
+        Returns:
+            Dict with result information
+        """
+        # Get the recipe
+        recipe = self.get_enchantment_recipe_by_id(recipe_id)
+        if not recipe:
+            return {
+                "success": False,
+                "message": f"Enchantment recipe {recipe_id} not found"
+            }
+        
+        # Check domain requirements
+        for domain, required_value in recipe.required_domain_values.items():
+            if domain not in enchanter_domains or enchanter_domains[domain] < required_value:
+                return {
+                    "success": False,
+                    "message": f"Domain requirement not met: {domain.name} {required_value}+"
+                }
+        
+        # Check if the item type is compatible
+        if recipe.compatible_item_types and item_type not in recipe.compatible_item_types:
+            return {
+                "success": False,
+                "message": f"Item type {item_type} is not compatible with this enchantment"
+            }
+        
+        # Check material requirements
+        for material_id, required_quantity in recipe.required_materials.items():
+            if material_id not in available_materials or available_materials[material_id] < required_quantity:
+                return {
+                    "success": False,
+                    "message": f"Not enough {material_id}: {available_materials.get(material_id, 0)}/{required_quantity}"
+                }
+        
+        # Calculate enchanting success chance
+        base_chance = 100 - recipe.enchanting_difficulty
+        
+        # Bonus from enchanter's skill
+        skill_bonus = enchanter.enchanting_skill / 2
+        
+        # Bonus from location magic
+        location_bonus = 0
+        if location_magic and location_magic.allows_ritual_sites:
+            location_bonus = 10
+        
+        success_chance = min(95, base_chance + skill_bonus + location_bonus)
+        
+        # Roll for success
+        roll = random.randint(1, 100)
+        
+        if roll > success_chance:
+            # Enchantment failed
+            
+            # Consume some materials
+            consumed_materials = {}
+            for material_id, required_quantity in recipe.required_materials.items():
+                # Consume half the materials on failure
+                consumed_quantity = max(1, required_quantity // 2)
+                consumed_materials[material_id] = consumed_quantity
+            
+            return {
+                "success": False,
+                "message": "The enchantment failed",
+                "roll": roll,
+                "success_chance": success_chance,
+                "consumed_materials": consumed_materials
+            }
+        
+        # Enchantment succeeded
+        
+        # Consume all required materials
+        consumed_materials = {}
+        for material_id, required_quantity in recipe.required_materials.items():
+            consumed_materials[material_id] = required_quantity
+        
+        # Create the enchantment
+        enchantment = Enchantment(
+            id=f"{recipe.id}_{item_id}_{int(datetime.now().timestamp())}",
+            name=recipe.name,
+            description=recipe.description,
+            tier=recipe.tier,
+            effects=recipe.effects,
+            duration=recipe.enchantment_duration,
+            charges=recipe.enchantment_charges,
+            keywords=[material.name for material_id, _ in consumed_materials.items() if (material := self.get_material_by_id(material_id))]
+        )
+        
+        # Create a magic profile for the item
+        item_magic_profile = ItemMagicProfile(
+            item_id=item_id,
+            is_enchanted=True,
+            enchantment_id=enchantment.id,
+            enchantment=enchantment,
+            material_properties=[material.name for material_id, _ in consumed_materials.items() if (material := self.get_material_by_id(material_id))]
+        )
         
         return {
-            "success": material_refresh.get("success", False) and station_refresh.get("success", False),
-            "material_refresh": material_refresh,
-            "station_refresh": station_refresh
+            "success": True,
+            "message": f"Successfully enchanted {item_id} with {recipe.name}",
+            "roll": roll,
+            "success_chance": success_chance,
+            "consumed_materials": consumed_materials,
+            "enchantment": enchantment.get_details(),
+            "item_magic_profile": item_magic_profile.get_details()
         }
+
+class MagicalItemCrafter:
+    """Manages the crafting of magical items."""
     
-    async def scheduled_refresh(self, interval_hours: int = 24):
+    def __init__(self, magic_system: MagicSystem, enchanter: ItemEnchanter):
         """
-        Schedule regular refreshes of the magic-crafting systems
+        Initialize the magical item crafter.
         
         Args:
-            interval_hours: Interval between refreshes in hours
+            magic_system: The magic system
+            enchanter: The item enchanter
         """
-        while True:
-            # Perform refresh
-            result = self.refresh_all_systems()
-            
-            # Log result
-            if result.get("success", False):
-                logger.info(f"Successfully refreshed magic-crafting systems")
-            else:
-                logger.warning(f"Failed to refresh some magic-crafting systems: {result}")
-            
-            # Wait for next refresh
-            await asyncio.sleep(interval_hours * 3600)
+        self.magic_system = magic_system
+        self.enchanter = enchanter
+        self.crafting_recipes = self._get_mock_crafting_recipes()
     
-    # ======================================================================
-    # Utility Functions
-    # ======================================================================
+    def _get_mock_crafting_recipes(self) -> Dict[str, Dict[str, Any]]:
+        """Get mock crafting recipes for demonstration."""
+        recipes = {}
+        
+        # Basic wand
+        wand_recipe = {
+            "id": "craft_wand_basic",
+            "name": "Basic Wand",
+            "description": "A simple wand that can channel magical energy.",
+            "item_type": MagicalItemType.WAND.name,
+            "required_materials": {
+                "resonant_crystal": 1,
+                "arcane_dust": 2,
+                "wooden_shaft": 1
+            },
+            "required_domain_values": {
+                Domain.CRAFT.name: 2,
+                Domain.MIND.name: 1
+            },
+            "crafting_difficulty": 30,
+            "crafting_time": 60,  # minutes
+            "result_properties": {
+                "mana_storage_capacity": 20,
+                "attunement_required": False,
+                "base_enchantability": 50
+            }
+        }
+        recipes[wand_recipe["id"]] = wand_recipe
+        
+        # Basic staff
+        staff_recipe = {
+            "id": "craft_staff_basic",
+            "name": "Basic Staff",
+            "description": "A simple staff that can channel larger amounts of magical energy.",
+            "item_type": MagicalItemType.STAFF.name,
+            "required_materials": {
+                "resonant_crystal": 2,
+                "arcane_dust": 3,
+                "wooden_shaft": 2,
+                "leather_binding": 1
+            },
+            "required_domain_values": {
+                Domain.CRAFT.name: 3,
+                Domain.MIND.name: 2
+            },
+            "crafting_difficulty": 40,
+            "crafting_time": 120,  # minutes
+            "result_properties": {
+                "mana_storage_capacity": 50,
+                "attunement_required": True,
+                "base_enchantability": 70
+            }
+        }
+        recipes[staff_recipe["id"]] = staff_recipe
+        
+        # Mana crystal
+        mana_crystal_recipe = {
+            "id": "craft_crystal_mana",
+            "name": "Mana Crystal",
+            "description": "A crystal specifically designed to store magical energy.",
+            "item_type": MagicalItemType.CRYSTAL.name,
+            "required_materials": {
+                "mana_crystal": 2,
+                "arcane_dust": 1,
+                "resonant_crystal": 1
+            },
+            "required_domain_values": {
+                Domain.CRAFT.name: 2,
+                Domain.MIND.name: 2
+            },
+            "crafting_difficulty": 35,
+            "crafting_time": 90,  # minutes
+            "result_properties": {
+                "mana_storage_capacity": 100,
+                "attunement_required": False,
+                "base_enchantability": 60
+            }
+        }
+        recipes[mana_crystal_recipe["id"]] = mana_crystal_recipe
+        
+        return recipes
     
-    def calculate_magical_bonus(self, location: Dict[str, Any], domain_type: str) -> float:
+    def get_crafting_recipe_by_id(self, recipe_id: str) -> Optional[Dict[str, Any]]:
         """
-        Calculate magical bonus for activities in a location
+        Get a crafting recipe by its ID.
         
         Args:
-            location: Location information
-            domain_type: Type of activity (crafting, gathering, enchanting)
+            recipe_id: The recipe ID
             
         Returns:
-            Magical bonus (0.0-1.0)
+            The recipe or None if not found
         """
-        # Create a dummy spell with the domain as its school
-        dummy_spell = {
-            "school": domain_type.upper()
-        }
-        
-        # Use environmental resonance to calculate bonus
-        modifier = self.environmental_resonance.calculate_spell_power_modifier(dummy_spell, location)
-        
-        # Convert to a 0.0-1.0 bonus
-        return max(0.0, min(1.0, modifier - 1.0))
+        return self.crafting_recipes.get(recipe_id)
     
-    def get_domain_bonus(self, character_domains: Dict[str, int], domain_type: str) -> float:
+    def get_available_crafting_recipes(self, character_domains: Dict[Domain, int]) -> List[Dict[str, Any]]:
         """
-        Calculate domain synergy bonus for crafting activities
+        Get available crafting recipes based on character domains.
         
         Args:
-            character_domains: Character's domain levels
-            domain_type: Type of activity (crafting, gathering, enchanting)
+            character_domains: The character's domain values
             
         Returns:
-            Domain bonus (0.0-1.0)
+            List of available recipe information
         """
-        # This would use the domain synergy system to calculate bonuses
-        # For now, we'll use a simplified approach
+        available_recipes = []
         
-        relevant_domains = {
-            "crafting": ["CRAFT", "MIND", "SPIRIT"],
-            "gathering": ["AWARENESS", "BODY", "MIND"],
-            "enchanting": ["SPIRIT", "MIND", "CRAFT"]
+        for recipe_id, recipe in self.crafting_recipes.items():
+            # Check if the character meets the domain requirements
+            meets_requirements = True
+            for domain_name, required_value in recipe["required_domain_values"].items():
+                domain = Domain[domain_name]
+                if domain not in character_domains or character_domains[domain] < required_value:
+                    meets_requirements = False
+                    break
+            
+            available_recipes.append({
+                "id": recipe_id,
+                "name": recipe["name"],
+                "description": recipe["description"],
+                "item_type": recipe["item_type"],
+                "meets_requirements": meets_requirements,
+                "required_materials": recipe["required_materials"],
+                "crafting_difficulty": recipe["crafting_difficulty"],
+                "crafting_time": recipe["crafting_time"]
+            })
+        
+        return available_recipes
+    
+    def craft_magical_item(
+        self,
+        crafter: MagicUser,
+        crafter_domains: Dict[Domain, int],
+        recipe_id: str,
+        available_materials: Dict[str, int],
+        location_magic: Optional[LocationMagicProfile] = None
+    ) -> Dict[str, Any]:
+        """
+        Craft a magical item using a recipe.
+        
+        Args:
+            crafter: The magic user performing the crafting
+            crafter_domains: The crafter's domain values
+            recipe_id: The ID of the crafting recipe
+            available_materials: Dict mapping material IDs to quantities
+            location_magic: Optional magic profile of the location
+            
+        Returns:
+            Dict with result information
+        """
+        # Get the recipe
+        recipe = self.get_crafting_recipe_by_id(recipe_id)
+        if not recipe:
+            return {
+                "success": False,
+                "message": f"Crafting recipe {recipe_id} not found"
+            }
+        
+        # Check domain requirements
+        for domain_name, required_value in recipe["required_domain_values"].items():
+            domain = Domain[domain_name]
+            if domain not in crafter_domains or crafter_domains[domain] < required_value:
+                return {
+                    "success": False,
+                    "message": f"Domain requirement not met: {domain.name} {required_value}+"
+                }
+        
+        # Check material requirements
+        for material_id, required_quantity in recipe["required_materials"].items():
+            if material_id not in available_materials or available_materials[material_id] < required_quantity:
+                return {
+                    "success": False,
+                    "message": f"Not enough {material_id}: {available_materials.get(material_id, 0)}/{required_quantity}"
+                }
+        
+        # Calculate crafting success chance
+        base_chance = 100 - recipe["crafting_difficulty"]
+        
+        # Bonus from crafter's domains
+        craft_bonus = crafter_domains.get(Domain.CRAFT, 0) * 5
+        
+        # Bonus from location magic
+        location_bonus = 0
+        if location_magic:
+            location_bonus = int(location_magic.leyline_strength * 5)
+        
+        success_chance = min(95, base_chance + craft_bonus + location_bonus)
+        
+        # Roll for success
+        roll = random.randint(1, 100)
+        
+        if roll > success_chance:
+            # Crafting failed
+            
+            # Consume some materials
+            consumed_materials = {}
+            for material_id, required_quantity in recipe["required_materials"].items():
+                # Consume half the materials on failure
+                consumed_quantity = max(1, required_quantity // 2)
+                consumed_materials[material_id] = consumed_quantity
+            
+            return {
+                "success": False,
+                "message": "The crafting attempt failed",
+                "roll": roll,
+                "success_chance": success_chance,
+                "consumed_materials": consumed_materials
+            }
+        
+        # Crafting succeeded
+        
+        # Consume all required materials
+        consumed_materials = {}
+        for material_id, required_quantity in recipe["required_materials"].items():
+            consumed_materials[material_id] = required_quantity
+        
+        # Generate item ID
+        item_id = f"{recipe['item_type'].lower()}_{int(datetime.now().timestamp())}"
+        
+        # Create magic profile for the item
+        item_magic_profile = ItemMagicProfile(
+            item_id=item_id,
+            is_enchanted=False,
+            mana_storage_capacity=recipe["result_properties"]["mana_storage_capacity"],
+            current_mana_stored=0,
+            attunement_required=recipe["result_properties"]["attunement_required"],
+            material_properties=[material_id for material_id in consumed_materials.keys()]
+        )
+        
+        # Create the crafted item
+        crafted_item = {
+            "id": item_id,
+            "name": recipe["name"],
+            "description": recipe["description"],
+            "type": recipe["item_type"],
+            "crafter": crafter.character_id,
+            "creation_date": datetime.now().isoformat(),
+            "materials_used": consumed_materials,
+            "enchantability": recipe["result_properties"]["base_enchantability"],
+            "magic_profile": item_magic_profile.get_details()
         }
         
-        domains = relevant_domains.get(domain_type.lower(), ["CRAFT"])
-        
-        # Calculate average of relevant domains
-        total = 0
-        count = 0
-        
-        for domain in domains:
-            if domain in character_domains:
-                total += character_domains[domain]
-                count += 1
-        
-        avg_domain = total / count if count > 0 else 0
-        
-        # Convert to a 0.0-1.0 bonus
-        return min(1.0, avg_domain * 0.05)
-    
-    def get_performance_stats(self) -> Dict[str, Any]:
-        """
-        Get performance statistics for the integration
-        
-        Returns:
-            Performance statistics
-        """
         return {
-            "enchantment_operations": self.performance_metrics['enchantment_operations'],
-            "material_operations": self.performance_metrics['material_operations'],
-            "crafting_operations": self.performance_metrics['crafting_operations'],
-            "cache_hits": self.performance_metrics['cache_hits'],
-            "cache_misses": self.performance_metrics['cache_misses'],
-            "total_operations": (
-                self.performance_metrics['enchantment_operations'] +
-                self.performance_metrics['material_operations'] +
-                self.performance_metrics['crafting_operations']
-            ),
-            "cache_hit_rate": (
-                self.performance_metrics['cache_hits'] /
-                (self.performance_metrics['cache_hits'] + self.performance_metrics['cache_misses'])
-                if (self.performance_metrics['cache_hits'] + self.performance_metrics['cache_misses']) > 0
-                else 0
-            )
+            "success": True,
+            "message": f"Successfully crafted {recipe['name']}",
+            "roll": roll,
+            "success_chance": success_chance,
+            "consumed_materials": consumed_materials,
+            "crafted_item": crafted_item
         }
 
+class MagicalPotionBrewer:
+    """Manages the brewing of magical potions."""
+    
+    def __init__(self, magic_system: MagicSystem):
+        """
+        Initialize the magical potion brewer.
+        
+        Args:
+            magic_system: The magic system
+        """
+        self.magic_system = magic_system
+        self.potion_recipes = self._get_mock_potion_recipes()
+    
+    def _get_mock_potion_recipes(self) -> Dict[str, Dict[str, Any]]:
+        """Get mock potion recipes for demonstration."""
+        recipes = {}
+        
+        # Minor healing potion
+        minor_healing = {
+            "id": "potion_minor_healing",
+            "name": "Minor Healing Potion",
+            "description": "A potion that restores a small amount of health.",
+            "required_materials": {
+                "healing_herb": 2,
+                "pure_water": 1,
+                "alchemical_catalyst": 1
+            },
+            "required_domain_values": {
+                Domain.CRAFT.name: 1,
+                Domain.SPIRIT.name: 1
+            },
+            "brewing_difficulty": 20,
+            "brewing_time": 30,  # minutes
+            "effects": [
+                {
+                    "type": "healing",
+                    "potency": 15,
+                    "duration": 0
+                }
+            ]
+        }
+        recipes[minor_healing["id"]] = minor_healing
+        
+        # Minor mana potion
+        minor_mana = {
+            "id": "potion_minor_mana",
+            "name": "Minor Mana Potion",
+            "description": "A potion that restores a small amount of mana.",
+            "required_materials": {
+                "mana_crystal": 1,
+                "arcane_dust": 1,
+                "pure_water": 1
+            },
+            "required_domain_values": {
+                Domain.CRAFT.name: 1,
+                Domain.MIND.name: 1
+            },
+            "brewing_difficulty": 25,
+            "brewing_time": 30,  # minutes
+            "effects": [
+                {
+                    "type": "mana_restoration",
+                    "potency": 20,
+                    "duration": 0
+                }
+            ]
+        }
+        recipes[minor_mana["id"]] = minor_mana
+        
+        # Fire resistance potion
+        fire_resistance = {
+            "id": "potion_fire_resistance",
+            "name": "Fire Resistance Potion",
+            "description": "A potion that grants temporary resistance to fire damage.",
+            "required_materials": {
+                "fire_essence": 1,
+                "dragon_scale": 1,
+                "alchemical_catalyst": 1,
+                "pure_water": 1
+            },
+            "required_domain_values": {
+                Domain.CRAFT.name: 2,
+                Domain.FIRE.name: 1
+            },
+            "brewing_difficulty": 35,
+            "brewing_time": 45,  # minutes
+            "effects": [
+                {
+                    "type": "resistance",
+                    "damage_type": "fire",
+                    "potency": 50,  # 50% resistance
+                    "duration": 1800  # 30 minutes
+                }
+            ]
+        }
+        recipes[fire_resistance["id"]] = fire_resistance
+        
+        return recipes
+    
+    def get_potion_recipe_by_id(self, recipe_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a potion recipe by its ID.
+        
+        Args:
+            recipe_id: The recipe ID
+            
+        Returns:
+            The recipe or None if not found
+        """
+        return self.potion_recipes.get(recipe_id)
+    
+    def get_available_potion_recipes(self, character_domains: Dict[Domain, int]) -> List[Dict[str, Any]]:
+        """
+        Get available potion recipes based on character domains.
+        
+        Args:
+            character_domains: The character's domain values
+            
+        Returns:
+            List of available recipe information
+        """
+        available_recipes = []
+        
+        for recipe_id, recipe in self.potion_recipes.items():
+            # Check if the character meets the domain requirements
+            meets_requirements = True
+            for domain_name, required_value in recipe["required_domain_values"].items():
+                domain = Domain[domain_name]
+                if domain not in character_domains or character_domains[domain] < required_value:
+                    meets_requirements = False
+                    break
+            
+            available_recipes.append({
+                "id": recipe_id,
+                "name": recipe["name"],
+                "description": recipe["description"],
+                "meets_requirements": meets_requirements,
+                "required_materials": recipe["required_materials"],
+                "brewing_difficulty": recipe["brewing_difficulty"],
+                "brewing_time": recipe["brewing_time"],
+                "effects": recipe["effects"]
+            })
+        
+        return available_recipes
+    
+    def brew_potion(
+        self,
+        brewer: MagicUser,
+        brewer_domains: Dict[Domain, int],
+        recipe_id: str,
+        available_materials: Dict[str, int],
+        location_magic: Optional[LocationMagicProfile] = None
+    ) -> Dict[str, Any]:
+        """
+        Brew a potion using a recipe.
+        
+        Args:
+            brewer: The magic user performing the brewing
+            brewer_domains: The brewer's domain values
+            recipe_id: The ID of the potion recipe
+            available_materials: Dict mapping material IDs to quantities
+            location_magic: Optional magic profile of the location
+            
+        Returns:
+            Dict with result information
+        """
+        # Get the recipe
+        recipe = self.get_potion_recipe_by_id(recipe_id)
+        if not recipe:
+            return {
+                "success": False,
+                "message": f"Potion recipe {recipe_id} not found"
+            }
+        
+        # Check domain requirements
+        for domain_name, required_value in recipe["required_domain_values"].items():
+            domain = Domain[domain_name]
+            if domain not in brewer_domains or brewer_domains[domain] < required_value:
+                return {
+                    "success": False,
+                    "message": f"Domain requirement not met: {domain.name} {required_value}+"
+                }
+        
+        # Check material requirements
+        for material_id, required_quantity in recipe["required_materials"].items():
+            if material_id not in available_materials or available_materials[material_id] < required_quantity:
+                return {
+                    "success": False,
+                    "message": f"Not enough {material_id}: {available_materials.get(material_id, 0)}/{required_quantity}"
+                }
+        
+        # Calculate brewing success chance
+        base_chance = 100 - recipe["brewing_difficulty"]
+        
+        # Bonus from brewer's domains
+        craft_bonus = brewer_domains.get(Domain.CRAFT, 0) * 3
+        
+        # Bonus from location magic
+        location_bonus = 0
+        if location_magic:
+            location_bonus = int(location_magic.leyline_strength * 3)
+        
+        success_chance = min(95, base_chance + craft_bonus + location_bonus)
+        
+        # Roll for success
+        roll = random.randint(1, 100)
+        
+        if roll > success_chance:
+            # Brewing failed
+            
+            # Consume some materials
+            consumed_materials = {}
+            for material_id, required_quantity in recipe["required_materials"].items():
+                # Consume half the materials on failure
+                consumed_quantity = max(1, required_quantity // 2)
+                consumed_materials[material_id] = consumed_quantity
+            
+            return {
+                "success": False,
+                "message": "The brewing attempt failed",
+                "roll": roll,
+                "success_chance": success_chance,
+                "consumed_materials": consumed_materials
+            }
+        
+        # Brewing succeeded
+        
+        # Consume all required materials
+        consumed_materials = {}
+        for material_id, required_quantity in recipe["required_materials"].items():
+            consumed_materials[material_id] = required_quantity
+        
+        # Generate potion ID
+        potion_id = f"potion_{recipe_id}_{int(datetime.now().timestamp())}"
+        
+        # Create the potion
+        potion = {
+            "id": potion_id,
+            "name": recipe["name"],
+            "description": recipe["description"],
+            "type": "potion",
+            "brewer": brewer.character_id,
+            "creation_date": datetime.now().isoformat(),
+            "materials_used": consumed_materials,
+            "effects": recipe["effects"]
+        }
+        
+        return {
+            "success": True,
+            "message": f"Successfully brewed {recipe['name']}",
+            "roll": roll,
+            "success_chance": success_chance,
+            "consumed_materials": consumed_materials,
+            "potion": potion
+        }
 
-# Create a global instance for easy import
-def create_magic_crafting_integration(magic_system: MagicSystem) -> MagicCraftingIntegration:
+class MagicCraftingIntegration:
+    """Integrates magic with the crafting system."""
+    
+    def __init__(self, magic_system: MagicSystem):
+        """
+        Initialize the magic crafting integration.
+        
+        Args:
+            magic_system: The magic system
+        """
+        self.magic_system = magic_system
+        self.enchanter = ItemEnchanter(magic_system)
+        self.item_crafter = MagicalItemCrafter(magic_system, self.enchanter)
+        self.potion_brewer = MagicalPotionBrewer(magic_system)
+    
+    def get_enchantment_recipes(self, character_domains: Dict[Domain, int]) -> List[Dict[str, Any]]:
+        """
+        Get available enchantment recipes.
+        
+        Args:
+            character_domains: The character's domain values
+            
+        Returns:
+            List of available enchantment recipes
+        """
+        return self.enchanter.get_available_enchantment_recipes(character_domains)
+    
+    def get_crafting_recipes(self, character_domains: Dict[Domain, int]) -> List[Dict[str, Any]]:
+        """
+        Get available crafting recipes.
+        
+        Args:
+            character_domains: The character's domain values
+            
+        Returns:
+            List of available crafting recipes
+        """
+        return self.item_crafter.get_available_crafting_recipes(character_domains)
+    
+    def get_potion_recipes(self, character_domains: Dict[Domain, int]) -> List[Dict[str, Any]]:
+        """
+        Get available potion recipes.
+        
+        Args:
+            character_domains: The character's domain values
+            
+        Returns:
+            List of available potion recipes
+        """
+        return self.potion_brewer.get_available_potion_recipes(character_domains)
+    
+    def get_all_materials(self) -> List[Dict[str, Any]]:
+        """
+        Get all available crafting materials.
+        
+        Returns:
+            List of all material information
+        """
+        return [material.to_dict() for material in self.enchanter.materials.values()]
+    
+    def perform_enchantment(
+        self,
+        enchanter: MagicUser,
+        enchanter_domains: Dict[Domain, int],
+        item_id: str,
+        item_type: str,
+        recipe_id: str,
+        available_materials: Dict[str, int],
+        location_magic: Optional[LocationMagicProfile] = None
+    ) -> Dict[str, Any]:
+        """
+        Perform an enchantment.
+        
+        Args:
+            enchanter: The magic user performing the enchantment
+            enchanter_domains: The enchanter's domain values
+            item_id: The ID of the item to enchant
+            item_type: The type of the item
+            recipe_id: The ID of the enchantment recipe
+            available_materials: Dict mapping material IDs to quantities
+            location_magic: Optional magic profile of the location
+            
+        Returns:
+            Dict with result information
+        """
+        return self.enchanter.enchant_item(
+            enchanter,
+            enchanter_domains,
+            item_id,
+            item_type,
+            recipe_id,
+            available_materials,
+            location_magic
+        )
+    
+    def craft_item(
+        self,
+        crafter: MagicUser,
+        crafter_domains: Dict[Domain, int],
+        recipe_id: str,
+        available_materials: Dict[str, int],
+        location_magic: Optional[LocationMagicProfile] = None
+    ) -> Dict[str, Any]:
+        """
+        Craft a magical item.
+        
+        Args:
+            crafter: The magic user performing the crafting
+            crafter_domains: The crafter's domain values
+            recipe_id: The ID of the crafting recipe
+            available_materials: Dict mapping material IDs to quantities
+            location_magic: Optional magic profile of the location
+            
+        Returns:
+            Dict with result information
+        """
+        return self.item_crafter.craft_magical_item(
+            crafter,
+            crafter_domains,
+            recipe_id,
+            available_materials,
+            location_magic
+        )
+    
+    def brew_potion(
+        self,
+        brewer: MagicUser,
+        brewer_domains: Dict[Domain, int],
+        recipe_id: str,
+        available_materials: Dict[str, int],
+        location_magic: Optional[LocationMagicProfile] = None
+    ) -> Dict[str, Any]:
+        """
+        Brew a potion.
+        
+        Args:
+            brewer: The magic user performing the brewing
+            brewer_domains: The brewer's domain values
+            recipe_id: The ID of the potion recipe
+            available_materials: Dict mapping material IDs to quantities
+            location_magic: Optional magic profile of the location
+            
+        Returns:
+            Dict with result information
+        """
+        return self.potion_brewer.brew_potion(
+            brewer,
+            brewer_domains,
+            recipe_id,
+            available_materials,
+            location_magic
+        )
+
+# Initialize magic crafting integration
+def create_magic_crafting_integration(magic_system: Optional[MagicSystem] = None) -> MagicCraftingIntegration:
     """
-    Create a magic crafting integration instance
+    Create and return the magic crafting integration.
     
     Args:
-        magic_system: The magic system instance
-        
+        magic_system: Optional magic system to use
+    
     Returns:
-        Magic crafting integration instance
+        The magic crafting integration
     """
-    return MagicCraftingIntegration(magic_system)
+    # Create or use provided magic system
+    magic_sys = magic_system or MagicSystem()
+    
+    # Create integration
+    return MagicCraftingIntegration(magic_sys)
