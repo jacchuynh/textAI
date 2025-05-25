@@ -2555,7 +2555,7 @@ JEWELCRAFTING_MATERIALS = [
 
 # Relicsmithing & Artifact Tinkering Materials
 RELICSMITHING_MATERIALS = [
-    # Unstable Relic Components
+    # Unstable Relic Components & Dissonance Residue
     {
         "name": "Shattered War-Core Fragment",
         "description": "A dangerous fragment of a destroyed relic weapon core. Pulses with unstable crimson energy that threatens to corrupt its surroundings.",
@@ -2573,6 +2573,132 @@ RELICSMITHING_MATERIALS = [
             "corruption_aura_radius_meters": 1,
             "decay_rate_outside_containment_percent_day": 5,
             "research_difficulty": "very_high"
+        }
+    },
+    {
+        "name": "Fused Clockwork Mechanism",
+        "description": "Complex mechanical component salvaged from a ruined automaton. The gears are partially fused but may still contain functional elements.",
+        "material_type": MaterialType.METAL,
+        "rarity": Rarity.RARE,
+        "base_value": 350,
+        "weight": 1.2,
+        "is_craftable": False,
+        "source_tags": ["ruined_automaton_crucible_spire", "damaged_intricate_gears_dissonance_tech"],
+        "illicit_in_regions": [],
+        "properties": {
+            "complexity": 7,
+            "repair_difficulty": "high",
+            "known_function": "unknown_possibly_targeting_array_or_locomotion",
+            "material_composition": ["unknown_alloy", "trace_crimsonite"],
+            "potential_kinetic_energy_release_if_mishandled": True
+        }
+    },
+    {
+        "name": "Inert Sentinel Plating Segment",
+        "description": "Heavy armor plating from a decommissioned Accord peacekeeper prototype. Still retains some protective properties.",
+        "material_type": MaterialType.METAL,
+        "rarity": Rarity.RARE,
+        "base_value": 200,
+        "weight": 5.0,
+        "is_craftable": False,
+        "source_tags": ["decommissioned_accord_peacekeeper_prototype_dissonance_era_design", "heavy_armor_plate"],
+        "illicit_in_regions": [],
+        "properties": {
+            "damage_resistance_physical_rating": 10,
+            "energy_dampening_property_specific_frequency": "moderate_unknown_freq",
+            "weight_class": "heavy",
+            "latent_energy_signature": "faint_dissonance_echo",
+            "repurpose_potential": "shielding_heavy_constructs"
+        }
+    },
+    {
+        "name": "Warped Leyline Conduit Section",
+        "description": "A twisted section of leyline conduit damaged by dissonance weapons. Extremely dangerous but potentially valuable for research.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.EPIC,
+        "base_value": 600,
+        "weight": 3.0,
+        "is_craftable": False,
+        "source_tags": ["shattered_leyline_nexus_ember_wastes_dissonance_weapon_strike_zone", "twisted_magic_channel"],
+        "illicit_in_regions": ["Lethandrel_forbidden_study"],
+        "properties": {
+            "mana_conductivity_raw": "extremely_high_unpredictable",
+            "instability_surges_per_hour_avg": 2,
+            "emits_reality_distortions_minor": True,
+            "can_be_stabilized_partially": "with_ferverl_siphons_or_accord_nullifiers",
+            "research_value": "leyline_weaponry_defense"
+        }
+    },
+    {
+        "name": "Echo Crystal Shard (Dissonance)",
+        "description": "An incredibly dangerous crystal that contains echoes of a dissonance event. Strictly forbidden in all Accord territories.",
+        "material_type": MaterialType.GEM,
+        "rarity": Rarity.LEGENDARY,
+        "base_value": 1500,
+        "weight": 0.1,
+        "is_craftable": False,
+        "source_tags": ["core_of_imploded_relic_crucible_spire_rift", "trapped_dissonance_event_echo"],
+        "illicit_in_regions": ["ALL_ACCORD_CITIES_STRICTLY_FORBIDDEN"],
+        "properties": {
+            "trapped_echo_type": "random_battle_screams_energy_bursts_temporal_loops",
+            "release_condition_unpredictable": True,
+            "stabilization_method": "unknown_containment_field_only",
+            "power_potential_if_harnessed": "immense_catastrophic",
+            "psychic_resonance_strong": True
+        }
+    },
+    {
+        "name": "Corrupted Servitor Actuator",
+        "description": "A joint mechanism from a war construct that retains some functionality but is tainted with malevolent energy.",
+        "material_type": MaterialType.METAL,
+        "rarity": Rarity.RARE,
+        "base_value": 280,
+        "weight": 0.8,
+        "is_craftable": False,
+        "source_tags": ["dismantled_crimson_war_construct_lingering_malevolence", "functional_but_tainted_limb_joint"],
+        "illicit_in_regions": ["Skarport_public_display"],
+        "properties": {
+            "functionality_remaining_percent": 60,
+            "corruption_type": "aggressive_sentience_attempts_control",
+            "power_requirement_ma": "high",
+            "can_be_purified": "partially_with_thal_zirad_flame_rites",
+            "repurpose_use": "risky_automaton_component"
+        }
+    },
+    {
+        "name": "Unstable Isotope Pellet (D-Era)",
+        "description": "A highly radioactive magical isotope from a breached relic power cell. Extremely hazardous but potentially powerful.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.EPIC,
+        "base_value": 900,
+        "weight": 0.05,
+        "is_craftable": False,
+        "source_tags": ["breached_relic_power_cell_crucible_spire_vaults", "highly_radioactive_magical_isotope"],
+        "illicit_in_regions": ["Everywhere_extreme_hazard"],
+        "properties": {
+            "radiation_type": "alpha_beta_crimson_gamma",
+            "half_life_years_approx": 50,
+            "energy_output_slow_decay_mw": 0.5,
+            "shielding_required_material": "lead_or_dwarven_deep_iron",
+            "mutagenic_properties_strong": True
+        }
+    },
+    {
+        "name": "Frozen Time Shard",
+        "description": "A fragment of crystallized time from a temporal dissonance weapon effect. Causes localized time stasis on contact.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.LEGENDARY,
+        "base_value": 2200,
+        "weight": 0.2,
+        "is_craftable": False,
+        "source_tags": ["epicenter_of_temporal_dissonance_weapon_effect_whispering_woods_anomaly", "localized_time_stasis_fragment"],
+        "illicit_in_regions": ["Accord_Council_Level_Containment_Only"],
+        "properties": {
+            "temporal_effect_radius_cm": "variable_1_to_10_on_contact",
+            "stasis_duration_local_seconds": "unpredictable_minutes_to_eons",
+            "stabilization_difficulty": "extreme",
+            "can_shatter_releasing_temporal_wave": True,
+            "study_value_chronomancy": "priceless_dangerous"
         }
     },
     {
@@ -2613,6 +2739,112 @@ RELICSMITHING_MATERIALS = [
         }
     },
     {
+        "name": "Ferverl Leyline Siphon (Crude)",
+        "description": "A crude but functional device for drawing ambient mana or slowly draining relic energy. Made by Ferverl tinkerers.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.RARE,
+        "base_value": 450,
+        "weight": 1.5,
+        "is_craftable": True,
+        "source_tags": ["ferverl_wasteland_tech_ashkar_vale_tinkerer", "draws_ambient_mana_can_stabilize_minor_relics"],
+        "illicit_in_regions": [],
+        "properties": {
+            "function": "draw_ambient_mana_or_drain_relic_slowly",
+            "efficiency_percent": 30,
+            "backlash_potential_on_overload": "medium_mana_burn",
+            "requires_attunement_ritual": "Ferverl_basic_grounding",
+            "durability_low": True
+        }
+    },
+    {
+        "name": "Dwarven Lead-Lined Containment Box",
+        "description": "A heavy-duty containment box with lead lining, designed to shield radioactive and magical items from detection.",
+        "material_type": MaterialType.CRAFTED,
+        "rarity": Rarity.RARE,
+        "base_value": 300,
+        "weight": 10.0,
+        "is_craftable": True,
+        "source_tags": ["dwarven_smithing_stonewake_special_order", "shielding_radioactive_magical_items"],
+        "illicit_in_regions": [],
+        "properties": {
+            "shielding_effectiveness_percent_dissonance_radiation": 70,
+            "internal_volume_liters": 5,
+            "lock_type": "heavy_duty_bolt_runic_seal_optional",
+            "material": "steel_lead_lining_1cm"
+        }
+    },
+    {
+        "name": "Elven Ward-Weave Mesh (Silver)",
+        "description": "Enchanted silver mesh that can contain ethereal entities and spirit energy. Requires periodic re-enchanting.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.EPIC,
+        "base_value": 750,
+        "weight": 0.1,
+        "is_craftable": True,
+        "source_tags": ["lethandrel_spellweaver_artisan_enchanted_silver_mesh", "contains_ethereal_or_spirit_energy"],
+        "illicit_in_regions": [],
+        "properties": {
+            "containment_type": "ethereal_entities_spirit_energy_minor_telepathic_echoes",
+            "strength_vs_physical_force": "low",
+            "mana_conductivity_wards": "high",
+            "requires_re_enchanting_periodically": True,
+            "size_square_meter": 0.5
+        }
+    },
+    {
+        "name": "Inert Clay (Mana Absorptive)",
+        "description": "Naturally occurring clay that absorbs ambient mana. Useful for temporary shielding of unstable relics.",
+        "material_type": MaterialType.MINERAL,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 20,
+        "weight": 1.0,
+        "is_craftable": False,
+        "source_tags": ["crystal_highlands_geothermal_clay_beds", "naturally_absorbs_ambient_mana"],
+        "illicit_in_regions": [],
+        "properties": {
+            "mana_absorption_capacity_units_per_kg": 50,
+            "saturation_indicator": "faint_glow_then_crumbles",
+            "use": "packing_material_for_unstable_relics_temporary_shielding",
+            "reusability": "low_once_saturated"
+        }
+    },
+    {
+        "name": "Quenched Quicksilver Solution",
+        "description": "Stabilized mercury solution used as coolant and conductor for relic cores. Still toxic but more stable than raw quicksilver.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.EPIC,
+        "base_value": 600,
+        "weight": 0.3,
+        "is_craftable": True,
+        "source_tags": ["stabilized_quicksilver_alchemical_process_crucible_spire_lab", "coolant_and_conductor_for_relic_cores"],
+        "illicit_in_regions": ["Lethandrel_highly_restricted"],
+        "properties": {
+            "thermal_conductivity": "very_high",
+            "mana_conductivity": "high_stable",
+            "viscosity": "low",
+            "toxicity_reduced_but_still_present": "medium",
+            "use": "relic_core_coolant_fine_tuning_energy_flow",
+            "container_required": "sealed_quartz_ampule"
+        }
+    },
+    {
+        "name": "Activated Charcoal Filter (Heavy)",
+        "description": "High-grade activated charcoal filter for removing toxins and magical particulates from air in relic work areas.",
+        "material_type": MaterialType.CRAFTED,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 30,
+        "weight": 0.5,
+        "is_craftable": True,
+        "source_tags": ["processed_hardwood_high_temp_steam_activation", "filters_airborne_toxins_minor_magical_particulates"],
+        "illicit_in_regions": [],
+        "properties": {
+            "filtration_efficiency_percent_common_toxins": 80,
+            "filtration_magic_particulates": "low_gaseous_only",
+            "lifespan_hours_continuous_use": 24,
+            "use": "respirators_lab_environments_relic_disassembly_zones"
+        }
+    },
+    {
         "name": "Elven Mana-Silk Thread (Spool)",
         "description": "Incredibly fine thread spun from silk infused with stabilized mana. Used for inscription and binding of magical elements.",
         "material_type": MaterialType.MAGICAL,
@@ -2628,6 +2860,95 @@ RELICSMITHING_MATERIALS = [
             "containment_potential": "medium",
             "glow_when_active": "faint_user_attuned_color",
             "spool_length_meters": 50
+        }
+    },
+    # Tools for Relic Tinkering
+    {
+        "name": "Insulated Cerametal Pliers",
+        "description": "Specialized pliers with ceramic coating for handling electrically and magically charged relic components safely.",
+        "material_type": MaterialType.TOOL,
+        "rarity": Rarity.RARE,
+        "base_value": 150,
+        "weight": 0.3,
+        "is_craftable": True,
+        "source_tags": ["ferverl_innovation_crucible_spire_workshop", "handles_electrically_magically_charged_components"],
+        "illicit_in_regions": [],
+        "properties": {
+            "insulation_rating_volts_mana_units": "10kV_100MU",
+            "grip_precision": "high",
+            "material": "ceramic_coated_tool_steel",
+            "heat_resistance_celsius": 800,
+            "notes": "Essential for disarming certain relic traps."
+        }
+    },
+    {
+        "name": "Multi-Spectrum Goggles",
+        "description": "Advanced goggles that reveal hidden energy signatures and auras. Essential equipment for relic analysis.",
+        "material_type": MaterialType.TOOL,
+        "rarity": Rarity.EPIC,
+        "base_value": 500,
+        "weight": 0.2,
+        "is_craftable": True,
+        "source_tags": ["human_artificer_skarport_guild_of_innovators", "reveals_hidden_energy_signatures_auras"],
+        "illicit_in_regions": [],
+        "properties": {
+            "vision_modes": ["thermal", "mana_flow_basic", "ethereal_echoes_faint", "structural_integrity_scan_microfractures"],
+            "power_source": "miniature_mana_crystal_replaceable",
+            "durability": "medium_delicate_lenses"
+        }
+    },
+    {
+        "name": "Sonic Emitter (Fine Tuned)",
+        "description": "Precision instrument that uses sound waves to detect flaws or trigger mechanisms in relics. Requires expert handling.",
+        "material_type": MaterialType.TOOL,
+        "rarity": Rarity.EPIC,
+        "base_value": 700,
+        "weight": 0.6,
+        "is_craftable": True,
+        "source_tags": ["dwarven_acoustic_engineer_stonewake_labs", "used_to_resonate_and_detect_flaws_or_trigger_mechanisms_in_relics"],
+        "illicit_in_regions": [],
+        "properties": {
+            "frequency_range_hz": "1_to_100000",
+            "amplitude_control_fine": True,
+            "power_output_max_decibels": 120,
+            "use_risk": "can_shatter_delicate_relics_if_miscalibrated",
+            "requires_skill": "Acoustic Engineering L5"
+        }
+    },
+    {
+        "name": "Containment Field Projector (Small)",
+        "description": "Reverse-engineered Accord technology that generates temporary localized stasis fields for containing dangerous relics.",
+        "material_type": MaterialType.TOOL,
+        "rarity": Rarity.LEGENDARY,
+        "base_value": 3000,
+        "weight": 2.0,
+        "is_craftable": True,
+        "source_tags": ["lost_accord_tech_reverse_engineered_crucible_spire_secret_lab", "generates_temporary_localized_stasis_field"],
+        "illicit_in_regions": ["Accord_High_Council_Monopoly"],
+        "properties": {
+            "field_radius_max_meters": 0.5,
+            "duration_max_minutes_at_full_power": 5,
+            "power_cell_type": "refined_crimsonite_pellet_stabilized",
+            "field_strength_rating": 8,
+            "failure_chance_on_critical_relic": 0.15,
+            "recharge_time_hours": 12
+        }
+    },
+    {
+        "name": "Glyphic Scraper Set (Obsidian)",
+        "description": "Set of obsidian tools for removing or altering magical runes on relics. The obsidian is magically inert.",
+        "material_type": MaterialType.TOOL,
+        "rarity": Rarity.RARE,
+        "base_value": 90,
+        "weight": 0.1,
+        "is_craftable": True,
+        "source_tags": ["ferverl_artisan_thal_zirad_engraved_obsidian_tools", "for_removing_or_altering_magical_runes_on_relics"],
+        "illicit_in_regions": [],
+        "properties": {
+            "tool_tips_shapes": ["fine_point", "curved_edge", "flat_chisel"],
+            "material_hardness_mohs": 6,
+            "non_conductive_magically_inert": True,
+            "delicacy_required": "high_can_damage_runes_if_unskilled"
         }
     }
 ]
