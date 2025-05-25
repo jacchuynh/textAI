@@ -1388,6 +1388,164 @@ JEWELCRAFTING_RECIPES = [
             {"skill_name": "Jewelcrafting", "level": 2, "affects_quality": True},
             {"skill_name": "Silversmithing", "level": 1, "affects_quality": True}
         ]
+    },
+    # Additional Gem Cutting & Polishing
+    {
+        "name": "Cut & Polished Quartz Cabochon",
+        "description": "A smooth, domed quartz cabochon, polished to a gentle sheen. Suitable for simple jewelry or as a minor focus component.",
+        "recipe_category": "Gemcutting - Cabochon",
+        "crafting_time_seconds": 1800,
+        "required_station_type": "Lapidary Grinding Wheel & Polishing Station",
+        "difficulty_level": 2,
+        "is_discoverable": False,
+        "experience_gained": [{"skill_name": "Gemcutting", "amount": 30}],
+        "quality_range": {"min": 1, "max": 5},
+        "ingredients": [
+            {"item_id": "Rough Quartz Crystal", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Water", "quantity": 0.1, "consumed_in_crafting": True},
+            {"item_id": "Basic Sandpaper", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Jeweler's Rouge", "quantity": 0.1, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Cut & Polished Quartz Cabochon", "quantity": 1.0},
+        "secondary_outputs": [
+            {"item_id": "Quartz Dust", "quantity": 1.0, "chance": 1.0}
+        ],
+        "required_skills": [
+            {"skill_name": "Gemcutting", "level": 1, "affects_quality": True},
+            {"skill_name": "Lapidary Basics", "level": 1, "affects_quality": True}
+        ],
+        "custom_data": {"typical_size_mm": "10x14_oval", "potential_use": "low_cost_ring_pendant_inlay"}
+    },
+    {
+        "name": "Faceted Amethyst Gem (Round Brilliant)",
+        "description": "A sparkling amethyst cut in a classic round brilliant style to maximize its purple fire. A popular choice for rings and pendants.",
+        "recipe_category": "Gemcutting - Faceted Stone",
+        "crafting_time_seconds": 5400,
+        "required_station_type": "Jeweler's Faceting Machine with Dop Station",
+        "difficulty_level": 5,
+        "is_discoverable": True,
+        "unlock_conditions": {"studied_under_dwarven_gemcutter_stonewake": True, "skill_name": "Advanced Gem Faceting", "level": 3},
+        "experience_gained": [{"skill_name": "Gemcutting", "amount": 150}, {"skill_name": "Advanced Gem Faceting", "amount": 100}],
+        "quality_range": {"min": 3, "max": 8},
+        "ingredients": [
+            {"item_id": "Uncut Amethyst Geode", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Dop Wax", "quantity": 0.1, "consumed_in_crafting": True},
+            {"item_id": "Diamond Dust", "quantity": 0.01, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Faceted Amethyst Gem", "quantity": 1.0},
+        "secondary_outputs": [
+            {"item_id": "Amethyst Chips & Dust", "quantity": 1.0, "chance": 1.0}
+        ],
+        "required_skills": [
+            {"skill_name": "Gemcutting", "level": 4, "affects_quality": True},
+            {"skill_name": "Advanced Gem Faceting", "level": 2, "affects_quality": True, "affects_speed": False},
+            {"skill_name": "Mineralogy (Quartz Varieties)", "level": 1, "affects_quality": False}
+        ],
+        "custom_data": {"target_carat_weight_from_rough": "0.5_to_2_carats", "facets_count": 57, "light_performance_rating_potential": "good_to_excellent"}
+    },
+    # Additional Jewelry Crafting
+    {
+        "name": "Simple Silver Ring with Quartz Cabochon",
+        "description": "A modest ring crafted from sterling silver, featuring a single polished quartz cabochon set in a simple bezel.",
+        "recipe_category": "Jewelry - Ring (Basic)",
+        "crafting_time_seconds": 3600,
+        "required_station_type": "Jeweler's Bench with Soldering Kit & Mandrel",
+        "difficulty_level": 3,
+        "is_discoverable": False,
+        "experience_gained": [{"skill_name": "Jewelry Crafting", "amount": 70}, {"skill_name": "Silversmithing", "amount": 30}],
+        "quality_range": {"min": 2, "max": 6},
+        "ingredients": [
+            {"item_id": "Silver Jewelry Bar (92.5% Pure)", "quantity": 5.0, "consumed_in_crafting": True},
+            {"item_id": "Cut & Polished Quartz Cabochon", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Silver Solder Paste", "quantity": 0.1, "consumed_in_crafting": True},
+            {"item_id": "Bezel Setting Strip", "quantity": 0.3, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Simple Silver Ring with Quartz Cabochon", "quantity": 1.0},
+        "required_skills": [
+            {"skill_name": "Jewelry Crafting", "level": 2, "affects_quality": True},
+            {"skill_name": "Silversmithing", "level": 1, "affects_quality": True},
+            {"skill_name": "Basic Gem Setting", "level": 1, "affects_quality": True}
+        ],
+        "custom_data": {"ring_size_standard": "US_7_default_adjustable_slightly", "stone_setting_type": "bezel"}
+    },
+    {
+        "name": "Dwarven Gold & Garnet Signet Ring",
+        "description": "A heavy, ornate signet ring crafted in the traditional Dwarven style from 18k gold, featuring a deep red faceted garnet. The flat top of the ring is suitable for engraving a clan symbol.",
+        "recipe_category": "Jewelry - Ring (Ornate Signet)",
+        "crafting_time_seconds": 10800,
+        "required_station_type": "Dwarven Master Jeweler's Forge & Engraving Station",
+        "difficulty_level": 7,
+        "is_discoverable": True,
+        "unlock_conditions": {"dwarven_clan_commission_stonewake": True, "skill_name": "Dwarven Goldsmithing", "level": 5, "studied_dwarven_heraldry": True},
+        "experience_gained": [{"skill_name": "Jewelry Crafting (Master)", "amount": 400}, {"skill_name": "Dwarven Goldsmithing", "amount": 250}, {"skill_name": "Engraving", "amount": 50}],
+        "quality_range": {"min": 5, "max": 9},
+        "ingredients": [
+            {"item_id": "Gold Jewelry Ingot (18k Yellow)", "quantity": 20.0, "consumed_in_crafting": True},
+            {"item_id": "Faceted Garnet Gem", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Dwarven Hearth-Flux", "quantity": 0.05, "consumed_in_crafting": True},
+            {"item_id": "Gold Solder", "quantity": 0.5, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Dwarven Gold & Garnet Signet Ring", "quantity": 1.0},
+        "required_skills": [
+            {"skill_name": "Jewelry Crafting (Master)", "level": 6, "affects_quality": True},
+            {"skill_name": "Dwarven Goldsmithing", "level": 4, "affects_quality": True, "affects_speed": False},
+            {"skill_name": "Secure Gem Setting", "level": 3, "affects_quality": True}
+        ],
+        "custom_data": {"ring_weight_grams_approx": 15, "engraving_surface_mm_diameter": 12, "stone_setting_type": "flush_or_channel_robust"}
+    },
+    {
+        "name": "Elven Moonpetal Pendant",
+        "description": "An elegant silver pendant crafted in the flowing, organic style of Lethandrel Elves. It features a luminous moonstone cabochon, believed to capture and reflect the light of the moons, aiding in meditation and intuition.",
+        "recipe_category": "Jewelry - Amulet/Pendant (Elven)",
+        "crafting_time_seconds": 7200,
+        "required_station_type": "Elven Moonfire Brazier & Silver Finesmithing Tools",
+        "difficulty_level": 6,
+        "is_discoverable": True,
+        "unlock_conditions": {"inspiration_from_lethandrel_art_or_nature": True, "skill_name": "Elven Silversmithing", "level": 4, "mana_sensitive_crafting_techniques_known": True},
+        "experience_gained": [{"skill_name": "Jewelry Crafting", "amount": 250}, {"skill_name": "Elven Silversmithing", "amount": 180}, {"skill_name": "Artistic Design (Elven)", "amount": 70}],
+        "quality_range": {"min": 4, "max": 8},
+        "ingredients": [
+            {"item_id": "Silver Jewelry Bar (92.5% Pure)", "quantity": 10.0, "consumed_in_crafting": True},
+            {"item_id": "Cut & Polished Moonstone Cabochon", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Elven Moon-Flux", "quantity": 0.01, "consumed_in_crafting": True},
+            {"item_id": "Fine Silver Wire", "quantity": 1.0, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Elven Moonpetal Pendant", "quantity": 1.0},
+        "required_skills": [
+            {"skill_name": "Jewelry Crafting", "level": 5, "affects_quality": True},
+            {"skill_name": "Elven Silversmithing", "level": 3, "affects_quality": True, "affects_speed": True},
+            {"skill_name": "Delicate Gem Setting", "level": 2, "affects_quality": True}
+        ],
+        "custom_data": {"design_motif": "intertwined_vines_and_moon_phases", "moonstone_glow_intensity_modifier": "quality_dependent", "enhances_meditation_focus_minorly": True}
+    },
+    # Enchanting Components & Foci
+    {
+        "name": "Mana Crystal Focus (Cut & Set)",
+        "description": "A raw mana-charged geode fragment that has been carefully cut and set into a simple silver or copper housing. It can be used by enchanters to channel and store magical energies for imbuing items.",
+        "recipe_category": "Enchanting Component - Focus Crystal",
+        "crafting_time_seconds": 9000,
+        "required_station_type": "Arcane Lapidary & Jeweler's Bench with Mana Dampeners",
+        "difficulty_level": 7,
+        "is_discoverable": True,
+        "unlock_conditions": {"research_notes_crucible_spire_on_mana_crystals": True, "skill_name": "Arcane Gemcutting", "level": 5, "skill_name": "Basic Enchanting Theory", "level": 3},
+        "experience_gained": [{"skill_name": "Gemcutting (Magical)", "amount": 300}, {"skill_name": "Jewelry Crafting (Functional)", "amount": 150}, {"skill_name": "Arcane Engineering (Basic)", "amount": 100}],
+        "quality_range": {"min": 4, "max": 8},
+        "ingredients": [
+            {"item_id": "Mana-Charged Geode Fragment", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Silver Jewelry Bar (92.5% Pure)", "quantity": 5.0, "can_be_substituted": True, "possible_substitutes": ["Copper Ingot (Pure)", "Gold Jewelry Ingot (Low Karat)"], "consumed_in_crafting": True},
+            {"item_id": "Insulated Cerametal Pliers", "quantity": 1.0, "consumed_in_crafting": False},
+            {"item_id": "Inert Clay (Mana Absorptive)", "quantity": 0.2, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Mana Crystal Focus", "quantity": 1.0},
+        "secondary_outputs": [
+            {"item_id": "Depleted Crystal Shards & Metal Scrap", "quantity": 1.0, "chance": 0.2}
+        ],
+        "required_skills": [
+            {"skill_name": "Arcane Gemcutting", "level": 4, "affects_quality": True},
+            {"skill_name": "Jewelry Crafting (Functional)", "level": 3, "affects_quality": True},
+            {"skill_name": "Mana Manipulation (Basic Control)", "level": 2, "affects_quality": True}
+        ],
+        "custom_data": {"mana_storage_capacity_units_base": 100, "mana_storage_per_quality": 25, "energy_leakage_rate_percent_per_day": "5_minus_quality", "attuned_mana_type_if_any": "inherited_from_raw_crystal"}
     }
 ]
 
