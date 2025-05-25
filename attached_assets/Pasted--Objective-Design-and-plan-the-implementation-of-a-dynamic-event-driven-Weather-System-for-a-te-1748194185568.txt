@@ -1,0 +1,138 @@
+**Objective:** Design and plan the implementation of a dynamic, event-driven Weather System for a text-based fantasy RPG. This system should generate diverse weather conditions that impact gameplay across various interconnected systems, integrate seamlessly with the existing Time and Season systems, and be optimized for a Python/FastAPI/Pydantic/SQLAlchemy/Celery/Redis stack.
+
+**Core Components to Design:**
+
+1.  **Data Models (Pydantic for API/internal use & SQLAlchemy for DB):**
+    *   **Location:** Create a new file: `/Users/jacc/Downloads/workspace test/app/models/weather_models.py`
+    *   Define the following models:
+        *   `WeatherType (Enum)`: Enumeration for distinct weather types (e.g., `CLEAR`, `CLOUDY`, `PARTLY_CLOUDY`, `FOG`, `LIGHT_RAIN`, `HEAVY_RAIN`, `THUNDERSTORM`, `LIGHT_SNOW`, `HEAVY_SNOW`, `BLIZZARD`, `WINDY`, `GALE`, `DUST_STORM`, `HAIL`). Include a `description` attribute for each type.
+        *   `PrecipitationType (Enum)`: (e.g., `NONE`, `RAIN`, `SNOW`, `HAIL`)
+        *   `WeatherCondition (Pydantic Model & SQLAlchemy Table)`: Represents the current or forecasted weather in a specific region.
+            *   `id: int` (Primary Key)
+            *   `region_id: str` (Indexed, identifies the game region)
+            *   `timestamp: datetime` (When this weather state began)
+            *   `weather_type: WeatherType`
+            *   `temperature: float` (in Celsius or Fahrenheit, be consistent)
+            *   `temperature_feels_like: float` (calculated, considering wind, humidity)
+            *   `wind_speed: float` (e.g., km/h or mph)
+            *   `wind_direction: str` (e.g., N, NE, E, SE, S, SW, W, NW, or degrees)
+            *   `precipitation_type: PrecipitationType`
+            *   `precipitation_intensity: float` (e.g., mm per hour, or a 0-1 scale)
+            *   `humidity: float` (0.0 to 1.0)
+            *   `cloud_cover: float` (0.0 for clear, 1.0 for overcast)
+            *   `visibility: float` (e.g., in kilometers or miles, or a descriptive enum like `EXCELLENT`, `GOOD`, `MODERATE`, `POOR`, `VERY_POOR`)
+            *   `generated_description: str` (A narratively descriptive string, e.g., "A light drizzle falls from an overcast sky.")
+            *   `expected_duration_hours: Optional[float]` (Estimated duration for this specific condition before a potential change)
+        *   `WeatherPattern (Pydantic Model & SQLAlchemy Table)`: Defines typical weather characteristics and probabilities for a region and season. Used as a basis for generating `WeatherCondition`.
+            *   `id: int` (Primary Key)
+            *   `region_id: str`
+            *   `season: str` (Enum: `SPRING`, `SUMMER`, `AUTUMN`, `WINTER`)
+            *   `weather_type_probabilities: dict[WeatherType, float]` (e.g., `{WeatherType.CLEAR: 0.4, WeatherType.LIGHT_RAIN: 0.2, ...}`)
+            *   `temperature_base_min: float`
+            *   `temperature_base_max: float`
+            *   `humidity_range_min: float`
+            *   `humidity_range_max: float`
+            *   `default_wind_speeds: dict[str, float]` (e.g. `{"min": 5, "max": 15, "gust_chance": 0.1, "gust_max_multiplier": 1.5}`)
+            *   Other parameters to guide weather generation (e.g., typical cloud cover ranges, precipitation chances).
+        *   `ActiveWeatherEffect (Pydantic Model & SQLAlchemy Table)`: Represents an ongoing effect on an entity or area due to current weather.
+            *   `id: int` (Primary Key)
+            *   `weather_condition_id: int` (FK to `WeatherCondition`)
+            *   `target_entity_id: Optional[str]` (e.g., character_id, building_id. Null if regional effect)
+            *   `target_entity_type: Optional[str]` (e.g., "character", "building", "region_activity")
+            *   `effect_type: str` (Enum or descriptive string, e.g., `MOVEMENT_PENALTY`, `VISIBILITY_REDUCTION`, `CROP_YIELD_MODIFIER`, `RESOURCE_GATHERING_DIFFICULTY`, `COMFORT_DECREASE`)
+            *   `modifier_value: str` (Flexible, could be JSON string for complex modifiers, or simple numeric/boolean)
+            *   `description: str` (e.g., "Movement slowed by muddy conditions")
+            *   `start_time: datetime`
+            *   `calculated_end_time: datetime` (When this specific effect instance is expected to end, tied to weather change)
+
+2.  **Service Layer (`WeatherService`):**
+    *   **Location:** Create a new file: `/Users/jacc/Downloads/workspace test/app/services/weather_service.py`
+    *   Define the `WeatherService` class with the following methods:
+        *   `__init__(self, db_session: Session, time_service: TimeService)`: Constructor.
+        *   `update_weather_for_all_regions(self)`: Iterates through configured regions and calls `_calculate_and_apply_new_weather_for_region`. This could be triggered by the `TimeService` at set intervals (e.g., every few game hours, or at the start of new time blocks like Morning, Midday).
+        *   `_calculate_and_apply_new_weather_for_region(self, region_id: str) -> WeatherCondition`:
+            *   Retrieves current `TimeOfDay` and `Season` from `TimeService`.
+            *   Fetches the `WeatherPattern` for the given `region_id` and current `Season`.
+            *   Retrieves the most recent `WeatherCondition` for the region to understand the current state and ensure smooth transitions.
+            *   Implements logic for weather transitions (e.g., using Markov chains or weighted probabilities based on current weather, pattern, and random factors to prevent jarring changes like clear sky to blizzard instantly). Consider factors like "weather fronts" or multi-day weather systems if feasible.
+            *   Generates a new `WeatherCondition` instance based on the pattern, current time/season, transition logic, and an element of randomness. This includes calculating `temperature_feels_like`, `generated_description`, etc.
+            *   Persists the new `WeatherCondition` to the database.
+            *   Calls `_apply_weather_effects` for the new condition.
+            *   Publishes a `WeatherChangeEvent` to the event bus (see below).
+            *   Returns the new `WeatherCondition`.
+        *   `get_current_weather(self, region_id: str) -> Optional[WeatherCondition]`: Retrieves the most recent `WeatherCondition` for the specified region from the database or a cache.
+        *   `_apply_weather_effects(self, weather_condition: WeatherCondition)`:
+            *   Determines active effects based on `weather_condition.weather_type`, `intensity`, `temperature`, etc.
+            *   Creates/updates/removes `ActiveWeatherEffect` records in the database.
+            *   This logic should be extensible to allow various systems to define how they are affected by different weather types.
+        *   `get_active_effects_for_entity(self, entity_id: str, entity_type: str) -> list[ActiveWeatherEffect]`: Retrieves active weather effects for a specific entity.
+        *   `get_active_effects_for_region(self, region_id: str) -> list[ActiveWeatherEffect]`: Retrieves active regional weather effects.
+
+3.  **Event Definitions (`WeatherChangeEvent`):**
+    *   **Location:** Define in `/Users/jacc/Downloads/workspace test/app/events/world_events.py` (or create `app/events/weather_events.py` if preferred, ensuring it's compatible with `/Users/jacc/Downloads/workspace test/app/events/event_bus.py`).
+    *   Define `WeatherChangeEvent(BaseEvent)`:
+        *   `event_type = EventType.WEATHER_CHANGE` (assuming an `EventType` enum exists)
+        *   `timestamp: datetime`
+        *   `region_id: str`
+        *   `previous_weather_condition: Optional[WeatherConditionPydantic]` (Pydantic model for the event payload)
+        *   `current_weather_condition: WeatherConditionPydantic` (Pydantic model for the event payload)
+
+4.  **Integration with Other Systems (Subscribers to `WeatherChangeEvent`):**
+    *   Detail how the following systems should subscribe to `WeatherChangeEvent` and react:
+        *   **Time System:** The `TimeService` will be responsible for periodically triggering `WeatherService.update_weather_for_all_regions()`. The current season (managed by the Time/Season system) is a key input for weather generation.
+        *   **Economy System (e.g., `/Users/jacc/Downloads/economy_system_0.1.3/`):**
+            *   Agriculture: Impact on crop growth, planting/harvesting windows.
+            *   Resource Availability: Modifiers for gathering/production rates (e.g., herbs, wood, fish, ore).
+            *   Trade & Transportation: Effects on travel times, route availability (e.g., muddy roads, stormy seas).
+        *   **Business System:**
+            *   Customer traffic (e.g., fewer outdoor shoppers in rain).
+            *   Demand for goods (e.g., +demand for warm clothes in cold, +demand for repairs after storms).
+            *   Operational impacts (e.g., construction delays, spoilage of goods).
+        *   **NPC Behavior System (part of `ai_gm_brain` or similar):**
+            *   Changes in NPC schedules, activities (e.g., seeking shelter, staying indoors).
+            *   NPC dialogue (commenting on weather).
+            *   NPC mood or needs (e.g., getting cold, wet).
+        *   **Narrative Engine (e.g., `/Users/jacc/Downloads/narrative engine 0.1.3 3/`):**
+            *   Dynamic generation of descriptive text reflecting current weather.
+            *   Triggering weather-related minor events, encounters, or plot hooks.
+            *   Influencing ambiance and mood.
+        *   **Magic System (e.g., `/Users/jacc/Downloads/magic_system/` and `/Users/jacc/Downloads/workspace test/app/services/magic_service.py`):**
+            *   Modifiers to spell effectiveness or casting (e.g., enhanced lightning spells in storms, difficulty of fire spells in rain).
+            *   Weather as a component or prerequisite for certain rituals or magical phenomena.
+        *   **Combat System (e.g., `/Users/jacc/Downloads/combat_system/`):**
+            *   Environmental effects: Visibility reduction (fog, blizzards), movement penalties (mud, deep snow), difficult terrain.
+            *   Elemental damage modifications (e.g., increased cold damage in freezing weather).
+            *   Introduction of weather-specific hazards during combat.
+        *   **Player Character System:**
+            *   Effects on stamina, warmth, comfort.
+            *   Need for specific gear (clothing, shelter).
+            *   Sensory input (what the player sees, hears, feels).
+
+5.  **Configuration & Initial Data:**
+    *   Propose a method for defining and loading `WeatherPattern` data (e.g., JSON or YAML files per region, or database seeding scripts).
+    *   Each `WeatherPattern` should define probabilities for different `WeatherType`s, base temperature ranges, humidity, etc., for each season in that region.
+    *   Define rules or parameters for weather transitions to ensure they are believable (e.g., likelihood of weather persisting, changing to similar types, or drastic shifts).
+
+6.  **Celery Task Considerations:**
+    *   Evaluate if `WeatherService.update_weather_for_all_regions()` or `_apply_weather_effects()` should be run as Celery tasks if they are computationally expensive or involve many database updates, to prevent blocking game progression. For now, assume synchronous calls unless performance dictates otherwise. If effects are widespread, Celery tasks for broadcasting/applying effects to many entities might be beneficial.
+
+**Key Design Principles:**
+
+*   **Dynamic & Emergent:** Weather should feel alive and unpredictable (within reasonable bounds defined by patterns) rather than following a fixed, obvious cycle.
+*   **Impactful:** Weather should have tangible effects on gameplay, creating challenges and opportunities.
+*   **Integrated:** Weather should be a core part of the world, influencing and being influenced by other systems.
+*   **Performant:** The system must be optimized to run efficiently, especially weather updates and effect calculations, using caching (Redis for current conditions, patterns) where appropriate.
+*   **Configurable:** Allow easy definition and tuning of weather patterns for different regions and seasons.
+*   **Narratively Rich:** The system should provide enough detail to allow the Narrative Engine to generate evocative descriptions.
+
+**Deliverables Expected from AI Assistant:**
+
+*   Python code for Pydantic and SQLAlchemy models in `app/models/weather_models.py`.
+*   Python code for the `WeatherService` class and its methods in `app/services/weather_service.py`.
+*   Python code for the `WeatherChangeEvent` in `app/events/world_events.py` (or new `app/events/weather_events.py`).
+*   A clear description of the logic for weather generation and transition within `WeatherService`.
+*   A detailed plan for how `WeatherPattern` data will be structured and loaded.
+*   A list of specific integration points and example effects for each of the other game systems mentioned.
+*   Recommendations for using Celery and Redis for optimization if deemed necessary.
+
+This prompt should provide a comprehensive guide for your AI assistant to develop the Weather System.
