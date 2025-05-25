@@ -1,0 +1,107 @@
+**Objective:** Create a detailed implementation plan to upgrade the existing Text Parser Engine to comprehensively support and interact with the suite of economic systems designed for the main RPG project. These economic systems include the core Economy, Business Management, Material & Recipe/Crafting, Building & Property, and Black Market systems. The primary goal of this upgrade is to make the code-based parsing components of the Text Parser Engine as sophisticated as possible to accurately interpret and handle player commands related to these economic systems, thereby minimizing reliance on LLM parsing for such interactions and optimizing token usage.
+
+**Project Context:**
+*   The main RPG application is built with Python, FastAPI, Pydantic for data validation, and SQLAlchemy for ORM. Its business logic is encapsulated in services within its `app/services/` directory.
+*   The Text Parser Engine currently employs a hybrid approach, utilizing a foundational code-based parser with an LLM fallback for more complex or ambiguous inputs. Key existing files in the parser engine include `parser_engine.py`, `object_resolver.py`, and `vocabulary.py` (typically within a `text_parser` subdirectory), and `game_context.py`.
+*   This implementation plan should focus on significantly enhancing the code-based components of the Text Parser Engine to understand and process a wide range of economic commands.
+
+**Core Requirements for the Text Parser Engine Upgrade Implementation Plan:**
+
+1.  **`EconomicAction` Enum Design:**
+    *   **File:** Propose creating a new file, e.g., `economic_actions.py`, within the Text Parser Engine's `text_parser` directory.
+    *   **Content:** Design a comprehensive Python `Enum` named `EconomicAction`. This enum will serve as a standardized representation of player intent for all economic activities.
+    *   **Examples:** Include actions such as:
+        *   Shop/Trade: `BUY_ITEM`, `SELL_ITEM`, `LIST_SHOP_ITEMS`, `VIEW_ITEM_DETAILS`, `GET_ITEM_PRICE`, `INITIATE_BARTER`.
+        *   Crafting: `CRAFT_ITEM_FROM_RECIPE`, `LIST_KNOWN_RECIPES`, `LIST_CRAFTABLE_RECIPES`, `VIEW_RECIPE_DETAILS`, `ATTEMPT_RECIPE_DISCOVERY`.
+        *   Business Management (Player-Owned): `VIEW_BUSINESS_STATUS`, `SET_PRODUCT_PRICE`, `MANAGE_BUSINESS_INVENTORY_STOCK`, `HIRE_STAFF_FOR_BUSINESS`, `ASSIGN_TASK_TO_STAFF`, `UPGRADE_BUSINESS_FACILITY`, `VIEW_BUSINESS_LEDGER`, `PAY_BUSINESS_TAXES`.
+        *   Building & Property: `CONSTRUCT_BUILDING`, `UPGRADE_BUILDING_MODULE`, `LIST_AVAILABLE_BUILDINGS`, `VIEW_BUILDING_SCHEMATICS`, `REPAIR_BUILDING`.
+        *   Resource & Inventory Queries: `CHECK_PLAYER_INVENTORY_CONTENTS`, `CHECK_PLAYER_CURRENCY_BALANCE`, `LOCATE_MATERIAL_SOURCE_INFO`.
+        *   Market Interaction: `GET_MARKET_PRICE_INFO`, `ACCESS_BLACK_MARKET_VENDOR`.
+    *   The enum should be designed for easy future expansion.
+
+2.  **Vocabulary System Enhancement (e.g., in `text_parser/vocabulary.py`):**
+    *   Detail strategies for significantly expanding the existing vocabulary system to support economic interactions.
+    *   **Verbs:** Define comprehensive lists of synonymous verbs corresponding to each `EconomicAction` (e.g., `CRAFT_VERBS = ["craft", "make", "create", "forge", "brew", "assemble"]`).
+    *   **Nouns (Dynamic Entity Recognition Strategy):**
+        *   Acknowledge that most economic nouns (item names, material names, recipe names, NPC names, shop names, business names, building names) are dynamic and will originate from the main RPG application's database.
+        *   Propose a robust strategy for the code-based parser to dynamically access, recognize, or be primed with these nouns. This strategy should involve the `ObjectResolver` querying the main game's services or a mechanism to load relevant nouns into the parser's active vocabulary based on the current game context (e.g., items available in the currently accessed shop, known recipes for the player).
+    *   **Keywords & Modifiers:** Identify specific keywords, prepositions, and modifiers associated with economic commands (e.g., "inventory," "recipes," "price," "status," "my shop," "at location," "using materials," "for X currency").
+
+3.  **Economic Grammars & Pattern Matching Design:**
+    *   **File:** Propose creating a new file, e.g., `economic_grammars.py`, within the Text Parser Engine's `text_parser` directory.
+    *   **Structure:** Design the structure for defining grammar rules, regex patterns, or a combination thereof, to accurately identify economic commands and extract key entities from player input.
+    *   **Coverage:** For each `EconomicAction`, provide illustrative examples of command patterns the system should recognize. Examples:
+        *   `BUY {quantity} {item_name} FROM {shop_name/npc_name} FOR {price_amount} {currency_type}`
+        *   `CRAFT {quantity} {recipe_name/item_name} USING {list_of_materials_if_specified}`
+        *   `SET PRICE OF {item_name} IN MY BUSINESS {business_name_optional} TO {amount}`
+        *   `BUILD {building_template_name} AT {plot_identifier/location_description}`
+    *   **Entity Extraction:** Patterns must be designed to capture: the specific action, quantities, item/recipe/building names, target NPCs/shops/businesses, locations, prices, currency types, and any other relevant parameters.
+    *   **Flexibility:** Address how to handle optional parts of commands, variations in phrasing, and potential ambiguities.
+    *   **Core Function:** Outline a primary function within this module, e.g., `match_economic_command(text: str, context: GameContext) -> Optional[ParsedCommandStructure]`, that attempts to parse the input. This function should return a structured object (e.g., a Pydantic model) containing the identified `EconomicAction` (enum member) and all extracted entities, or `None` if no confident code-based match is found.
+
+4.  **`EconomicCommandHandler` Design:**
+    *   **File:** Propose creating a new file, e.g., `economic_command_handler.py`, within the Text Parser Engine's `text_parser` directory.
+    *   **Role:** This module will be the central orchestrator for the code-based parsing and handling of economic commands.
+    *   **Input:** Receives raw or pre-processed player text input.
+    *   **Processing Logic:**
+        *   Utilize the `match_economic_command` function from the proposed `economic_grammars.py` to get a preliminary parse.
+        *   If a potential match is found, leverage the enhanced `ObjectResolver` (see requirement #5) to validate and resolve all extracted entity names (e.g., convert "healing potion" string to its unique `item_id`).
+        *   Implement logic for disambiguation if the `ObjectResolver` returns multiple potential matches for an entity (e.g., by prompting the user for clarification through the game interface, or by using deeper `GameContext` cues).
+    *   **Interaction with Main Game Services (Crucial):**
+        *   Based on the successfully parsed and validated `EconomicAction` and fully resolved entities, this handler is responsible for formulating and executing the correct calls to the appropriate service methods within the main RPG application's `app/services/` directory.
+        *   Provide clear, illustrative examples of this interaction:
+            *   Parsing "buy 2 health potions from 'The Tipsy Pixie'" should ultimately lead to an interaction equivalent to calling `transaction_service.player_buy_item(player_id=context.player_id, item_id=resolved_potion_id, shop_id=resolved_pixie_shop_id, quantity=2)`.
+            *   Parsing "craft steel sword" should lead to an interaction equivalent to `crafting_service.attempt_craft_item(character_id=context.player_id, recipe_id=resolved_steel_sword_recipe_id)`.
+    *   **Response Generation:** Formulate a structured response object (indicating success/failure, user-facing messages, relevant data) to be returned to the main `ParserEngine`.
+
+5.  **`ObjectResolver` Enhancement (e.g., in `text_parser/object_resolver.py`):**
+    *   **Role:** This module is critical for acting as a bridge between the text parser's extracted strings and the live, structured game state managed by the main economic systems.
+    *   **New/Enhanced Methods:** Define new methods or significantly enhance existing ones to resolve entities specific to the economic systems. These methods **must** be designed to interact with the relevant services in the main RPG application's `app/services/` directory. Examples:
+        *   `resolve_item_for_purchase(name_str: str, context: GameContext, shop_id: Optional[str] = None) -> Optional[ResolvedItemData]`
+        *   `resolve_item_in_inventory(name_str: str, context: GameContext, inventory_owner_id: str) -> Optional[ResolvedItemData]`
+        *   `resolve_recipe_for_crafting(name_str: str, context: GameContext, character_id: str) -> Optional[ResolvedRecipeData]`
+        *   `resolve_shop_by_name_or_context(name_str: Optional[str], context: GameContext) -> Optional[ResolvedShopData]`
+        *   `resolve_npc_for_interaction(name_str: str, context: GameContext) -> Optional[ResolvedNPCData]`
+        *   `resolve_player_owned_business(name_str: Optional[str], context: GameContext) -> Optional[ResolvedBusinessData]`
+        *   `resolve_building_template_for_construction(name_str: str, context: GameContext) -> Optional[ResolvedBuildingTemplateData]`
+        *   `resolve_land_plot_for_building(identifier_str: str, context: GameContext) -> Optional[ResolvedPlotData]`
+    *   The `context: GameContext` parameter is vital for all resolution methods, providing necessary information like player ID, current location, active interaction targets, etc.
+    *   Define the structure of `Resolved<Entity>Data` objects (likely Pydantic models) that these methods would return, containing IDs and essential attributes of the resolved entities.
+
+6.  **`ParserEngine` Update (e.g., in `text_parser/parser_engine.py`):**
+    *   Detail modifications to the main `ParserEngine.parse_input()` method (or equivalent).
+    *   Implement a clear, tiered parsing strategy:
+        1.  The input is first processed by the enhanced code-based `EconomicCommandHandler`.
+        2.  If the `EconomicCommandHandler` returns a high-confidence, successfully parsed and resolved command, this result is used.
+        3.  If the code-based parsing fails, yields a low-confidence result, or if the command is inherently too open-ended or narrative for the structured parser (e.g., "What are the economic prospects in this region?"), then the system should fall back to the LLM-based parsing component.
+    *   Define objective criteria or heuristics for determining "high confidence" for a code-based parse.
+    *   Emphasize the need for robust logging when fallbacks to LLM occur for commands that seem like they *should* be parsable by the code-based system, to identify areas for future improvement.
+
+7.  **`GameContext` Update (e.g., in `game_context.py` of the Text Parser Engine project):**
+    *   Specify in detail what information the `GameContext` object needs to hold or have methods to access, to effectively support the `ObjectResolver` and `EconomicCommandHandler`. This includes, but is not limited to:
+        *   Current Player ID.
+        *   Player's current location ID and descriptive tags.
+        *   Current NPC interaction target ID (if any).
+        *   Current Shop ID the player is browsing (if any).
+        *   Relevant Market Region ID or information.
+        *   Quick access to player's known recipes, relevant skills, and currency.
+        *   Information about the player's owned businesses or properties.
+
+8.  **Interface Contract with Main Economic System Services:**
+    *   Clearly define the contract and communication mechanism between the Text Parser Engine modules (primarily `ObjectResolver` and `EconomicCommandHandler`) and the services located in the main RPG application's `app/services/` directory.
+    *   This involves specifying how the parser components will make calls (e.g., assuming direct Python calls if integrated into the same overall application process, or defining necessary API endpoint requirements if the parser runs as a separate service).
+    *   Detail the expected data structures (Pydantic models) for requests made to these services and the responses expected from them.
+
+**Token Efficiency Goal:**
+*   Throughout the plan, consistently reiterate that all proposed enhancements to the code-based parser are driven by the primary goal of maximizing its capability to independently understand and process player commands related to the economic systems. This is crucial for reducing the frequency of (and thus token cost associated with) LLM interventions for these types of commands.
+
+**Deliverables Expected from the AI Assistant (based on this prompt):**
+*   A detailed, step-by-step implementation plan document.
+*   For each new or significantly modified module/file:
+    *   Clear descriptions of its purpose, responsibilities, and internal logic.
+    *   Proposed Python code snippets for key data structures (like the `EconomicAction` enum), class definitions, important method signatures, and illustrative examples of internal logic (e.g., grammar patterns, resolver queries, handler decision trees).
+*   Detailed explanations of how the `ObjectResolver` and `EconomicCommandHandler` will interface and exchange data with the economic services in the main RPG application.
+*   A flow diagram or clear textual description of the `ParserEngine`'s updated tiered parsing strategy.
+*   Specific, itemized additions and modifications required for the `GameContext` class.
+*   Identification of any new dependencies that might be introduced or significant changes to existing file structures within the Text Parser Engine project.
+*   A section discussing potential challenges and how to address them.
