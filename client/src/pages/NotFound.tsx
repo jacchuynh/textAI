@@ -1,35 +1,19 @@
 import React from 'react';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
-      <div className="container max-w-md">
-        <Card className="border-2 border-amber-500 bg-black/60 backdrop-blur-sm">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-amber-300">Page Not Found</CardTitle>
-            <CardDescription className="text-gray-300">
-              The magical path you seek does not exist
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-4 text-center">
-            <p className="text-gray-300">
-              You've ventured into uncharted territory. The area you're looking for hasn't been discovered yet.
-            </p>
-          </CardContent>
-          
-          <CardFooter className="flex flex-col gap-4 sm:flex-row">
-            <Button asChild className="w-full bg-purple-700 hover:bg-purple-600">
-              <Link href="/">Return to Home</Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full border-purple-700 text-purple-300 hover:bg-purple-900/30">
-              <Link href="/create-character">Create Character</Link>
-            </Button>
-          </CardFooter>
-        </Card>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4 text-center">
+      <div className="mx-auto max-w-md">
+        <h1 className="mb-6 text-6xl font-bold text-purple-400">404</h1>
+        <h2 className="mb-4 text-2xl font-semibold text-gray-200">Page Not Found</h2>
+        <p className="mb-8 text-gray-400">
+          The magical realm you seek does not exist or has been claimed by the void.
+        </p>
+        <Button asChild className="bg-purple-700 hover:bg-purple-600">
+          <Link href="/">Return to the Known Realms</Link>
+        </Button>
       </div>
     </div>
   );
