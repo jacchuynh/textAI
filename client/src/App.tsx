@@ -1,26 +1,24 @@
 import React from 'react';
 import { Route, Switch } from 'wouter';
-import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
-
-// Pages
 import HomePage from './pages/HomePage';
 import CreateCharacter from './pages/CreateCharacter';
 import PlayerView from './pages/PlayerView';
 import NotFound from './pages/NotFound';
 
-export default function App() {
+function App() {
   return (
     <ThemeProvider defaultTheme="dark">
-      <div className="min-h-screen bg-background text-foreground">
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black">
         <Switch>
           <Route path="/" component={HomePage} />
           <Route path="/create-character" component={CreateCharacter} />
-          <Route path="/play/:userId" component={PlayerView} />
+          <Route path="/player/:userId" component={PlayerView} />
           <Route component={NotFound} />
         </Switch>
       </div>
-      <Toaster />
     </ThemeProvider>
   );
 }
+
+export default App;

@@ -2,14 +2,18 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from '@shared/schema';
 
-// Use the environment DATABASE_URL or create a default one
-const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/postgres';
+// Initialize PostgreSQL client with DATABASE_URL environment variable
+const connectionString = process.env.DATABASE_URL;
 
-// Create a client for standard queries
-const client = postgres(connectionString);
+if (!connectionString) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
 
-// Create db instance with all schema imports
-export const db = drizzle(client, { schema });
+// For query purposes (non-transaction)
+export const sql = postgres(connectionString, { max: 10 });
 
-// Export a standalone function to run queries directly
-export const query = client;
+// Initialize Drizzle ORM
+export const db = drizzle(sql, { schema });
+
+// Export a query function for raw SQL queries
+export const query = sql;

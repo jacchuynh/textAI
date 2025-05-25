@@ -3,13 +3,13 @@ import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import { query } from '../db';
 import routes from './routes';
-
-// Get our Vite build for frontend
-import { viteServer } from './vite';
+import { createServer } from 'vite';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 
 // Environment variables
 const isProduction = process.env.NODE_ENV === 'production';
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3000);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'fantasy-rpg-secret';
 
 // Initialize Express
@@ -44,7 +44,20 @@ app.use(routes);
 
 // Integrate Vite in development, serve static files in production
 if (!isProduction) {
-  app.use(viteServer);
+  // Create a development server for frontend with HMR
+  (async () => {
+    try {
+      const vite = await createServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      
+      app.use(vite.middlewares);
+      console.log('Vite middleware attached');
+    } catch (e) {
+      console.error('Error setting up Vite middleware:', e);
+    }
+  })();
 } else {
   // For production, serve static files from the dist directory
   app.use(express.static('dist/client'));
