@@ -1,117 +1,207 @@
 """
 Crafting System Pydantic Models
 
-This module defines Pydantic models for the material and recipe system.
+This module defines the Pydantic models for the Material and Recipe System.
 """
 
-import enum
+import uuid
 from typing import Dict, List, Optional, Any, Union
+from datetime import datetime
+from enum import Enum
 from pydantic import BaseModel, Field
 
-class MaterialType(str, enum.Enum):
-    """Types of materials in the crafting system."""
-    RAW_RESOURCE = "raw_resource"
-    REFINED_MATERIAL = "refined_material"
-    COMPONENT = "component"
-    CONSUMABLE_INGREDIENT = "consumable_ingredient"
-    FINISHED_GOOD = "finished_good"
 
-class Rarity(str, enum.Enum):
-    """Rarity levels for materials and items."""
-    COMMON = "common"
-    UNCOMMON = "uncommon"
-    RARE = "rare"
-    EPIC = "epic"
-    LEGENDARY = "legendary"
+class MaterialType(str, Enum):
+    """Enumeration of material types."""
+    # Raw Materials
+    ORE = "ORE"
+    METAL = "METAL"
+    METAL_PRECIOUS = "METAL_PRECIOUS"
+    WOOD_RAW = "WOOD_RAW"
+    WOOD_PROCESSED = "WOOD_PROCESSED"
+    WOOD_MAGICAL = "WOOD_MAGICAL"
+    WOOD_MINERAL = "WOOD_MINERAL"
+    HIDE = "HIDE"
+    LEATHER = "LEATHER"
+    EXOTIC_HIDE = "EXOTIC_HIDE"
+    EXOTIC_LEATHER = "EXOTIC_LEATHER"
+    CLOTH = "CLOTH"
+    THREAD = "THREAD"
+    PLANT_FIBER = "PLANT_FIBER"
+    HERB = "HERB"
+    GEM_RAW = "GEM_RAW"
+    GEM = "GEM"
+    GEM_PROCESSED = "GEM_PROCESSED"
+    GEM_MAGICAL = "GEM_MAGICAL"
+    ANIMAL_PART = "ANIMAL_PART"
+    MAGICAL = "MAGICAL"
+    MINERAL = "MINERAL"
+    
+    # Crafting Components
+    RESIN = "RESIN"
+    ADHESIVE = "ADHESIVE"
+    FINISH = "FINISH"
+    FINISH_MAGICAL = "FINISH_MAGICAL"
+    FASTENER_WOOD = "FASTENER_WOOD"
+    FASTENER_METAL = "FASTENER_METAL"
+    FINDING = "FINDING"
+    TOOL = "TOOL"
+    TOOL_PART = "TOOL_PART"
+    CONSUMABLE = "CONSUMABLE"
+    
+    # Generic types
+    CRAFTED = "CRAFTED"
+    MATERIAL = "MATERIAL"
+    OTHER = "OTHER"
+
+
+class Rarity(str, Enum):
+    """Enumeration of item rarities."""
+    COMMON = "COMMON"
+    UNCOMMON = "UNCOMMON"
+    RARE = "RARE"
+    EPIC = "EPIC"
+    LEGENDARY = "LEGENDARY"
+
+
+class RecipeIngredient(BaseModel):
+    """Model for ingredients required in a recipe."""
+    item_id: str
+    quantity: float = 1.0
+    can_be_substituted: bool = False
+    possible_substitutes: Optional[List[str]] = None
+    consumed_in_crafting: bool = True
+    custom_data: Optional[Dict[str, Any]] = None
+
+    class Config:
+        orm_mode = True
+
+
+class RecipeOutput(BaseModel):
+    """Model for outputs produced by a recipe."""
+    item_id: str
+    quantity: float = 1.0
+    chance: float = 1.0  # 0.0 to 1.0
+    quality_modifier: float = 0.0  # Modifier to base quality
+    custom_data: Optional[Dict[str, Any]] = None
+
+    class Config:
+        orm_mode = True
+
+
+class SkillRequirement(BaseModel):
+    """Model for skills required to craft a recipe."""
+    skill_name: str
+    level: int = 1
+    affects_quality: bool = True
+    affects_speed: bool = False
+    custom_data: Optional[Dict[str, Any]] = None
+
+    class Config:
+        orm_mode = True
+
+
+class AutoLearnSkillLevel(BaseModel):
+    """Model for skills that trigger auto-learning of a recipe."""
+    skill_name: str
+    level: int
+
+    class Config:
+        orm_mode = True
+
 
 class Material(BaseModel):
-    """Model representing a material or item that can be used in crafting."""
-    id: str
+    """Model for materials used in crafting."""
+    id: Optional[str] = None
     name: str
     description: str
     material_type: MaterialType
     rarity: Rarity
-    base_value: float
-    stackable: bool = True
-    max_stack_size: Optional[int] = 100
-    source_tags: List[str] = Field(default_factory=list)  # e.g., "mining", "woodcutting"
-    properties: Dict[str, Any] = Field(default_factory=dict)  # e.g., {"flammable": True}
-    icon: Optional[str] = None
+    base_value: float = 0.0
+    weight: float = 0.0
     is_craftable: bool = False
-    illicit_in_regions: List[str] = Field(default_factory=list)  # List of MarketRegionInfo.id
-    weight_per_unit: float = 1.0  # Weight in kg or other unit
-    durability: Optional[int] = None  # For tools or equipment
-    custom_data: Dict[str, Any] = Field(default_factory=dict)  # For any additional properties
+    source_tags: List[str] = Field(default_factory=list)
+    illicit_in_regions: List[str] = Field(default_factory=list)
+    properties: Dict[str, Any] = Field(default_factory=dict)
+    custom_data: Optional[Dict[str, Any]] = None
 
-class RecipeIngredient(BaseModel):
-    """Model representing an ingredient required for a recipe."""
-    item_id: str  # References Material.id or a general Item.id
-    quantity: int
-    # Optional fields for more complex recipes
-    can_be_substituted: bool = False
-    possible_substitutes: List[str] = Field(default_factory=list)  # List of other material IDs
-    consumed_in_crafting: bool = True  # Whether the ingredient is consumed (e.g., tools aren't)
+    class Config:
+        orm_mode = True
 
-class RecipeOutput(BaseModel):
-    """Model representing an output (product) of a recipe."""
-    item_id: str
-    quantity: int
-    # Optional fields for more detailed output management
-    chance: float = 1.0  # Probability of getting this output (1.0 = guaranteed)
-    quality_modifier: Optional[float] = None  # For variable quality crafting
-    custom_data: Dict[str, Any] = Field(default_factory=dict)
-
-class SkillRequirement(BaseModel):
-    """Model representing a skill requirement for a recipe."""
-    skill_name: str
-    level: int
-    # Optional fields for more nuanced skill requirements
-    affects_quality: bool = False  # Whether skill level affects output quality
-    affects_speed: bool = False  # Whether skill level affects crafting speed
 
 class Recipe(BaseModel):
-    """Model representing a crafting recipe."""
-    id: str
+    """Model for crafting recipes."""
+    id: Optional[str] = None
     name: str
     description: str
     primary_output: RecipeOutput
     byproducts: List[RecipeOutput] = Field(default_factory=list)
-    ingredients: List[RecipeIngredient]
-    crafting_time_seconds: int = 0  # Default 0 for instant
+    ingredients: List[RecipeIngredient] = Field(default_factory=list)
+    crafting_time_seconds: int = 60
     required_skills: List[SkillRequirement] = Field(default_factory=list)
-    required_tools: List[str] = Field(default_factory=list)  # List of Item.id
-    required_station_type: Optional[str] = None  # e.g., "forge", "alchemy_lab"
-    unlock_conditions: Dict[str, Any] = Field(default_factory=dict)  # e.g., {"min_character_level": 10}
-    experience_gained: List[Dict[str, Any]] = Field(default_factory=list)  # e.g., [{"skill_name": "blacksmithing", "xp": 50}]
+    required_tools: Optional[List[str]] = None
+    required_station_type: Optional[str] = None
+    unlock_conditions: Dict[str, Any] = Field(default_factory=dict)
+    experience_gained: List[Dict[str, Any]] = Field(default_factory=list)
     is_discoverable: bool = False
-    auto_learn_at_skill_level: Optional[SkillRequirement] = None
-    # Additional fields for more complex recipe systems
-    difficulty_level: int = 1  # Used for determining success chance based on skill
-    recipe_category: Optional[str] = None  # For categorization (e.g., "weapons", "potions")
-    quality_range: Dict[str, Any] = Field(default_factory=dict)  # e.g., {"min": 1, "max": 5}
-    region_specific: List[str] = Field(default_factory=list)  # Regions where this recipe is available
-    failure_outputs: List[RecipeOutput] = Field(default_factory=list)  # What you get if crafting fails
-    custom_data: Dict[str, Any] = Field(default_factory=dict)  # For any additional properties
+    auto_learn_at_skill_level: Optional[AutoLearnSkillLevel] = None
+    difficulty_level: int = 1
+    recipe_category: str
+    quality_range: Dict[str, int] = Field(default_factory=lambda: {"min": 1, "max": 3})
+    region_specific: Optional[List[str]] = None
+    failure_outputs: List[RecipeOutput] = Field(default_factory=list)
+    custom_data: Optional[Dict[str, Any]] = None
+
+    class Config:
+        orm_mode = True
+
 
 class PlayerKnownRecipe(BaseModel):
-    """Model representing a recipe known by a player."""
+    """Model for tracking which recipes a player knows."""
+    id: Optional[str] = None
     player_id: str
     recipe_id: str
-    discovery_date: Optional[str] = None
-    mastery_level: int = 0  # Players can master recipes to improve quality/speed
+    discovery_date: datetime = Field(default_factory=datetime.utcnow)
+    mastery_level: int = 0  # 0-5 (0=novice, 5=master)
     times_crafted: int = 0
     highest_quality_crafted: int = 0
-    custom_data: Dict[str, Any] = Field(default_factory=dict)
+    custom_data: Optional[Dict[str, Any]] = None
+
+    class Config:
+        orm_mode = True
+
+
+class CraftingLog(BaseModel):
+    """Model for logging crafting attempts."""
+    id: Optional[str] = None
+    player_id: str
+    recipe_id: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    success: bool = True
+    quantity_attempted: int = 1
+    quantity_produced: int = 0
+    quality_achieved: int = 0
+    ingredients_consumed: List[Dict[str, Any]] = Field(default_factory=list)
+    outputs_produced: List[Dict[str, Any]] = Field(default_factory=list)
+    experience_gained: List[Dict[str, Any]] = Field(default_factory=list)
+    crafting_location: Optional[str] = None
+    crafting_station_used: Optional[str] = None
+    business_id: Optional[str] = None
+    custom_data: Optional[Dict[str, Any]] = None
+
+    class Config:
+        orm_mode = True
+
 
 class CraftingResult(BaseModel):
-    """Model representing the result of a crafting attempt."""
+    """Model for the result of a crafting attempt."""
     success: bool
     message: str
-    outputs: List[RecipeOutput] = Field(default_factory=list)
-    consumed_ingredients: List[RecipeIngredient] = Field(default_factory=list)
-    experience_gained: List[Dict[str, Any]] = Field(default_factory=list)
-    crafting_time_taken: int = 0
-    quality_achieved: int = 1
+    outputs: List[Dict[str, Any]]
+    consumed_ingredients: List[Dict[str, Any]]
+    experience_gained: List[Dict[str, Any]]
+    crafting_time_taken: Optional[int] = None
+    quality_achieved: Optional[int] = None
     skill_improvements: List[Dict[str, Any]] = Field(default_factory=list)
-    recipe_mastery_gained: int = 0
-    custom_data: Dict[str, Any] = Field(default_factory=dict)
+    recipe_mastery_gained: Optional[int] = None
+    custom_data: Optional[Dict[str, Any]] = None
