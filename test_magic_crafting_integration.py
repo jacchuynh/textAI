@@ -11,6 +11,33 @@ from datetime import datetime
 # Create mock classes for testing since we don't have the actual implementations
 # In a real scenario, you would import the actual classes
 
+# Mock MagicSystem class
+class MagicSystem:
+    """Mock implementation of the MagicSystem class"""
+    def __init__(self):
+        pass
+    
+    def get_player_profile(self, player_id):
+        return MockMagicUser()
+
+# Mock MagicCraftingIntegration class
+class MagicCraftingIntegration:
+    """Mock implementation of the MagicCraftingIntegration class"""
+    def __init__(self, magic_system):
+        self.magic_system = magic_system
+        self.performance_metrics = {
+            'enchantment_operations': 0,
+            'material_operations': 0,
+            'crafting_operations': 0,
+            'cache_hits': 0,
+            'cache_misses': 0
+        }
+
+# Function to create a magic crafting integration instance
+def create_magic_crafting_integration(magic_system):
+    """Create a magic crafting integration instance"""
+    return MagicCraftingIntegration(magic_system)
+
 
 # Mock data for testing
 class MockMagicUser:
