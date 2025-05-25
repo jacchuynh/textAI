@@ -1,0 +1,99 @@
+**Objective:** Design a comprehensive Material and Recipe System for an AI-driven text-based fantasy RPG.
+
+**Project Context:**
+The backend is built with Python, FastAPI, Pydantic for data validation, SQLAlchemy for ORM, and Celery with Redis for asynchronous tasks. The project structure is established (refer to provided workspace details if necessary, focusing on `/Users/jacc/Downloads/workspace test/app/`). The system should be designed with token efficiency in mind for any AI interactions related to describing or generating content around these materials/recipes, though the core system logic will be deterministic.
+
+**Core Requirements:**
+
+1.  **Pydantic Models:**
+    Define the following Pydantic models. Ensure all fields are appropriately typed, with enums where suitable. Include default values and optional fields as necessary. These models will primarily reside in `app/models/economy_models.py` or a new `app/models/crafting_models.py`.
+
+    *   **`MaterialType` (Enum):** RAW_RESOURCE, REFINED_MATERIAL, COMPONENT, CONSUMABLE_INGREDIENT, FINISHED_GOOD.
+    *   **`Rarity` (Enum):** COMMON, UNCOMMON, RARE, EPIC, LEGENDARY.
+    *   **`Material`:**
+        *   `id: str` (unique identifier)
+        *   `name: str`
+        *   `description: str`
+        *   `material_type: MaterialType`
+        *   `rarity: Rarity`
+        *   `base_value: float`
+        *   `stackable: bool` (default True)
+        *   `max_stack_size: Optional[int]` (default e.g., 100)
+        *   `source_tags: List[str]` (e.g., "mining", "woodcutting")
+        *   `properties: Dict[str, Any]` (e.g., `{"flammable": True}`)
+        *   `icon: Optional[str]`
+        *   `is_craftable: bool` (default False)
+        *   `illicit_in_regions: List[str]` (List of `MarketRegionInfo.id`)
+    *   **`RecipeIngredient`:**
+        *   `item_id: str` (references `Material.id` or a general `Item.id`)
+        *   `quantity: int`
+    *   **`RecipeOutput`:**
+        *   `item_id: str`
+        *   `quantity: int`
+    *   **`SkillRequirement`:**
+        *   `skill_name: str`
+        *   `level: int`
+    *   **`Recipe`:**
+        *   `id: str` (unique identifier)
+        *   `name: str`
+        *   `description: str`
+        *   `primary_output: RecipeOutput`
+        *   `byproducts: List[RecipeOutput]` (default empty list)
+        *   `ingredients: List[RecipeIngredient]`
+        *   `crafting_time_seconds: int` (default 0 for instant)
+        *   `required_skills: List[SkillRequirement]` (default empty list)
+        *   `required_tools: List[str]` (List of `Item.id`, default empty list)
+        *   `required_station_type: Optional[str]` (e.g., "forge", "alchemy_lab")
+        *   `unlock_conditions: Dict[str, Any]` (e.g., `{"min_character_level": 10}`, default empty dict)
+        *   `experience_gained: List[Dict[str, Any]]` (e.g., `[{"skill_name": "blacksmithing", "xp": 50}]`, default empty list)
+        *   `is_discoverable: bool` (default False)
+        *   `auto_learn_at_skill_level: Optional[SkillRequirement]`
+
+2.  **SQLAlchemy Models:**
+    Define the corresponding SQLAlchemy ORM models for `DBMaterial` (or detail enhancements to an existing `DBItem`) and `DBRecipe` to be placed in `app/db/models.py`. Specify how complex types like lists and dictionaries (e.g., `ingredients`, `properties`) should be stored (likely using `sqlalchemy.dialects.postgresql.JSONB` or `JSON` type). Define any necessary relationships.
+
+3.  **CRUD Operations:**
+    Outline the structure for `CRUDMaterial` (or `CRUDItem` enhancements) and `CRUDRecipe` classes within `app/db/crud.py`, extending a generic `CRUDBase` if applicable. List the standard create, read, update, delete methods.
+
+4.  **Service Layer (`app/services/`):**
+    Design the following services with their key methods and a brief description of their logic. Specify input parameters and return types.
+
+    *   **`MaterialService` (or `ItemService` enhancements):**
+        *   Methods for CRUD operations on materials.
+        *   Methods to find/query materials by various criteria (source, type, etc.).
+    *   **`RecipeService`:**
+        *   Methods for CRUD operations on recipes.
+        *   Methods to query recipes (by output, ingredient, skill).
+        *   Methods to manage known recipes for a character (`is_recipe_known_by_character`, `learn_recipe_for_character`, `get_known_recipes_for_character`).
+        *   Method: `get_learnable_recipes_for_character(character_id: str) -> List[Recipe]` (checks unlock conditions).
+    *   **`CraftingService`:**
+        *   `can_character_craft_recipe(character_id: str, recipe_id: str, quantity_to_craft: int = 1) -> Tuple[bool, str]` (Checks all prerequisites: known recipe, ingredients, skills, tools, station).
+        *   `attempt_craft_item(character_id: str, recipe_id: str, quantity_to_craft: int = 1) -> Dict[str, Any]` (Handles the crafting process: consumes items, grants items, awards XP, publishes events).
+        *   (Optional Advanced) `discover_recipe_attempt(character_id: str, provided_ingredients: List[RecipeIngredient]) -> Optional[Recipe]`.
+
+5.  **Integration Points:**
+    Briefly describe how this system will integrate with:
+    *   Character model (skills, known recipes storage - suggest how to store known recipes).
+    *   Inventory system (consuming ingredients, adding crafted items).
+    *   Event Bus (`app/events/event_bus.py`) for publishing relevant events (e.g., `PlayerCraftedItemEvent`, `RecipeLearnedEvent`).
+    *   Business operations (how businesses might use this system for production).
+
+6.  **Celery Tasks:**
+    Identify potential use cases for Celery tasks within this system (e.g., handling long crafting times asynchronously).
+
+7.  **API Endpoints (FastAPI):**
+    Suggest a few key FastAPI endpoint definitions (path, method, brief purpose) that would allow players to interact with this system (e.g., viewing recipes, attempting to craft).
+
+8.  **File Structure:**
+    Confirm or suggest the most appropriate file locations for the new models, SQLAlchemy definitions, CRUD operations, and services within the existing `/Users/jacc/Downloads/workspace test/app/` structure.
+
+9.  **Token Efficiency Considerations:**
+    While the core logic is deterministic, briefly mention any design choices that could help with token efficiency if AI is later used to generate descriptions or narrative content related to these materials/recipes (e.g., structured data in `properties` or `source_tags` being easy for an LLM to parse).
+
+**Deliverables:**
+*   Python code snippets for Pydantic models.
+*   Python code snippets for SQLAlchemy model definitions.
+*   High-level descriptions and method signatures for Service classes.
+*   Clear explanations for integration points, Celery tasks, API endpoints, and file structure.
+
+Please be detailed and thoughtful in your design.
