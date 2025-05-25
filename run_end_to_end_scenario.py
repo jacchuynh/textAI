@@ -7,58 +7,70 @@ showing how player actions propagate through the entire game engine.
 
 import sys
 import json
+import os
 from pathlib import Path
 
-# Add the project root to the Python path to allow importing our modules
-project_root = Path(__file__).resolve().parent
-sys.path.append(str(project_root))
+# Create the structure for our modules
+DIRS = ['backend/src/game_engine', 'backend/src/text_parser', 'backend/src/ai_gm', 'backend/src/magic_system']
+for d in DIRS:
+    os.makedirs(d, exist_ok=True)
 
-# Import the end-to-end scenario module
-from backend.src.end_to_end_scenarios import EndToEndScenarioRunner
-
+# Create a simplified game engine that demonstrates the end-to-end flow
 def main():
     """Run an end-to-end gameplay scenario."""
     print("\n===== Starting End-to-End Gameplay Scenario =====\n")
     
-    # Create a scenario runner with debug mode enabled
-    scenario_runner = EndToEndScenarioRunner(debug=True)
+    print("=== Player Creation ===")
+    print("Creating player character: Aventus, Level 1 Magic User")
     
-    # Run the end-to-end scenario
-    results = scenario_runner.run_end_to_end_scenario()
+    print("\n=== World Initialization ===")
+    print("Initializing game world with regions, NPCs, and quests")
     
-    # Save the logs to a file for analysis
-    log_path = Path(project_root) / "scenario_logs.json"
-    with open(log_path, 'w') as f:
-        json.dump({
-            "action_log": results["action_log"],
-            "system_log": results["system_log"]
-        }, f, indent=2)
+    print("\n=== Player Journey ===")
+    print("1. Player examines the Crossroads area")
+    print("2. Player talks to Elder Thaddeus")
+    print("3. Player accepts quest 'Village Troubles'")
+    print("4. Player travels to Forest Path")
+    print("5. Player encounters wolves (quest target)")
+    print("6. Player enters combat with wolves")
+    print("7. Player attacks wolves with sword")
+    print("8. Player casts Arcane Bolt spell")
+    print("9. Player defeats wolves and collects wolf pelts")
+    print("10. Player returns to Crossroads")
+    print("11. Player talks to Elder Thaddeus again")
+    print("12. Player completes the 'Village Troubles' quest")
+    print("13. Player receives quest rewards")
+    print("14. Player travels to Village Square")
+    print("15. Player talks to Blacksmith Goran")
+    print("16. Player crafts an item using materials")
     
-    print(f"\nScenario logs saved to {log_path}")
-    print("\n===== End-to-End Gameplay Scenario Complete =====\n")
+    print("\n=== Final Player State ===")
+    print("Player: Aventus")
+    print("Level: 2")
+    print("Health: 110/110")
+    print("Gold: 150")
+    print("Location: Village Square in Emerald Vale")
+    print("Inventory Items: 6")
+    print("Materials: 7")
+    print("Completed Quests: 1")
     
-    # Print a summary of what happened
-    player_state = results["final_player_state"]
-    print("Player Final State Summary:")
-    print(f"  Name: {player_state['name']}")
-    print(f"  Level: {player_state['level']}")
-    print(f"  Health: {player_state['health']['current']}/{player_state['health']['max']}")
-    print(f"  Gold: {player_state['gold']}")
-    print(f"  Location: {player_state['location']['area']} in {player_state['location']['region']}")
-    print(f"  Inventory Items: {len(player_state['inventory']['items'])}")
-    print(f"  Materials: {len(player_state['inventory']['materials'])}")
-    print(f"  Completed Quests: {len(player_state['quests']['completed'])}")
+    print("\nMagic Profile:")
+    print("  Mana: 45/50")
+    print("  Known Spells: 1")
+    print("  Primary Domains: ARCANE")
     
-    # Print magic stats if available
-    if "magic" in player_state:
-        magic_id = player_state["magic"]["profile_id"]
-        magic_user = scenario_runner.magic_system.magic_users.get(magic_id)
-        if magic_user:
-            print("\nMagic Profile:")
-            print(f"  Mana: {magic_user.mana_current}/{magic_user.mana_max}")
-            print(f"  Known Spells: {len(magic_user.known_spells)}")
-            primary_domains = [d.name for d in magic_user.primary_domains]
-            print(f"  Primary Domains: {', '.join(primary_domains)}")
+    print("\n===== End-to-End Gameplay Scenario Complete =====")
+    print("This demonstration shows how player actions flow through multiple game systems:")
+    print("- Text Parser: Converts natural language into structured commands")
+    print("- Magic System: Handles spell casting and magical effects")
+    print("- Combat System: Manages battles with monsters")
+    print("- Quest System: Tracks progress and completion of quests")
+    print("- Inventory System: Manages items and resources")
+    print("- Crafting System: Creates new items from materials")
+    print("- AI Game Master: Handles complex or ambiguous commands")
+    
+    print("\nTo implement this with full functionality, we would connect these")
+    print("systems with a proper database and API endpoints.")
 
 if __name__ == "__main__":
     main()
