@@ -1,0 +1,100 @@
+**Objective:** Design and plan the implementation of a comprehensive Season System for the text-based RPG. This system will build upon the existing Time System design by enabling the detection and announcement of seasonal changes, and will detail how various game systems (Weather, Economy, NPC Behavior, Magic, Combat, Narrative) will react to and reflect these seasons, creating a more dynamic and immersive game world.
+
+**Project Context:**
+*   The project is a text-based RPG built with Python, FastAPI, Pydantic, SQLAlchemy, Celery, and Redis.
+*   A `TimeSystem` has been designed (or is being designed) that tracks `GameDateTime` (year, month, day, hour, minute), defines seasons in `GameTimeSettings`, and provides the current season via a `TimeService` (typically located in the main application's `services` directory).
+*   The core task is to enhance the `TimeService` to publish seasonal change events and then define the integration logic for other systems to consume this seasonal information.
+
+**Core Requirements for the Season System Implementation Plan:**
+
+1.  **Event Definition (e.g., in the main application's `events` directory or a dedicated world events module):**
+    *   Define Pydantic models for seasonal change events:
+        *   **`Season` Enum:** (Ensure this is accessible, likely from the main application's `models` directory where time-related models reside).
+        *   **`SeasonChangeEventData` (Pydantic Model):**
+            *   `previous_season: Optional[Season]`
+            *   `current_season: Season`
+            *   `year: int`
+            *   `narrative_summary: Optional[str]` (e.g., "The chill of winter gives way to the fresh bloom of spring.")
+        *   **`SeasonChangeEvent` (Pydantic Model, extending `GameEvent` from the project's event bus module):**
+            *   `type: EventType` (Define a new `EventType.SEASON_CHANGE`).
+            *   `data: SeasonChangeEventData`
+            *   Standard `GameEvent` fields (`actor` should be "SYSTEM", `context` can include a brief message).
+
+2.  **`TimeService` Enhancement (e.g., in the main application's `services` directory):**
+    *   **Modify `advance_time(minutes_to_advance: int)` method:**
+        *   After advancing the internal `current_game_datetime`, compare the season derived from the *new* `current_game_datetime` with the season derived from the *old* `current_game_datetime` (before advancement).
+        *   To do this, the `TimeService` will need a helper method like `_get_season_for_datetime(dt: GameDateTime) -> Season`, which uses the `GameTimeSettings.season_definitions`.
+        *   If a season change is detected:
+            *   Construct `SeasonChangeEventData` and then `SeasonChangeEvent`.
+            *   The `narrative_summary` in `SeasonChangeEventData` can be a simple pre-defined string based on the `previous_season` and `current_season`.
+            *   Publish the `SeasonChangeEvent` using the `EventBus`.
+        *   Ensure this check happens *before* publishing the general `GAME_TIME_PROGRESSED` event, or as part of its handling, so systems can react to the season change first if needed.
+
+3.  **Seasonal Effects Design & Integration (System by System):**
+    For each system below, detail how it will be modified or designed to react to the current season. This includes subscribing to `SeasonChangeEvent` if direct reaction is needed, or querying `TimeService.get_current_season()` as part of its regular logic.
+
+    *   **A. Weather System (e.g., its service and model files within the main application):**
+        *   **`WeatherManagerService`:**
+            *   When `update_regional_weather` is called, it should use `TimeService.get_current_season()` to influence the probability of different `WeatherPhenomenon` types spawning, based on the `spawn_likelihood_by_season` field in the `WeatherPhenomenon` model.
+            *   Consider if `SeasonChangeEvent` should directly trigger a re-evaluation of weather probabilities or if it's handled by the next `update_regional_weather` call.
+        *   **`NarrativeGenerator` (or weather narrative logic):**
+            *   Descriptions of weather phenomena should be subtly flavored by the current season (e.g., "a cold winter rain" vs. "a warm summer shower"). This might involve adding seasonal descriptor tags to `WeatherPhenomenon` or conditional logic in the narrative generation.
+
+    *   **B. Economy & Crafting/Resource System (e.g., their respective services and models within the main application):**
+        *   **Resource Availability:**
+            *   Define how the availability of certain raw materials (herbs, specific animal types/pelts, fruits, some types of wood/stone) changes with seasons.
+            *   This could be managed by adding a `seasonal_availability: Dict[Season, float]` (0.0 to 1.0 probability/quantity modifier) to `Item` or `Material` models, or by having resource gathering nodes change their output based on the season.
+        *   **Farming/Agriculture:**
+            *   If your game includes farming, define planting, growing, and harvesting windows tied to seasons. This might involve new models for `Crop` and `FarmlandPlot`.
+        *   **Demand Shifts:**
+            *   How does demand for certain goods change seasonally (e.g., higher demand for warm clothes/firewood in Winter, certain foods in harvest season)? This could influence market prices if you have a dynamic market.
+        *   **Travel (if part of economy, e.g., trade routes):**
+            *   Specify how seasons affect travel times or accessibility of certain routes (e.g., mountain passes closed by snow in Winter, rivers flooding in Spring).
+
+    *   **C. NPC Behavior & Schedules (e.g., its service and character models within the main application):**
+        *   **Schedules & Activities:**
+            *   Design a mechanism for NPCs to have different daily/weekly routines or preferred activities based on the season (e.g., farmers working fields in Spring/Summer, merchants traveling more in temperate seasons, more indoor activities in Winter).
+            *   This might involve adding a `seasonal_schedules: Dict[Season, ScheduleID]` to NPC profiles.
+        *   **Festivals & Events:**
+            *   Outline how to define and trigger world events or festivals tied to specific seasons or dates within seasons (e.g., a Harvest Festival in Autumn, a Midwinter Celebration).
+        *   **Dialogue:**
+            *   NPC dialogue should reflect the current season. This could be achieved by having dialogue trees or response pools tagged by season.
+        *   **Appearance (Optional):** NPCs might wear different attire based on the season.
+
+    *   **D. Magic System (e.g., its service and models within the main application or a dedicated magic system project):**
+        *   **Spell/Ritual Efficacy:**
+            *   Can certain types of magic (e.g., fire, ice, nature, growth) be more or less potent, or easier/harder to cast, during specific seasons?
+            *   Define how this is represented (e.g., a `seasonal_modifier: Dict[Season, float]` on `Spell` models or a global rule).
+        *   **Availability:**
+            *   Are some spells or rituals only performable during certain seasons?
+        *   **Leyline/Ambient Magic:**
+            *   Does the nature or strength of leyline energy or ambient magic subtly shift with the seasons, affecting casting or magical phenomena?
+
+    *   **E. Combat System (e.g., its service and environmental effect modules, potentially in a dedicated combat system project):**
+        *   **Environmental Effects:**
+            *   How do seasons modify environmental conditions in combat arenas? (e.g., frozen/slippery ground in Winter, dense foliage providing cover in Summer, shorter daylight hours affecting visibility in Autumn/Winter).
+            *   This would likely be an update to how your combat system's environmental module determines active effects.
+
+    *   **F. Narrative Generator (e.g., the narrative generator module, potentially in a separate narrative engine project):**
+        *   **General Descriptions:**
+            *   Location descriptions, travel narratives, and general atmospheric text should reflect the current season.
+            *   This requires the `NarrativeGenerator` to be aware of the current season (via `TimeService` or context passed to it).
+            *   It might involve having different descriptive text snippets or templates tagged by season.
+
+4.  **Initial Content & Configuration:**
+    *   Define the specific start/end months/days for each season in `GameTimeSettings`.
+    *   Provide examples of initial seasonal rules for at least 2-3 systems (e.g., 3-5 weather phenomena with seasonal likelihoods, 2-3 resources with seasonal availability, 1-2 NPC behaviors that change).
+
+5.  **File Structure & Model Placement:**
+    *   Confirm where new Pydantic models (like `SeasonChangeEventData`) and any new service files or modifications to existing ones will reside within the main application's directory structure (e.g., `app/models`, `app/services`, `app/events`).
+
+**Deliverables Expected from the AI Assistant (based on this prompt):**
+*   A detailed implementation plan document for the Season System enhancements.
+*   Python code snippets for the `SeasonChangeEventData` and `SeasonChangeEvent` Pydantic models.
+*   Detailed proposed modifications to the `TimeService.advance_time()` method, including logic for detecting season changes and publishing the event.
+*   For each integrated game system (Weather, Economy, NPC, Magic, Combat, Narrative):
+    *   Specific design details on how it will react to seasonal changes.
+    *   Examples of new model fields, service method modifications, or new logic required.
+    *   How it will consume seasonal information (event subscription vs. service query).
+*   A plan for defining initial seasonal content and configurations.
+*   Confirmation of general file structure for new/modified components.
