@@ -13,8 +13,8 @@ import random
 import uuid
 
 # Import domain and combat systems
-from game_engine.domain_system import DomainSystem
-from game_engine.enhanced_combat.combat_system_core import Combatant, CombatMove, MoveType, Status, Domain
+from backend.src.game_engine.domain_system import DomainSystem
+from backend.src.game_engine.enhanced_combat.combat_system_core import Combatant, CombatMove, MoveType, Status, Domain
 
 
 # ======================================================================

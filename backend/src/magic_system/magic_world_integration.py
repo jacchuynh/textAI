@@ -1,601 +1,488 @@
 """
 Magic World Integration Module
 
-This module integrates the magic system with the world generation system.
-It allows for the placement and discovery of magical features in the world,
-such as leylines, magical resources, and ritual sites.
+This module handles the integration between the magic system and the world generator.
+It adds magical features to the world including leylines, magical POIs, and material deposits.
 """
 
 import random
-from typing import Dict, List, Optional, Tuple, Any
+import math
+from typing import Dict, List, Any, Tuple, Set, Optional
+import uuid
+import logging
 
-# Import from magic system
+from ..world_generation.world_model import World, Location, POI, Coordinates
+from ..world_generation.poi_placement_service import POIType, POIPlacementService
+
 from .magic_system import (
-    MagicSource,
-    MagicTier,
+    MagicSource, 
+    MagicTier, 
+    EffectType, 
+    TargetType, 
     DamageType,
     ManaFluxLevel,
     LocationMagicProfile
 )
 
-# Import from world generation
-from world_generation.world_model import World, Location, POI
-from world_generation.poi_placement_service import POIType
-from location_generators.base_generator import LocationFeature
+from .magical_material_service import MagicalMaterialService
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class MagicWorldIntegration:
     """
-    Integrates magic system with world generation.
-    
-    This class adds magical properties to generated worlds, locations, and POIs.
-    It handles:
-    - Leyline generation and placement in the world
-    - Magical resource distribution
-    - Assignment of magical properties to locations
-    - Creation of magical POIs (shrines, ritual sites, etc.)
+    Integrates the magic system with the world generator.
+    Handles adding magical features to the world.
     """
     
     def __init__(self):
-        """Initialize the integration service"""
-        self.leyline_map = {}  # Maps coordinates to leyline strengths
-        self.magical_hotspots = []  # Locations with high magical activity
+        """Initialize the magic world integration"""
+        self.leyline_map = {}  # Map of leyline connections between locations
+        self.magical_hotspots = []  # List of locations with high magical energy
+        self.poi_service = POIPlacementService()
     
     def enhance_world_with_magic(self, world: World) -> World:
         """
-        Add magical features to a generated world
+        Enhance a world with magical features
         
         Args:
-            world: The world object to enhance
+            world: The world to enhance
             
         Returns:
-            The enhanced world with magical properties
+            The enhanced world
         """
         # Generate leyline network
         self._generate_leyline_network(world)
         
-        # Enhance locations with magical properties
+        # Add magic profiles to locations
         for location_id, location in world.locations.items():
-            magic_profile = self._generate_location_magic_profile(location, world)
-            # We would store this in the location object in a real implementation
-            # For now, we'll just print it for demonstration
-            location.magic_profile = magic_profile
-        
-        # Add magical POIs
-        self._add_magical_pois(world)
+            location.magic_profile = self._generate_location_magic_profile(location)
+            
+            # Add magical POIs based on the location's magic profile
+            self._add_magical_pois(location)
         
         return world
     
     def _generate_leyline_network(self, world: World) -> None:
         """
-        Generate a network of leylines across the world
+        Generate a network of leylines connecting locations
         
         Args:
             world: The world to generate leylines for
         """
-        # In a real implementation, this would use advanced algorithms to create
-        # natural-looking leyline patterns. For now, we'll create a simple grid.
-        
-        # Create main leylines (high strength)
-        num_major_leylines = random.randint(3, 5)
-        
-        for _ in range(num_major_leylines):
-            # Choose random start and end points at the edges of the map
-            start_x = random.choice([0, world.width])
-            start_y = random.randint(0, world.height)
+        # Identify potential leyline nodes (about 30% of locations)
+        potential_nodes = []
+        for location_id, location in world.locations.items():
+            # Some locations are more likely to be leyline nodes based on biome
+            biome_factor = 1.0
             
-            end_x = random.choice([0, world.width])
-            end_y = random.randint(0, world.height)
+            if hasattr(location, 'biome'):
+                if location.biome == 'forest':
+                    biome_factor = 1.5
+                elif location.biome == 'mountain':
+                    biome_factor = 2.0
+                elif location.biome == 'swamp':
+                    biome_factor = 1.8
+                elif location.biome == 'desert':
+                    biome_factor = 0.7
             
-            # If both x coords are the same, we need to change one
-            if start_x == end_x:
-                end_x = world.width if start_x == 0 else 0
+            if random.random() < 0.3 * biome_factor:
+                potential_nodes.append(location_id)
+        
+        # Select magical hotspots (about 10% of nodes)
+        self.magical_hotspots = random.sample(
+            potential_nodes,
+            min(max(1, len(potential_nodes) // 10), 5)
+        )
+        
+        # Connect nodes to form leylines
+        for i, node_id in enumerate(potential_nodes):
+            # Each node connects to 1-3 other nodes
+            num_connections = random.randint(1, min(3, len(potential_nodes) - 1))
             
-            # Create the leyline
-            self._create_leyline_path(world, (start_x, start_y), (end_x, end_y), 
-                                    strength=random.randint(4, 5))
-        
-        # Create minor leylines (medium strength)
-        num_minor_leylines = random.randint(5, 8)
-        
-        for _ in range(num_minor_leylines):
-            # Choose random start and end points within the map
-            start_x = random.randint(0, world.width)
-            start_y = random.randint(0, world.height)
+            # Get possible connections (not yet connected nodes)
+            possible_connections = [n for n in potential_nodes if n != node_id and n not in self.leyline_map.get(node_id, {})]
             
-            end_x = random.randint(0, world.width)
-            end_y = random.randint(0, world.height)
-            
-            # Create the leyline
-            self._create_leyline_path(world, (start_x, start_y), (end_x, end_y), 
-                                    strength=random.randint(2, 3))
-        
-        # Add leyline nodes (intersections with increased strength)
-        self._add_leyline_nodes(world)
-    
-    def _create_leyline_path(self, 
-                           world: World, 
-                           start: Tuple[int, int], 
-                           end: Tuple[int, int], 
-                           strength: int) -> None:
-        """
-        Create a leyline path between two points
-        
-        Args:
-            world: The world to add the leyline to
-            start: The starting coordinates (x, y)
-            end: The ending coordinates (x, y)
-            strength: The strength of the leyline (1-5)
-        """
-        # Simple line drawing algorithm (Bresenham's)
-        x0, y0 = start
-        x1, y1 = end
-        
-        dx = abs(x1 - x0)
-        dy = abs(y1 - y0)
-        sx = 1 if x0 < x1 else -1
-        sy = 1 if y0 < y1 else -1
-        err = dx - dy
-        
-        while True:
-            # Add current point to leyline map
-            self.leyline_map[(x0, y0)] = max(strength, self.leyline_map.get((x0, y0), 0))
-            
-            if x0 == x1 and y0 == y1:
-                break
+            if not possible_connections:
+                continue
                 
-            e2 = 2 * err
-            if e2 > -dy:
-                err -= dy
-                x0 += sx
-            if e2 < dx:
-                err += dx
-                y0 += sy
-    
-    def _add_leyline_nodes(self, world: World) -> None:
-        """
-        Add leyline nodes (intersections with increased strength)
-        
-        Args:
-            world: The world to add nodes to
-        """
-        # Find intersection points and increase their strength
-        for (x, y), strength in self.leyline_map.items():
-            # Check all adjacent cells for leylines
-            adjacent_count = 0
-            for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
-                if (x + dx, y + dy) in self.leyline_map:
-                    adjacent_count += 1
+            # Select connections
+            connections = random.sample(
+                possible_connections,
+                min(num_connections, len(possible_connections))
+            )
             
-            # If this is an intersection (3 or more connections)
-            if adjacent_count >= 3:
-                # Increase strength (max 5)
-                self.leyline_map[(x, y)] = min(5, strength + 1)
+            # Add connections to leyline map
+            for conn_id in connections:
+                # Determine leyline strength (higher for hotspots)
+                strength = random.uniform(0.5, 1.0)
                 
-                # Add to magical hotspots
-                self.magical_hotspots.append((x, y))
+                if node_id in self.magical_hotspots:
+                    strength *= 2.0
+                if conn_id in self.magical_hotspots:
+                    strength *= 2.0
+                
+                # Add bidirectional connection
+                if node_id not in self.leyline_map:
+                    self.leyline_map[node_id] = {}
+                if conn_id not in self.leyline_map:
+                    self.leyline_map[conn_id] = {}
+                
+                self.leyline_map[node_id][conn_id] = strength
+                self.leyline_map[conn_id][node_id] = strength
     
-    def _generate_location_magic_profile(self, location: Location, world: World) -> LocationMagicProfile:
+    def _generate_location_magic_profile(self, location: Location) -> LocationMagicProfile:
         """
-        Generate magical properties for a location
+        Generate a magic profile for a location
         
         Args:
-            location: The location to enhance
-            world: The world containing the location
+            location: The location to generate a profile for
             
         Returns:
-            A LocationMagicProfile object with the magical properties
+            A magic profile for the location
         """
-        # Determine leyline strength at this location
-        x, y = location.coordinates
-        
-        # Check for leylines in and around this location
-        leyline_strength = 0
-        for dx in range(-2, 3):
-            for dy in range(-2, 3):
-                check_x, check_y = x + dx, y + dy
-                if (check_x, check_y) in self.leyline_map:
-                    # Closer leylines have more influence
-                    distance = max(abs(dx), abs(dy))
-                    strength_at_point = self.leyline_map[(check_x, check_y)]
-                    
-                    # Adjust strength based on distance
-                    if distance == 0:  # Direct hit
-                        leyline_strength = max(leyline_strength, strength_at_point)
-                    elif distance == 1:  # Adjacent
-                        leyline_strength = max(leyline_strength, strength_at_point - 1)
-                    else:  # Nearby
-                        leyline_strength = max(leyline_strength, strength_at_point - 2)
-        
-        # Clamp leyline strength to valid range
-        leyline_strength = max(0, min(5, leyline_strength))
-        
-        # Determine mana flux level based on leyline strength and randomness
-        mana_flux_level = ManaFluxLevel.MODERATE  # Default
-        
-        if leyline_strength == 0:
-            mana_flux_options = [ManaFluxLevel.DORMANT, ManaFluxLevel.FAINT]
-            mana_flux_level = random.choice(mana_flux_options)
-        elif leyline_strength == 1:
-            mana_flux_options = [ManaFluxLevel.FAINT, ManaFluxLevel.MODERATE]
-            mana_flux_level = random.choice(mana_flux_options)
-        elif leyline_strength == 2:
-            mana_flux_level = ManaFluxLevel.MODERATE
-        elif leyline_strength == 3:
-            mana_flux_options = [ManaFluxLevel.MODERATE, ManaFluxLevel.STRONG]
-            mana_flux_level = random.choice(mana_flux_options)
-        elif leyline_strength == 4:
-            mana_flux_options = [ManaFluxLevel.STRONG, ManaFluxLevel.INTENSE]
-            mana_flux_level = random.choice(mana_flux_options)
-        elif leyline_strength >= 5:
-            mana_flux_options = [ManaFluxLevel.INTENSE, ManaFluxLevel.CHAOTIC]
-            mana_flux_level = random.choice(mana_flux_options)
-        
-        # Determine dominant magic aspects based on location biome and features
+        # Default values
+        leyline_strength = 0.1
+        mana_flux_level = ManaFluxLevel.LOW
         dominant_magic_aspects = []
+        allows_ritual_sites = False
         
-        # Different biomes have different magical affinities
+        # Check if location is in the leyline network
+        if location.id in self.leyline_map:
+            # Calculate leyline strength based on connections
+            connections = self.leyline_map[location.id]
+            leyline_strength = sum(connections.values()) / max(1, len(connections))
+            
+            # Stronger leylines have higher mana flux
+            if leyline_strength > 1.5:
+                mana_flux_level = ManaFluxLevel.VERY_HIGH
+            elif leyline_strength > 1.0:
+                mana_flux_level = ManaFluxLevel.HIGH
+            elif leyline_strength > 0.5:
+                mana_flux_level = ManaFluxLevel.MEDIUM
+            
+            # Hotspots always allow ritual sites
+            if location.id in self.magical_hotspots:
+                allows_ritual_sites = True
+            # Other leyline locations might allow ritual sites
+            elif random.random() < leyline_strength * 0.7:
+                allows_ritual_sites = True
+        
+        # Determine dominant magic aspects based on biome
         if hasattr(location, 'biome'):
             if location.biome == 'forest':
-                dominant_magic_aspects.append(DamageType.EARTH)
+                dominant_magic_aspects = [DamageType.EARTH, DamageType.LIFE]
             elif location.biome == 'mountain':
-                dominant_magic_aspects.append(DamageType.EARTH)
-                dominant_magic_aspects.append(DamageType.AIR)
+                dominant_magic_aspects = [DamageType.EARTH, DamageType.AIR]
             elif location.biome == 'desert':
-                dominant_magic_aspects.append(DamageType.FIRE)
-            elif location.biome == 'tundra':
-                dominant_magic_aspects.append(DamageType.ICE)
-            elif location.biome == 'swamp':
-                dominant_magic_aspects.append(DamageType.WATER)
-                dominant_magic_aspects.append(DamageType.NECROTIC)
-            elif location.biome == 'volcanic':
-                dominant_magic_aspects.append(DamageType.FIRE)
-                dominant_magic_aspects.append(DamageType.EARTH)
+                dominant_magic_aspects = [DamageType.FIRE, DamageType.EARTH]
             elif location.biome == 'coastal':
-                dominant_magic_aspects.append(DamageType.WATER)
-                dominant_magic_aspects.append(DamageType.AIR)
+                dominant_magic_aspects = [DamageType.WATER, DamageType.AIR]
+            elif location.biome == 'swamp':
+                dominant_magic_aspects = [DamageType.WATER, DamageType.POISON]
+            elif location.biome == 'plains':
+                dominant_magic_aspects = [DamageType.EARTH, DamageType.LIFE]
+            elif location.biome == 'tundra':
+                dominant_magic_aspects = [DamageType.ICE, DamageType.AIR]
+            else:
+                # Default to random aspects
+                all_aspects = [
+                    DamageType.FIRE, DamageType.WATER, DamageType.EARTH, 
+                    DamageType.AIR, DamageType.ARCANE, DamageType.LIFE, 
+                    DamageType.DEATH, DamageType.POISON, DamageType.ICE
+                ]
+                dominant_magic_aspects = random.sample(all_aspects, 2)
         
-        # Add a random aspect if none were determined
-        if not dominant_magic_aspects:
-            dominant_magic_aspects.append(random.choice(list(DamageType)))
-        
-        # Determine if this location allows ritual sites
-        allows_ritual_sites = leyline_strength >= 2
-        
-        # Generate a magic profile for this location
+        # Create and return the magic profile
         return LocationMagicProfile(
             leyline_strength=leyline_strength,
             mana_flux_level=mana_flux_level,
             dominant_magic_aspects=dominant_magic_aspects,
-            environmental_decay_level=random.randint(0, 2),  # Low decay by default
-            allows_ritual_sites=allows_ritual_sites,
-            historical_magic_events=[]  # Would be filled based on world history
+            allows_ritual_sites=allows_ritual_sites
         )
     
-    def _add_magical_pois(self, world: World) -> None:
+    def _add_magical_pois(self, location: Location) -> None:
         """
-        Add magical Points of Interest to the world
+        Add magical POIs to a location based on its magic profile
         
         Args:
-            world: The world to add POIs to
+            location: The location to add POIs to
         """
-        # Add magical shrines at some leyline nodes
-        for x, y in self.magical_hotspots:
-            # Only add a shrine at some hotspots
-            if random.random() < 0.7:
-                # Find the nearest location
-                nearest_location = self._find_nearest_location(world, (x, y))
-                
-                if nearest_location:
-                    # Create a magical shrine POI
-                    shrine_poi = POI(
-                        id=f"shrine_{len(nearest_location.pois) + 1}",
-                        name=self._generate_shrine_name(),
-                        poi_type=POIType.SHRINE,
-                        description=self._generate_shrine_description(),
-                        coordinates=(x, y)
-                    )
-                    
-                    # Add the POI to the location
-                    nearest_location.pois.append(shrine_poi)
+        # Skip if location has no magic profile
+        if not hasattr(location, 'magic_profile'):
+            return
         
-        # Add other magical POIs based on location magic profiles
-        for location_id, location in world.locations.items():
-            if hasattr(location, 'magic_profile'):
-                # Add magical features based on the location's magic profile
-                
-                # Add a ritual site if the location allows it
-                if location.magic_profile.allows_ritual_sites and random.random() < 0.4:
-                    ritual_poi = POI(
-                        id=f"ritual_site_{len(location.pois) + 1}",
-                        name=self._generate_ritual_site_name(),
-                        poi_type=POIType.RELIC_SITE,  # Using RELIC_SITE for ritual sites
-                        description=self._generate_ritual_site_description(
-                            location.magic_profile.dominant_magic_aspects
-                        ),
-                        coordinates=location.coordinates
-                    )
-                    
-                    # Add the POI to the location
-                    location.pois.append(ritual_poi)
-                
-                # Add magical grove in locations with strong earth or light aspects
-                if (DamageType.EARTH in location.magic_profile.dominant_magic_aspects or
-                    DamageType.LIGHT in location.magic_profile.dominant_magic_aspects) and random.random() < 0.3:
-                    grove_poi = POI(
-                        id=f"grove_{len(location.pois) + 1}",
-                        name=self._generate_grove_name(),
-                        poi_type=POIType.GROVE,
-                        description=self._generate_grove_description(),
-                        coordinates=location.coordinates
-                    )
-                    
-                    # Add the POI to the location
-                    location.pois.append(grove_poi)
-                
-                # Add magical spring in locations with strong water aspects
-                if DamageType.WATER in location.magic_profile.dominant_magic_aspects and random.random() < 0.3:
-                    spring_poi = POI(
-                        id=f"spring_{len(location.pois) + 1}",
-                        name=self._generate_spring_name(),
-                        poi_type=POIType.SPRING,
-                        description=self._generate_spring_description(),
-                        coordinates=location.coordinates
-                    )
-                    
-                    # Add the POI to the location
-                    location.pois.append(spring_poi)
+        # Determine number of magical POIs based on magic strength
+        num_pois = 0
+        
+        if location.magic_profile.leyline_strength > 1.5:
+            num_pois = random.randint(2, 3)
+        elif location.magic_profile.leyline_strength > 0.8:
+            num_pois = random.randint(1, 2)
+        elif location.magic_profile.leyline_strength > 0.3:
+            num_pois = 1 if random.random() < 0.7 else 0
+        else:
+            # Low magic areas rarely have magical POIs
+            num_pois = 1 if random.random() < 0.2 else 0
+        
+        # No POIs to add
+        if num_pois == 0:
+            return
+        
+        # Add magical POIs
+        for _ in range(num_pois):
+            # Select POI type based on location and magic profile
+            poi_type = self._select_magical_poi_type(location)
+            
+            # Generate name and description
+            name, description = self._generate_magical_poi_details(location, poi_type)
+            
+            # Create the POI
+            poi = POI(
+                id=f"poi_{uuid.uuid4().hex[:8]}",
+                name=name,
+                poi_type=poi_type,
+                description=description,
+                coordinates=(
+                    location.coordinates[0] + random.uniform(-0.5, 0.5),
+                    location.coordinates[1] + random.uniform(-0.5, 0.5)
+                )
+            )
+            
+            # Add to location
+            location.pois.append(poi)
     
-    def _find_nearest_location(self, world: World, coordinates: Tuple[int, int]) -> Optional[Location]:
+    def _select_magical_poi_type(self, location: Location) -> POIType:
         """
-        Find the nearest location to the given coordinates
+        Select an appropriate magical POI type for a location
         
         Args:
-            world: The world to search in
-            coordinates: The coordinates to find the nearest location to
+            location: The location to select a POI type for
             
         Returns:
-            The nearest location, or None if no locations exist
+            A POI type
         """
-        if not world.locations:
-            return None
-            
-        x, y = coordinates
-        nearest_location = None
-        nearest_distance = float('inf')
+        # Potential magical POI types
+        magical_poi_types = [POIType.SHRINE, POIType.GROVE, POIType.SPRING, POIType.RELIC_SITE]
         
-        for location_id, location in world.locations.items():
-            loc_x, loc_y = location.coordinates
-            distance = ((loc_x - x) ** 2 + (loc_y - y) ** 2) ** 0.5
-            
-            if distance < nearest_distance:
-                nearest_distance = distance
-                nearest_location = location
+        # Filter by biome and magic profile
+        suitable_types = []
         
-        return nearest_location
+        if hasattr(location, 'biome'):
+            if location.biome == 'forest':
+                suitable_types = [POIType.GROVE, POIType.SHRINE]
+            elif location.biome == 'mountain':
+                suitable_types = [POIType.SHRINE, POIType.RELIC_SITE]
+            elif location.biome == 'desert':
+                suitable_types = [POIType.SHRINE, POIType.RELIC_SITE]
+            elif location.biome == 'coastal' or location.biome == 'swamp':
+                suitable_types = [POIType.SPRING, POIType.SHRINE]
+            elif location.biome == 'plains':
+                suitable_types = [POIType.GROVE, POIType.SHRINE]
+            elif location.biome == 'tundra':
+                suitable_types = [POIType.SHRINE, POIType.RELIC_SITE]
+        
+        # If no suitable types or ritual site is allowed, use all types
+        if not suitable_types or location.magic_profile.allows_ritual_sites:
+            suitable_types = magical_poi_types
+        
+        # Always allow shrines
+        if POIType.SHRINE not in suitable_types:
+            suitable_types.append(POIType.SHRINE)
+        
+        # Select a random type from suitable types
+        return random.choice(suitable_types)
     
-    def _generate_shrine_name(self) -> str:
-        """Generate a name for a magical shrine"""
-        prefixes = ["Ancient", "Sacred", "Mystic", "Forgotten", "Shimmering", "Arcane", "Eternal"]
-        types = ["Shrine", "Altar", "Monolith", "Obelisk", "Sanctuary", "Circle", "Stone"]
-        
-        return f"{random.choice(prefixes)} {random.choice(types)}"
-    
-    def _generate_shrine_description(self) -> str:
-        """Generate a description for a magical shrine"""
-        descriptions = [
-            "A weathered stone structure humming with ancient power.",
-            "Mystical runes glow faintly on this ancient monument.",
-            "Locals avoid this place, claiming it's where the veil between worlds thins.",
-            "The air around this structure shimmers with magical energy.",
-            "A circular arrangement of stones that seems to concentrate magical energies.",
-            "This ancient shrine has been a site of magical rituals for centuries."
-        ]
-        
-        return random.choice(descriptions)
-    
-    def _generate_ritual_site_name(self) -> str:
-        """Generate a name for a ritual site"""
-        prefixes = ["Hallowed", "Ceremonial", "Ancient", "Sacred", "Arcane", "Mystical"]
-        types = ["Circle", "Grove", "Grounds", "Chamber", "Altar", "Site", "Sanctum"]
-        
-        return f"{random.choice(prefixes)} {random.choice(types)}"
-    
-    def _generate_ritual_site_description(self, dominant_aspects: List[DamageType]) -> str:
+    def _generate_magical_poi_details(self, location: Location, poi_type: POIType) -> Tuple[str, str]:
         """
-        Generate a description for a ritual site based on its dominant magical aspects
+        Generate a name and description for a magical POI
         
         Args:
-            dominant_aspects: The dominant magical aspects of the location
+            location: The location of the POI
+            poi_type: The type of POI
             
         Returns:
-            A description string
+            A tuple of (name, description)
         """
-        base_descriptions = [
-            "A site where the boundary between worlds is thin.",
-            "Ancient symbols etched into the ground form a ritual circle.",
-            "The residual energy of countless rituals lingers in this place.",
-            "A place of power where magic users gather to perform complex rituals."
-        ]
+        # Get the dominant magic aspects as strings
+        magic_aspects = [aspect.name.lower() for aspect in location.magic_profile.dominant_magic_aspects]
         
-        aspect_descriptions = {
-            DamageType.FIRE: "The air shimmers with heat even on cold days.",
-            DamageType.ICE: "A permanent chill permeates this area regardless of season.",
-            DamageType.LIGHTNING: "Small static discharges occasionally spark in the air.",
-            DamageType.EARTH: "The ground feels unusually fertile and alive with energy.",
-            DamageType.AIR: "Gentle breezes flow in impossible patterns, defying natural air currents.",
-            DamageType.WATER: "The air has a permanent moisture to it, and water droplets form on surfaces.",
-            DamageType.LIGHT: "Motes of light drift through the air like fireflies, even in daylight.",
-            DamageType.DARKNESS: "Shadows seem deeper and more substantial than they should be.",
-            DamageType.ARCANE: "The very fabric of reality seems to warp slightly in this place.",
-            DamageType.NECROTIC: "Plants struggle to grow here, and those that do appear twisted and wrong.",
-            DamageType.PSYCHIC: "Visitors report hearing whispers and experiencing strange visions.",
-            DamageType.SPIRITUAL: "The boundary between the physical and spiritual realms is paper-thin here."
-        }
+        # Generate name based on type and magic
+        name = ""
+        description = ""
         
-        description = random.choice(base_descriptions)
+        if poi_type == POIType.SHRINE:
+            # Generate shrine name
+            element = random.choice(magic_aspects) if magic_aspects else "arcane"
+            prefix = random.choice(["Ancient", "Sacred", "Forgotten", "Hidden", "Mystic", "Radiant", "Silent"])
+            name = f"{prefix} {element.capitalize()} Shrine"
+            
+            # Generate description
+            descriptions = [
+                f"A shrine dedicated to the power of {element}. The air here feels charged with magical energy.",
+                f"This {element} shrine has stood for centuries, drawing pilgrims seeking magical knowledge.",
+                f"A place of worship where {element} magic flows strongly. Ritual symbols adorn the weathered stone.",
+                f"The remnants of an old temple where practitioners once channeled {element} energy."
+            ]
+            description = random.choice(descriptions)
+            
+        elif poi_type == POIType.GROVE:
+            # Generate grove name
+            prefix = random.choice(["Whispering", "Ancient", "Verdant", "Glowing", "Ethereal", "Timeless", "Enchanted"])
+            name = f"{prefix} Grove"
+            
+            # Generate description
+            descriptions = [
+                "A sacred grove where the trees seem to whisper ancient secrets. The foliage glows faintly at night.",
+                "This ancient grove has been shaped by magical energies, creating a sanctuary for mystical creatures.",
+                "A circle of trees that seem to have a consciousness of their own. The ground is carpeted with luminescent moss.",
+                "Within this grove, the barrier between worlds grows thin. Wisps of magical energy dance between the trees."
+            ]
+            description = random.choice(descriptions)
+            
+        elif poi_type == POIType.SPRING:
+            # Generate spring name
+            element = random.choice(magic_aspects) if magic_aspects else "clear"
+            prefix = random.choice(["Healing", "Mystic", "Eternal", "Shimmering", "Luminous", "Whispering"])
+            name = f"{prefix} {element.capitalize()} Spring"
+            
+            # Generate description
+            descriptions = [
+                f"A spring whose waters are infused with {element} energy, said to grant magical insights to those who drink.",
+                f"This {element} spring bubbles with magical properties. The water glows faintly in the darkness.",
+                f"A source of magical water that never runs dry. The {element} energies here have attracted magical creatures.",
+                f"The waters of this spring are known for their {element} properties and healing abilities."
+            ]
+            description = random.choice(descriptions)
+            
+        elif poi_type == POIType.RELIC_SITE:
+            # Generate relic site name
+            prefix = random.choice(["Forgotten", "Ancient", "Lost", "Mysterious", "Hidden", "Forbidden", "Arcane"])
+            site_type = random.choice(["Ruins", "Stones", "Circle", "Monoliths", "Altar", "Pillars", "Temple"])
+            name = f"{prefix} {site_type}"
+            
+            # Generate description
+            descriptions = [
+                "The remains of an ancient magical site. Powerful artifacts may still be buried beneath the rubble.",
+                "These ancient stones form a perfect ritual circle. The ground here is saturated with residual magical energy.",
+                "A site where a powerful magical event once occurred. The air still crackles with arcane power.",
+                "These mysterious ruins date back to an age when magic was more prevalent. Strange symbols are carved into the stones."
+            ]
+            description = random.choice(descriptions)
         
-        # Add aspect-specific details
-        for aspect in dominant_aspects:
-            if aspect in aspect_descriptions and random.random() < 0.7:
-                description += " " + aspect_descriptions[aspect]
+        # Fallback for any other POI type
+        if not name or not description:
+            name = f"Magical {poi_type.name.capitalize()}"
+            description = f"A site of magical significance related to {', '.join(magic_aspects)}."
         
-        return description
-    
-    def _generate_grove_name(self) -> str:
-        """Generate a name for a magical grove"""
-        prefixes = ["Whispering", "Ancient", "Verdant", "Enchanted", "Sacred", "Living", "Eternal"]
-        types = ["Grove", "Copse", "Thicket", "Glade", "Sanctuary", "Wood", "Haven"]
-        
-        return f"{random.choice(prefixes)} {random.choice(types)}"
-    
-    def _generate_grove_description(self) -> str:
-        """Generate a description for a magical grove"""
-        descriptions = [
-            "The trees here seem to whisper to each other when no one is listening.",
-            "Plants grow with unusual vigor, and many have strange properties.",
-            "The canopy filters light in patterns that seem to form symbols on the forest floor.",
-            "The oldest trees here are rumored to have witnessed the dawn of the world.",
-            "Druids and nature mages seek this place for its natural magical energies.",
-            "Animals in this grove exhibit unusual intelligence and behavior."
-        ]
-        
-        return random.choice(descriptions)
-    
-    def _generate_spring_name(self) -> str:
-        """Generate a name for a magical spring"""
-        prefixes = ["Mystic", "Healing", "Shimmering", "Arcane", "Blessed", "Crystal", "Eternal"]
-        types = ["Spring", "Font", "Well", "Waters", "Pool", "Fount", "Basin"]
-        
-        return f"{random.choice(prefixes)} {random.choice(types)}"
-    
-    def _generate_spring_description(self) -> str:
-        """Generate a description for a magical spring"""
-        descriptions = [
-            "Water bubbles up from deep underground, carrying magical properties with it.",
-            "The water glows faintly with an inner light and is said to have healing properties.",
-            "Those who drink from this spring report enhanced magical abilities for a short time.",
-            "The waters are unusually clear and reflect images that aren't there.",
-            "Local legends claim this spring is connected to the realm of water elementals.",
-            "The spring never freezes, even in the coldest winter."
-        ]
-        
-        return random.choice(descriptions)
+        return name, description
 
 
-# Integration with magical material service
 class MagicalMaterialWorldIntegration:
     """
-    Integrates magical materials with the world generation system.
-    
-    This class handles the placement and discovery of magical materials
-    throughout the generated world.
+    Integrates magical materials with the world generator.
+    Handles the distribution of magical materials throughout the world.
     """
     
-    def __init__(self, magic_world_integration: MagicWorldIntegration):
+    def __init__(self, magic_integration: MagicWorldIntegration):
         """
-        Initialize the integration service
+        Initialize the magical material world integration
         
         Args:
-            magic_world_integration: The MagicWorldIntegration instance
+            magic_integration: The magic world integration instance
         """
-        self.magic_world_integration = magic_world_integration
-        self.material_deposits = {}  # Maps coordinates to material types
+        self.magic_integration = magic_integration
+        self.material_service = MagicalMaterialService()
     
     def distribute_magical_materials(self, world: World) -> None:
         """
         Distribute magical materials throughout the world
         
         Args:
-            world: The world to enhance with magical materials
+            world: The world to distribute materials in
         """
-        # Determine material distribution based on leylines and location types
+        # Get all possible magical materials
+        materials = self.material_service.get_all_materials()
+        
+        # For each location, determine if it should have material deposits
         for location_id, location in world.locations.items():
-            if hasattr(location, 'magic_profile'):
-                # Higher leyline strength means more and rarer materials
-                material_chance = 0.2 + (location.magic_profile.leyline_strength * 0.1)
+            # Skip if location has no magic profile
+            if not hasattr(location, 'magic_profile'):
+                continue
+            
+            # Higher chance of materials in high-magic areas
+            chance = min(0.8, location.magic_profile.leyline_strength * 0.5)
+            
+            if random.random() < chance:
+                self._add_material_deposit(location, materials)
+    
+    def _add_material_deposit(self, location: Location, materials: List[Dict[str, Any]]) -> None:
+        """
+        Add a magical material deposit to a location
+        
+        Args:
+            location: The location to add a deposit to
+            materials: List of possible materials
+        """
+        # Filter materials by location biome compatibility
+        compatible_materials = []
+        
+        if hasattr(location, 'biome'):
+            for material in materials:
+                # Check if material has biome preferences
+                if 'preferred_biomes' not in material:
+                    compatible_materials.append(material)
+                    continue
                 
-                # Add materials based on the location's magic profile
-                if random.random() < material_chance:
-                    self._add_material_deposits_to_location(location)
-    
-    def _add_material_deposits_to_location(self, location: Location) -> None:
-        """
-        Add magical material deposits to a location
+                # Check if this biome is preferred for the material
+                if location.biome in material['preferred_biomes']:
+                    # Higher weight for preferred biomes
+                    compatible_materials.extend([material] * 3)
+                else:
+                    # Still possible but less likely
+                    compatible_materials.append(material)
+        else:
+            compatible_materials = materials
         
-        Args:
-            location: The location to add deposits to
-        """
-        # In a real implementation, this would use the MagicalMaterialService
-        # to create appropriate material deposits based on the location's
-        # magical properties.
+        # No compatible materials
+        if not compatible_materials:
+            return
         
-        # For now, we'll just mark the location as having material deposits
-        num_deposits = random.randint(1, 3)
+        # Select a random material
+        material = random.choice(compatible_materials)
         
-        for i in range(num_deposits):
-            deposit_id = f"material_deposit_{location.id}_{i}"
-            
-            # In a real implementation, this would create a proper material deposit
-            # with specific material types and quantities.
-            # We'd also add a POI for discoverable deposits.
-            
-            # For now, just add a generic POI
-            deposit_poi = POI(
-                id=deposit_id,
-                name=self._generate_deposit_name(),
-                poi_type=POIType.MINE,  # Using MINE for material deposits
-                description=self._generate_deposit_description(location.magic_profile.dominant_magic_aspects),
-                coordinates=location.coordinates
-            )
-            
-            # Add the POI to the location
-            location.pois.append(deposit_poi)
-    
-    def _generate_deposit_name(self) -> str:
-        """Generate a name for a magical material deposit"""
-        prefixes = ["Glimmering", "Arcane", "Mystic", "Enchanted", "Resonant", "Shimmering", "Charged"]
-        types = ["Vein", "Deposit", "Outcropping", "Formation", "Cluster", "Lode", "Crystal"]
+        # Create a mine POI for the material
+        mine_name = f"Glimmering {material['name']} Deposit"
         
-        return f"{random.choice(prefixes)} {random.choice(types)}"
-    
-    def _generate_deposit_description(self, dominant_aspects: List[DamageType]) -> str:
-        """
-        Generate a description for a magical material deposit
-        
-        Args:
-            dominant_aspects: The dominant magical aspects in the area
-            
-        Returns:
-            A description string
-        """
-        base_descriptions = [
-            "A concentration of magical materials can be harvested here.",
-            "The ground sparkles with magical energy, indicating valuable materials.",
-            "Unusual crystalline formations protrude from the ground, rich in magical essence.",
-            "A vein of mystically-charged minerals runs through this area."
+        # Generate description
+        descriptions = [
+            f"A rich deposit of {material['name']}, the crystals glowing with magical energy.",
+            f"This mine contains veins of {material['name']}, prized by enchanters and spellcrafters.",
+            f"The walls of this cave sparkle with {material['name']} deposits, emanating {material['magical_aspect'].lower()} energy.",
+            f"A natural formation where {material['name']} can be harvested. The entire area resonates with magical potential."
         ]
+        mine_description = random.choice(descriptions)
         
-        aspect_descriptions = {
-            DamageType.FIRE: "The materials glow with inner heat.",
-            DamageType.ICE: "Frost forms on the materials even on warm days.",
-            DamageType.LIGHTNING: "Small sparks occasionally jump between the crystal formations.",
-            DamageType.EARTH: "Plants growing near the materials exhibit unusual growth patterns.",
-            DamageType.AIR: "The materials seem unnaturally light and resonate with the slightest breeze.",
-            DamageType.WATER: "Moisture collects on the surface of the materials, never quite evaporating.",
-            DamageType.LIGHT: "The materials glow with a soft, inner light.",
-            DamageType.DARKNESS: "The materials seem to absorb light around them.",
-            DamageType.ARCANE: "The materials shimmer with patterns that hurt the eyes if viewed too long.",
-            DamageType.NECROTIC: "The ground around the materials appears slightly withered.",
-            DamageType.PSYCHIC: "Standing near the materials induces strange thoughts.",
-            DamageType.SPIRITUAL: "The veil between worlds feels thin around these materials."
+        # Create the POI
+        poi = POI(
+            id=f"poi_{uuid.uuid4().hex[:8]}",
+            name=mine_name,
+            poi_type=POIType.MINE,
+            description=mine_description,
+            coordinates=(
+                location.coordinates[0] + random.uniform(-0.5, 0.5),
+                location.coordinates[1] + random.uniform(-0.5, 0.5)
+            )
+        )
+        
+        # Add material information to POI metadata
+        poi.metadata = {
+            "material_id": material.get("id", str(uuid.uuid4())),
+            "material_name": material["name"],
+            "material_rarity": material.get("rarity", "common"),
+            "material_magical_aspect": material.get("magical_aspect", "arcane")
         }
         
-        description = random.choice(base_descriptions)
-        
-        # Add aspect-specific details
-        for aspect in dominant_aspects:
-            if aspect in aspect_descriptions and random.random() < 0.7:
-                description += " " + aspect_descriptions[aspect]
-        
-        return description
+        # Add to location
+        location.pois.append(poi)
