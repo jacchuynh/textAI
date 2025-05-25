@@ -1,66 +1,34 @@
-import { Switch, Route, Link } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import NotFound from "@/pages/not-found";
-import Game from "@/pages/game";
-import DomainTest from "@/pages/domain-test";
-import DomainTestAlternate from "@/pages/domain-test-alternate";
-import CombatGame from "@/pages/CombatGame";
+import { Route, Switch } from 'wouter';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/toaster';
 
-function Navigation() {
-  return (
-    <nav className="bg-background border-b border-border py-3 px-4 mb-6 shadow-sm">
-      <div className="container flex items-center justify-between">
-        <div className="flex items-center">
-          <span className="text-lg font-bold text-primary mr-6">Domain RPG</span>
-          <div className="flex gap-6">
-            <Link href="/" className="text-foreground hover:text-primary transition-colors">
-              Game
-            </Link>
-            <Link href="/combat" className="text-foreground hover:text-primary transition-colors">
-              Combat Arena
-            </Link>
-            <Link href="/domain-test" className="text-foreground hover:text-primary transition-colors">
-              Domain Test
-            </Link>
-            <Link href="/domain-test-alternate" className="text-foreground hover:text-primary transition-colors">
-              Domain Test (REST)
-            </Link>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-            Alpha Version
-          </span>
-        </div>
-      </div>
-    </nav>
-  );
-}
+import HomePage from './pages/HomePage';
+import CreateCharacter from './pages/CreateCharacter';
+import PlayerView from './pages/PlayerView';
 
-function Router() {
-  return (
-    <>
-      <Navigation />
-      <Switch>
-        <Route path="/" component={Game} />
-        <Route path="/combat" component={CombatGame} />
-        <Route path="/domain-test" component={DomainTest} />
-        <Route path="/domain-test-alternate" component={DomainTestAlternate} />
-        <Route component={NotFound} />
-      </Switch>
-    </>
-  );
-}
+// Create a new query client instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000,
+    },
+  },
+});
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
+      <div className="min-h-screen bg-background">
+        <Switch>
+          <Route path="/" component={HomePage} />
+          <Route path="/create-character" component={CreateCharacter} />
+          <Route path="/player/:id" component={PlayerView} />
+          <Route>404 - Not Found</Route>
+        </Switch>
+      </div>
       <Toaster />
     </QueryClientProvider>
   );
 }
-
-export default App;

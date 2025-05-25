@@ -1,42 +1,42 @@
-import express from 'express';
-import { db } from '../../db';
+import { Router } from 'express';
+import { db } from '@db';
 import { 
-  players, playersInsertSchema,
-  magicProfiles, magicProfilesInsertSchema,
-  quests, playerQuests,
-  spells, playerSpells,
-  items, playerItems,
-  materials, playerMaterials
+  players, 
+  playerItems,
+  playerSpells,
+  playerQuests,
+  playerMaterials
 } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
-import { z } from 'zod';
+import { eq } from 'drizzle-orm';
 
-const router = express.Router();
+const router = Router();
 
-// Define API prefix
-const apiPrefix = '/api';
-
-// Health check endpoint
-router.get(`${apiPrefix}/health`, (req, res) => {
-  res.json({ status: 'ok' });
-});
-
-// Player routes
-router.get(`${apiPrefix}/players`, async (req, res) => {
+// Get all players
+router.get('/players', async (req, res) => {
   try {
-    const allPlayers = await db.query.players.findMany();
+    const allPlayers = await db.query.players.findMany({
+      with: {
+        playerItems: {
+          with: {
+            item: true
+          }
+        }
+      }
+    });
     return res.json(allPlayers);
   } catch (error) {
     console.error('Error fetching players:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Failed to fetch players' });
   }
 });
 
-router.get(`${apiPrefix}/players/:id`, async (req, res) => {
+// Get player by ID
+router.get('/players/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    
     const player = await db.query.players.findFirst({
-      where: eq(players.id, parseInt(id)),
+      where: eq(players.id, id),
       with: {
         magicProfile: true,
         playerItems: {
@@ -44,443 +44,137 @@ router.get(`${apiPrefix}/players/:id`, async (req, res) => {
             item: true
           }
         },
-        playerMaterials: {
-          with: {
-            material: true
-          }
-        },
-        playerQuests: {
-          with: {
-            quest: true,
-            stages: {
-              with: {
-                stage: true
-              }
-            }
-          }
-        },
         playerSpells: {
           with: {
             spell: true
           }
-        }
-      }
-    });
-
-    if (!player) {
-      return res.status(404).json({ error: 'Player not found' });
-    }
-
-    return res.json(player);
-  } catch (error) {
-    console.error('Error fetching player:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-router.post(`${apiPrefix}/players`, async (req, res) => {
-  try {
-    const playerData = playersInsertSchema.parse(req.body);
-    
-    const [newPlayer] = await db.insert(players).values(playerData).returning();
-    
-    // Create a magic profile for the new player
-    const magicProfileData = {
-      playerId: newPlayer.id,
-      manaCurrent: 50,
-      manaMax: 50,
-      manaRegenRate: 1.0,
-      primaryDomains: ['ARCANE'],
-      secondaryDomains: []
-    };
-    
-    const [newMagicProfile] = await db.insert(magicProfiles)
-      .values(magicProfileData)
-      .returning();
-    
-    return res.status(201).json({
-      ...newPlayer,
-      magicProfile: newMagicProfile
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ errors: error.errors });
-    }
-    console.error('Error creating player:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Spell routes
-router.get(`${apiPrefix}/spells`, async (req, res) => {
-  try {
-    const allSpells = await db.query.spells.findMany();
-    return res.json(allSpells);
-  } catch (error) {
-    console.error('Error fetching spells:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-router.get(`${apiPrefix}/spells/:id`, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const spell = await db.query.spells.findFirst({
-      where: eq(spells.id, parseInt(id))
-    });
-
-    if (!spell) {
-      return res.status(404).json({ error: 'Spell not found' });
-    }
-
-    return res.json(spell);
-  } catch (error) {
-    console.error('Error fetching spell:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Magic profile routes
-router.get(`${apiPrefix}/magic-profiles/:playerId`, async (req, res) => {
-  try {
-    const { playerId } = req.params;
-    const profile = await db.query.magicProfiles.findFirst({
-      where: eq(magicProfiles.playerId, parseInt(playerId))
-    });
-
-    if (!profile) {
-      return res.status(404).json({ error: 'Magic profile not found' });
-    }
-
-    return res.json(profile);
-  } catch (error) {
-    console.error('Error fetching magic profile:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Player spells routes
-router.get(`${apiPrefix}/players/:playerId/spells`, async (req, res) => {
-  try {
-    const { playerId } = req.params;
-    const playerSpellList = await db.query.playerSpells.findMany({
-      where: eq(playerSpells.playerId, parseInt(playerId)),
-      with: {
-        spell: true
-      }
-    });
-
-    return res.json(playerSpellList);
-  } catch (error) {
-    console.error('Error fetching player spells:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-router.post(`${apiPrefix}/players/:playerId/learn-spell/:spellId`, async (req, res) => {
-  try {
-    const { playerId, spellId } = req.params;
-    
-    // Check if player exists
-    const player = await db.query.players.findFirst({
-      where: eq(players.id, parseInt(playerId))
-    });
-    
-    if (!player) {
-      return res.status(404).json({ error: 'Player not found' });
-    }
-    
-    // Check if spell exists
-    const spell = await db.query.spells.findFirst({
-      where: eq(spells.id, parseInt(spellId))
-    });
-    
-    if (!spell) {
-      return res.status(404).json({ error: 'Spell not found' });
-    }
-    
-    // Check if player already knows this spell
-    const existingPlayerSpell = await db.query.playerSpells.findFirst({
-      where: and(
-        eq(playerSpells.playerId, parseInt(playerId)),
-        eq(playerSpells.spellId, parseInt(spellId))
-      )
-    });
-    
-    if (existingPlayerSpell) {
-      return res.status(400).json({ error: 'Player already knows this spell' });
-    }
-    
-    // Add spell to player's known spells
-    const [newPlayerSpell] = await db.insert(playerSpells)
-      .values({
-        playerId: parseInt(playerId),
-        spellId: parseInt(spellId)
-      })
-      .returning();
-    
-    return res.status(201).json({
-      ...newPlayerSpell,
-      spell
-    });
-  } catch (error) {
-    console.error('Error learning spell:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Item routes
-router.get(`${apiPrefix}/items`, async (req, res) => {
-  try {
-    const allItems = await db.query.items.findMany();
-    return res.json(allItems);
-  } catch (error) {
-    console.error('Error fetching items:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Material routes
-router.get(`${apiPrefix}/materials`, async (req, res) => {
-  try {
-    const allMaterials = await db.query.materials.findMany();
-    return res.json(allMaterials);
-  } catch (error) {
-    console.error('Error fetching materials:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Quest routes
-router.get(`${apiPrefix}/quests`, async (req, res) => {
-  try {
-    const allQuests = await db.query.quests.findMany({
-      with: {
-        stages: true
-      }
-    });
-    return res.json(allQuests);
-  } catch (error) {
-    console.error('Error fetching quests:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-router.get(`${apiPrefix}/quests/:id`, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const quest = await db.query.quests.findFirst({
-      where: eq(quests.id, parseInt(id)),
-      with: {
-        stages: true
-      }
-    });
-
-    if (!quest) {
-      return res.status(404).json({ error: 'Quest not found' });
-    }
-
-    return res.json(quest);
-  } catch (error) {
-    console.error('Error fetching quest:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Player quests routes
-router.get(`${apiPrefix}/players/:playerId/quests`, async (req, res) => {
-  try {
-    const { playerId } = req.params;
-    const playerQuestList = await db.query.playerQuests.findMany({
-      where: eq(playerQuests.playerId, parseInt(playerId)),
-      with: {
-        quest: {
+        },
+        playerQuests: {
           with: {
+            quest: {
+              with: {
+                stages: true
+              }
+            },
             stages: true
           }
         },
-        stages: {
+        playerMaterials: {
           with: {
-            stage: true
+            material: true
           }
         }
       }
-    });
-
-    return res.json(playerQuestList);
-  } catch (error) {
-    console.error('Error fetching player quests:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-router.post(`${apiPrefix}/players/:playerId/accept-quest/:questId`, async (req, res) => {
-  try {
-    const { playerId, questId } = req.params;
-    
-    // Check if player exists
-    const player = await db.query.players.findFirst({
-      where: eq(players.id, parseInt(playerId))
     });
     
     if (!player) {
       return res.status(404).json({ error: 'Player not found' });
     }
     
-    // Check if quest exists
-    const quest = await db.query.quests.findFirst({
-      where: eq(quests.id, parseInt(questId)),
-      with: {
-        stages: true
-      }
-    });
-    
-    if (!quest) {
-      return res.status(404).json({ error: 'Quest not found' });
-    }
-    
-    // Check if player already has this quest
-    const existingPlayerQuest = await db.query.playerQuests.findFirst({
-      where: and(
-        eq(playerQuests.playerId, parseInt(playerId)),
-        eq(playerQuests.questId, parseInt(questId))
-      )
-    });
-    
-    if (existingPlayerQuest) {
-      return res.status(400).json({ error: 'Player already has this quest' });
-    }
-    
-    // Add quest to player's active quests
-    const [newPlayerQuest] = await db.insert(playerQuests)
-      .values({
-        playerId: parseInt(playerId),
-        questId: parseInt(questId),
-        status: 'active'
-      })
-      .returning();
-    
-    return res.status(201).json({
-      ...newPlayerQuest,
-      quest
-    });
+    return res.json(player);
   } catch (error) {
-    console.error('Error accepting quest:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Error fetching player:', error);
+    return res.status(500).json({ error: 'Failed to fetch player' });
   }
 });
 
-// Game text parser endpoint - simulates parsing natural language into structured commands
-router.post(`${apiPrefix}/parse-command`, (req, res) => {
+// Create a new player
+router.post('/players', async (req, res) => {
+  try {
+    const { name, userId } = req.body;
+    
+    if (!name || !userId) {
+      return res.status(400).json({ error: 'Name and userId are required' });
+    }
+    
+    // Create the player with starting attributes
+    const [newPlayer] = await db.insert(players).values({
+      name,
+      userId,
+      level: 1,
+      experience: 0,
+      gold: 100,
+      healthCurrent: 100,
+      healthMax: 100,
+      locationRegion: 'Silvermist Valley',
+      locationArea: 'Mossy_Hollow',
+      locationCoordinates: { x: 0, y: 0 },
+      createdAt: new Date()
+    }).returning();
+    
+    return res.status(201).json(newPlayer);
+  } catch (error) {
+    console.error('Error creating player:', error);
+    return res.status(500).json({ error: 'Failed to create player' });
+  }
+});
+
+// Parse player command
+router.post('/parse-command', async (req, res) => {
   try {
     const { command, playerId } = req.body;
     
-    if (!command || typeof command !== 'string') {
-      return res.status(400).json({ error: 'Command is required' });
+    if (!command || !playerId) {
+      return res.status(400).json({ error: 'Command and playerId are required' });
     }
     
-    const lowerCommand = command.toLowerCase();
-    let action = null;
+    // Simple command parsing logic
+    const words = command.toLowerCase().split(' ');
+    const firstWord = words[0];
     
-    // Simple pattern matching for demonstration
-    if (lowerCommand.includes('attack') || lowerCommand.includes('fight')) {
-      action = {
-        type: 'combat',
-        action: 'attack',
-        target: lowerCommand.includes('wolf') ? 'wolf' : 'unknown',
-        method: lowerCommand.includes('sword') ? 'sword' : 'unarmed'
-      };
-    } else if (lowerCommand.includes('cast')) {
-      // Detect spell name
-      let spell = 'unknown';
-      if (lowerCommand.includes('arcane bolt')) spell = 'arcane_bolt';
-      else if (lowerCommand.includes('fireball')) spell = 'fireball';
-      else if (lowerCommand.includes('healing')) spell = 'healing_light';
-      
-      action = {
-        type: 'magic',
-        action: 'cast',
-        spell,
-        target: lowerCommand.includes('wolf') ? 'wolf' : 'self'
-      };
-    } else if (lowerCommand.includes('talk') || lowerCommand.includes('speak')) {
-      let npc = 'unknown';
-      if (lowerCommand.includes('elder') || lowerCommand.includes('thaddeus')) npc = 'elder_thaddeus';
-      else if (lowerCommand.includes('blacksmith') || lowerCommand.includes('goran')) npc = 'blacksmith_goran';
-      
-      action = {
-        type: 'dialogue',
-        action: 'talk',
-        target: npc
-      };
-    } else if (lowerCommand.includes('go') || lowerCommand.includes('travel') || lowerCommand.includes('move')) {
-      let location = 'unknown';
-      if (lowerCommand.includes('forest')) location = 'forest_path';
-      else if (lowerCommand.includes('village')) location = 'village_square';
-      else if (lowerCommand.includes('crossroads')) location = 'crossroads';
-      
-      action = {
-        type: 'movement',
-        action: 'travel',
-        destination: location
-      };
-    } else if (lowerCommand.includes('craft') || lowerCommand.includes('make')) {
-      let item = 'unknown';
-      if (lowerCommand.includes('sword')) item = 'iron_sword';
-      else if (lowerCommand.includes('potion')) item = 'health_potion';
-      else if (lowerCommand.includes('armor')) item = 'leather_armor';
-      
-      action = {
-        type: 'crafting',
-        action: 'craft',
-        item
-      };
-    } else if (lowerCommand.includes('quest')) {
-      if (lowerCommand.includes('accept') || lowerCommand.includes('take')) {
-        action = {
-          type: 'quest',
-          action: 'accept',
-          quest: lowerCommand.includes('village troubles') ? 'village_troubles' : 'unknown'
-        };
-      } else if (lowerCommand.includes('complete') || lowerCommand.includes('finish')) {
-        action = {
-          type: 'quest',
-          action: 'complete',
-          quest: lowerCommand.includes('village troubles') ? 'village_troubles' : 'unknown'
-        };
+    let actionType = '';
+    let target = '';
+    let parameters = {};
+    
+    // Basic command parsing
+    if (['look', 'examine', 'inspect'].includes(firstWord)) {
+      actionType = 'examine';
+      target = words.slice(1).join(' ') || 'surroundings';
+    } else if (['go', 'move', 'walk', 'travel'].includes(firstWord)) {
+      actionType = 'movement';
+      target = words.slice(1).join(' ');
+    } else if (['attack', 'fight', 'hit'].includes(firstWord)) {
+      actionType = 'combat';
+      target = words.slice(1).join(' ');
+    } else if (['talk', 'speak', 'ask'].includes(firstWord)) {
+      actionType = 'dialogue';
+      if (words[1] === 'to') {
+        target = words.slice(2).join(' ');
       } else {
-        action = {
-          type: 'quest',
-          action: 'view',
-          quest: lowerCommand.includes('village troubles') ? 'village_troubles' : 'all'
-        };
+        target = words.slice(1).join(' ');
       }
+    } else if (['cast', 'spell', 'magic'].includes(firstWord)) {
+      actionType = 'magic';
+      target = words.slice(1).join(' ');
+    } else if (['craft', 'make', 'create', 'forge'].includes(firstWord)) {
+      actionType = 'crafting';
+      target = words.slice(1).join(' ');
+    } else if (['quest', 'mission', 'task'].includes(firstWord)) {
+      actionType = 'quest';
+      target = words.slice(1).join(' ');
     } else {
-      // Default to an examine action if no other patterns match
-      let target = 'surroundings';
-      if (lowerCommand.includes('myself') || lowerCommand.includes('inventory')) target = 'self';
-      
-      action = {
-        type: 'examine',
-        action: 'look',
-        target
-      };
+      // Default to dialogue for unknown commands
+      actionType = 'dialogue';
+      target = command;
     }
     
-    // Return the parsed command
-    return res.json({ 
-      originalCommand: command,
-      parsedAction: action,
-      message: 'Command parsed successfully'
-    });
+    // Return the parsed action
+    const parsedAction = {
+      type: actionType,
+      target,
+      parameters,
+      originalCommand: command
+    };
+    
+    return res.json({ parsedAction });
   } catch (error) {
     console.error('Error parsing command:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Failed to parse command' });
   }
 });
 
-// Game action endpoint - processes the structured commands from the parser
-router.post(`${apiPrefix}/execute-action`, async (req, res) => {
+// Execute parsed action
+router.post('/execute-action', async (req, res) => {
   try {
     const { action, playerId } = req.body;
     
@@ -488,11 +182,31 @@ router.post(`${apiPrefix}/execute-action`, async (req, res) => {
       return res.status(400).json({ error: 'Action and playerId are required' });
     }
     
-    // Get player data
+    // Fetch the player
     const player = await db.query.players.findFirst({
-      where: eq(players.id, parseInt(playerId)),
+      where: eq(players.id, playerId),
       with: {
-        magicProfile: true
+        magicProfile: true,
+        playerItems: {
+          with: {
+            item: true
+          }
+        },
+        playerSpells: {
+          with: {
+            spell: true
+          }
+        },
+        playerQuests: {
+          with: {
+            quest: true
+          }
+        },
+        playerMaterials: {
+          with: {
+            material: true
+          }
+        }
       }
     });
     
@@ -500,21 +214,23 @@ router.post(`${apiPrefix}/execute-action`, async (req, res) => {
       return res.status(404).json({ error: 'Player not found' });
     }
     
-    // Process different action types
-    let result: any = null;
-    
+    // Process the action based on type
+    let result;
     switch (action.type) {
+      case 'examine':
+        result = handleExamineAction(action, player);
+        break;
+      case 'movement':
+        result = await handleMovementAction(action, player);
+        break;
       case 'combat':
         result = handleCombatAction(action, player);
-        break;
-      case 'magic':
-        result = await handleMagicAction(action, player);
         break;
       case 'dialogue':
         result = handleDialogueAction(action, player);
         break;
-      case 'movement':
-        result = await handleMovementAction(action, player);
+      case 'magic':
+        result = await handleMagicAction(action, player);
         break;
       case 'crafting':
         result = handleCraftingAction(action, player);
@@ -522,420 +238,515 @@ router.post(`${apiPrefix}/execute-action`, async (req, res) => {
       case 'quest':
         result = handleQuestAction(action, player);
         break;
-      case 'examine':
-        result = handleExamineAction(action, player);
-        break;
       default:
         return res.status(400).json({ error: 'Unknown action type' });
     }
     
-    return res.json({
-      success: true,
-      message: result.message,
-      gameState: result.gameState
-    });
+    return res.json(result);
   } catch (error) {
     console.error('Error executing action:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Failed to execute action' });
   }
 });
 
 // Helper functions for handling different action types
-function handleCombatAction(action: any, player: any) {
-  // Simulate combat logic
-  let message = '';
-  let gameState = { player: { ...player }, target: null, combat: { round: 1, status: 'active' } };
+function handleExamineAction(action: any, player: any) {
+  const { target } = action;
   
-  if (action.action === 'attack') {
-    const targetName = action.target === 'unknown' ? 'the enemy' : `the ${action.target}`;
-    const weaponText = action.method === 'unarmed' ? 'your fists' : `your ${action.method}`;
-    
-    message = `You attack ${targetName} with ${weaponText}! You deal 5 damage.`;
-    gameState.target = { 
-      name: action.target === 'unknown' ? 'Enemy' : action.target.charAt(0).toUpperCase() + action.target.slice(1),
-      health: { current: 15, max: 20 }
-    };
-  }
+  // Basic location descriptions
+  const locationDescriptions: Record<string, string> = {
+    'surroundings': `You are in ${player.locationArea.replace('_', ' ')}, a small settlement in the ${player.locationRegion}. 
+      The air is crisp and filled with the scent of pine. You see a few buildings, including a blacksmith's shop, 
+      an alchemist's hut, and a tavern. There are several NPCs moving about the village.`,
+    'blacksmith': `The blacksmith's shop is filled with the sounds of hammering and the glow of the forge. 
+      Tools and weapons line the walls, and the blacksmith, a burly man named Gareth, is working on a sword.`,
+    'alchemist': `The alchemist's hut is cluttered with bottles, herbs, and strange contraptions. 
+      The alchemist, an elderly woman named Elara, is mixing potions at her workbench.`,
+    'tavern': `The tavern is warm and inviting, with a fire crackling in the hearth. 
+      Several patrons are enjoying drinks and meals, and the tavern keeper, a jovial man named Torm, is serving drinks.`
+  };
   
-  return { message, gameState };
-}
-
-async function handleMagicAction(action: any, player: any) {
-  // Simulate magic logic
-  let message = '';
-  let gameState = { player: { ...player }, spell: null, target: null };
-  
-  if (action.action === 'cast') {
-    // Get spell details if it exists
-    const spell = await db.query.spells.findFirst({
-      where: eq(spells.spellId, action.spell)
-    });
-    
-    if (spell) {
-      // Check if player knows the spell
-      const playerKnowsSpell = await db.query.playerSpells.findFirst({
-        where: and(
-          eq(playerSpells.playerId, player.id),
-          eq(playerSpells.spellId, spell.id)
-        )
-      });
-      
-      if (playerKnowsSpell || spell.spellId === 'arcane_bolt') { // Assume players know Arcane Bolt by default
-        if (player.magicProfile.manaCurrent >= spell.manaCost) {
-          // Update player's mana
-          await db.update(magicProfiles)
-            .set({
-              manaCurrent: Math.max(0, player.magicProfile.manaCurrent - spell.manaCost),
-              updatedAt: new Date()
-            })
-            .where(eq(magicProfiles.playerId, player.id));
-          
-          // Get updated magic profile
-          const updatedProfile = await db.query.magicProfiles.findFirst({
-            where: eq(magicProfiles.playerId, player.id)
-          });
-          
-          gameState.player = {
-            ...player,
-            magicProfile: updatedProfile
-          };
-          
-          const targetName = action.target === 'self' ? 'yourself' : `the ${action.target}`;
-          
-          if (spell.spellId === 'arcane_bolt') {
-            message = `You cast Arcane Bolt at ${targetName}, dealing ${spell.basePower} arcane damage!`;
-            gameState.spell = spell;
-            gameState.target = {
-              name: action.target === 'self' ? 'Self' : action.target.charAt(0).toUpperCase() + action.target.slice(1),
-              health: { current: 15, max: 20 }
-            };
-          } else if (spell.spellId === 'fireball') {
-            message = `You cast Fireball at ${targetName}, creating an explosion that deals ${spell.basePower} fire damage in the area!`;
-            gameState.spell = spell;
-            gameState.target = {
-              name: action.target === 'self' ? 'Self' : action.target.charAt(0).toUpperCase() + action.target.slice(1),
-              health: { current: 12, max: 20 }
-            };
-          } else if (spell.spellId === 'healing_light') {
-            message = `You cast Healing Light on ${targetName}, restoring ${spell.basePower} health!`;
-            gameState.spell = spell;
-            gameState.target = {
-              name: action.target === 'self' ? 'Self' : action.target.charAt(0).toUpperCase() + action.target.slice(1),
-              health: { current: 20, max: 20 }
-            };
-          } else {
-            message = `You cast ${spell.name} on ${targetName}!`;
-            gameState.spell = spell;
-          }
-        } else {
-          message = `You don't have enough mana to cast ${spell.name}! (${player.magicProfile.manaCurrent}/${spell.manaCost} mana)`;
-        }
-      } else {
-        message = `You don't know how to cast ${spell.name}. You need to learn this spell first.`;
-      }
-    } else {
-      message = `You try to cast a spell, but the words escape your memory.`;
+  // Check if player has items or materials to examine
+  if (player.playerItems) {
+    const item = player.playerItems.find((pi: any) => pi.item.name.toLowerCase() === target.toLowerCase());
+    if (item) {
+      return { 
+        message: `You examine your ${item.item.name}. ${item.item.description || 'It looks ordinary.'}` 
+      };
     }
   }
   
-  return { message, gameState };
-}
-
-function handleDialogueAction(action: any, player: any) {
-  // Simulate dialogue logic
-  let message = '';
-  let gameState = { player: { ...player }, npc: null, dialogue: null };
-  
-  if (action.action === 'talk') {
-    if (action.target === 'elder_thaddeus') {
-      message = `Elder Thaddeus says: "Ah, ${player.name}! Our village has been having trouble with wolves attacking travelers on the forest path. Could you help us deal with them?"`;
-      gameState.npc = { 
-        id: 'elder_thaddeus',
-        name: 'Elder Thaddeus',
-        location: 'crossroads',
-        attitude: 'friendly'
+  if (player.playerMaterials) {
+    const material = player.playerMaterials.find((pm: any) => pm.material.name.toLowerCase() === target.toLowerCase());
+    if (material) {
+      return { 
+        message: `You examine your ${material.material.name}. ${material.material.description || 'It looks ordinary.'}` 
       };
-      gameState.dialogue = {
-        options: [
-          { id: 'accept_quest', text: 'I would be happy to help with the wolves.' },
-          { id: 'ask_reward', text: 'What\'s in it for me?' },
-          { id: 'decline_quest', text: 'Sorry, I have other matters to attend to.' }
-        ]
-      };
-    } else if (action.target === 'blacksmith_goran') {
-      message = `Blacksmith Goran says: "Welcome to my forge, ${player.name}! Looking to craft something? I can help you make weapons and armor if you have the materials."`;
-      gameState.npc = { 
-        id: 'blacksmith_goran',
-        name: 'Blacksmith Goran',
-        location: 'village_square',
-        attitude: 'friendly'
-      };
-      gameState.dialogue = {
-        options: [
-          { id: 'craft_weapon', text: 'I\'d like to craft a weapon.' },
-          { id: 'craft_armor', text: 'I\'d like to craft some armor.' },
-          { id: 'browse_goods', text: 'What do you have for sale?' },
-          { id: 'goodbye', text: 'Just looking around, thanks.' }
-        ]
-      };
-    } else {
-      message = 'You try to start a conversation, but nobody responds.';
     }
   }
   
-  return { message, gameState };
+  // Return description based on target or default message
+  return { 
+    message: locationDescriptions[target.toLowerCase()] || 
+      `You examine the ${target}, but don't notice anything special about it.` 
+  };
 }
 
 async function handleMovementAction(action: any, player: any) {
-  // Simulate movement logic
-  let message = '';
-  let gameState = { player: { ...player }, previousLocation: null, newLocation: null };
+  const { target } = action;
   
-  if (action.action === 'travel') {
-    // Save the previous location
-    gameState.previousLocation = {
-      region: player.locationRegion,
-      area: player.locationArea
-    };
-    
-    // Determine the new location details
-    let locationDescription = '';
-    let region = player.locationRegion;
-    let area = '';
-    
-    if (action.destination === 'forest_path') {
-      area = 'forest_path';
-      locationDescription = 'A narrow path winding through dense forest. You can hear the sounds of wildlife all around you.';
-    } else if (action.destination === 'village_square') {
-      area = 'village_square';
-      locationDescription = 'The bustling center of the village. Merchants sell their wares and villagers go about their daily business.';
-    } else if (action.destination === 'crossroads') {
-      area = 'crossroads';
-      locationDescription = 'A crossroads where several paths meet. A weathered signpost points in different directions.';
-    } else {
-      area = action.destination;
-      locationDescription = 'You travel to a new area.';
+  // Map of possible locations connected to current location
+  const locationConnections: Record<string, Record<string, { region: string, area: string }>> = {
+    'Mossy_Hollow': {
+      'north': { region: 'Silvermist Valley', area: 'Whisperwind_Forest' },
+      'east': { region: 'Silvermist Valley', area: 'Crystal_Lake' },
+      'south': { region: 'Silvermist Valley', area: 'Ancient_Ruins' },
+      'west': { region: 'Silvermist Valley', area: 'Mountain_Pass' }
+    },
+    'Whisperwind_Forest': {
+      'south': { region: 'Silvermist Valley', area: 'Mossy_Hollow' }
+    },
+    'Crystal_Lake': {
+      'west': { region: 'Silvermist Valley', area: 'Mossy_Hollow' }
+    },
+    'Ancient_Ruins': {
+      'north': { region: 'Silvermist Valley', area: 'Mossy_Hollow' }
+    },
+    'Mountain_Pass': {
+      'east': { region: 'Silvermist Valley', area: 'Mossy_Hollow' }
     }
-    
-    // Update player location in database
-    await db.update(players)
-      .set({
-        locationArea: area,
-        updatedAt: new Date()
-      })
-      .where(eq(players.id, player.id));
-    
-    // Get updated player data
-    const updatedPlayer = await db.query.players.findFirst({
-      where: eq(players.id, player.id),
-      with: {
-        magicProfile: true
-      }
-    });
-    
-    gameState.player = updatedPlayer;
-    gameState.newLocation = {
-      region,
-      area,
-      description: locationDescription
-    };
-    
-    message = `You travel to the ${area.replace('_', ' ')}. ${locationDescription}`;
+  };
+  
+  // Check if current location has a connection in the specified direction
+  const connections = locationConnections[player.locationArea] || {};
+  const newLocation = connections[target.toLowerCase()];
+  
+  if (!newLocation) {
+    return { message: `You can't go ${target} from here.` };
   }
   
-  return { message, gameState };
+  // Update player location
+  await db.update(players)
+    .set({ 
+      locationRegion: newLocation.region,
+      locationArea: newLocation.area
+    })
+    .where(eq(players.id, player.id));
+  
+  return { 
+    message: `You travel ${target} to ${newLocation.area.replace('_', ' ')}.`,
+    locationUpdate: {
+      region: newLocation.region,
+      area: newLocation.area
+    }
+  };
+}
+
+function handleCombatAction(action: any, player: any) {
+  const { target } = action;
+  
+  // List of possible enemies in different areas
+  const areaEnemies: Record<string, string[]> = {
+    'Mossy_Hollow': ['wolf', 'bandit'],
+    'Whisperwind_Forest': ['bear', 'wild boar', 'forest sprite'],
+    'Crystal_Lake': ['water elemental', 'crocodile'],
+    'Ancient_Ruins': ['skeleton', 'ancient guardian', 'ghost'],
+    'Mountain_Pass': ['rock golem', 'mountain troll']
+  };
+  
+  // Check if the target enemy exists in the current area
+  const enemies = areaEnemies[player.locationArea] || [];
+  const enemyExists = enemies.some(enemy => target.toLowerCase().includes(enemy));
+  
+  if (!enemyExists) {
+    return { message: `There is no ${target} here to attack.` };
+  }
+  
+  // Simplified combat result
+  return { 
+    message: `You attack the ${target}! After a brief struggle, you defeat it and gain some experience.`,
+    combatResult: {
+      enemyDefeated: true,
+      experienceGained: 25,
+      itemsDropped: []
+    }
+  };
+}
+
+function handleDialogueAction(action: any, player: any) {
+  const { target, originalCommand } = action;
+  
+  // List of NPCs in different areas
+  const areaNPCs: Record<string, Record<string, string>> = {
+    'Mossy_Hollow': {
+      'elder': 'The village elder welcomes you to Mossy Hollow and suggests you visit the blacksmith to upgrade your equipment.',
+      'blacksmith': 'Gareth the blacksmith offers to craft weapons and armor for you if you bring him the right materials.',
+      'alchemist': 'Elara the alchemist can brew potions for you if you gather herbs from the forest.',
+      'tavern keeper': 'Torm the tavern keeper tells you about rumors of ancient ruins to the south that might contain valuable treasures.'
+    },
+    'Whisperwind_Forest': {
+      'ranger': 'The forest ranger warns you about dangerous creatures deeper in the forest.',
+      'hermit': 'The old hermit shares stories about the magical properties of the forest.'
+    },
+    'Crystal_Lake': {
+      'fisherman': 'The fisherman talks about strange lights he\'s seen beneath the lake\'s surface.',
+      'water mage': 'The water mage offers to teach you water spells if you prove yourself worthy.'
+    },
+    'Ancient_Ruins': {
+      'archaeologist': 'The archaeologist is excited about recent discoveries in the ruins.',
+      'ghost': 'The ghostly figure speaks in riddles about the history of this place.'
+    },
+    'Mountain_Pass': {
+      'merchant': 'The traveling merchant offers rare goods from distant lands.',
+      'miner': 'The dwarf miner talks about valuable ores deep within the mountains.'
+    }
+  };
+  
+  // Check if the target NPC exists in the current area
+  const npcs = areaNPCs[player.locationArea] || {};
+  
+  // First check exact matches
+  if (npcs[target.toLowerCase()]) {
+    return { message: npcs[target.toLowerCase()] };
+  }
+  
+  // Then check partial matches
+  for (const npc in npcs) {
+    if (target.toLowerCase().includes(npc)) {
+      return { message: npcs[npc] };
+    }
+  }
+  
+  // If no matching NPC, treat as a general query
+  const responses = {
+    'quest': 'The locals mention several tasks that need doing. The elder might have more information.',
+    'magic': 'You hear that the water mage at Crystal Lake might teach spells to worthy apprentices.',
+    'history': 'This region has a rich history. The Ancient Ruins to the south are said to hold many secrets.',
+    'crafting': 'The blacksmith in town can craft weapons and armor with the right materials.',
+    'monsters': 'The forest is home to wolves and bears, while more dangerous creatures lurk in the ruins to the south.'
+  };
+  
+  for (const keyword in responses) {
+    if (originalCommand.toLowerCase().includes(keyword)) {
+      return { message: responses[keyword] };
+    }
+  }
+  
+  // Default response
+  return { 
+    message: `You can't find anyone named "${target}" to talk to. Try speaking with the elder, blacksmith, alchemist, or tavern keeper in the village.` 
+  };
+}
+
+async function handleMagicAction(action: any, player: any) {
+  const { target } = action;
+  
+  // Check if player has magic profile
+  if (!player.magicProfile) {
+    // Create basic magic profile if player doesn't have one
+    await db.insert(players.magicProfile).values({
+      playerId: player.id,
+      manaCurrent: 50,
+      manaMax: 50,
+      magicAffinity: 'novice',
+      knownAspects: ['basic']
+    });
+    
+    return { 
+      message: `You attempt to cast a spell, but realize you haven't learned any magic yet. 
+        A strange tingling feeling flows through you as your magical abilities awaken. 
+        Visit a mage to learn spells.`,
+      magicResult: {
+        success: false,
+        magicAwakened: true
+      }
+    };
+  }
+  
+  // Check if player has the spell they're trying to cast
+  const words = target.toLowerCase().split(' ');
+  const spellName = words.join(' ');
+  
+  const knownSpell = player.playerSpells?.find(
+    (ps: any) => ps.spell.name.toLowerCase() === spellName
+  );
+  
+  if (!knownSpell) {
+    return { 
+      message: `You don't know a spell called "${target}". Visit a mage to learn new spells.`,
+      magicResult: {
+        success: false,
+        reason: 'unknown_spell'
+      }
+    };
+  }
+  
+  // Check if player has enough mana
+  if (player.magicProfile.manaCurrent < knownSpell.spell.manaCost) {
+    return { 
+      message: `You don't have enough mana to cast ${knownSpell.spell.name}.`,
+      magicResult: {
+        success: false,
+        reason: 'insufficient_mana'
+      }
+    };
+  }
+  
+  // Determine environmental effects based on location
+  const locationEffects: Record<string, { aspects: string[], multiplier: number }> = {
+    'Mossy_Hollow': { aspects: ['earth', 'nature'], multiplier: 1.0 },
+    'Whisperwind_Forest': { aspects: ['air', 'nature'], multiplier: 1.2 },
+    'Crystal_Lake': { aspects: ['water'], multiplier: 1.5 },
+    'Ancient_Ruins': { aspects: ['arcane', 'death'], multiplier: 1.3 },
+    'Mountain_Pass': { aspects: ['earth', 'fire'], multiplier: 1.1 }
+  };
+  
+  const effect = locationEffects[player.locationArea] || { aspects: [], multiplier: 1.0 };
+  
+  // Calculate spell effectiveness based on environmental resonance
+  let effectiveness = effect.multiplier;
+  const spellAspects = knownSpell.spell.domains || [];
+  
+  for (const aspect of spellAspects) {
+    if (effect.aspects.includes(aspect)) {
+      effectiveness += 0.2; // Bonus for matching aspects
+    }
+  }
+  
+  // Update player mana
+  await db.update(players.magicProfile)
+    .set({ 
+      manaCurrent: Math.max(0, player.magicProfile.manaCurrent - knownSpell.spell.manaCost)
+    })
+    .where(eq(players.magicProfile.playerId, player.id));
+  
+  // Return spell result
+  return { 
+    message: `You cast ${knownSpell.spell.name}! ${knownSpell.spell.description} 
+      ${effectiveness > 1.2 ? 'The spell seems particularly effective here!' : ''}`,
+    magicResult: {
+      success: true,
+      spellCast: knownSpell.spell.name,
+      effectiveness,
+      environmentalBonus: effectiveness > 1.0
+    }
+  };
 }
 
 function handleCraftingAction(action: any, player: any) {
-  // Simulate crafting logic
-  let message = '';
-  let gameState = { player: { ...player }, crafting: null };
+  const { target } = action;
   
-  if (action.action === 'craft') {
-    if (action.item === 'iron_sword') {
-      message = 'You craft an Iron Sword. It\'s not the finest blade, but it will serve you well in battle.';
-      gameState.crafting = {
-        item: {
-          id: 'iron_sword',
-          name: 'Iron Sword',
-          type: 'weapon',
-          stats: { damage: 5 }
-        },
-        materialsUsed: [
-          { id: 'iron_ore', name: 'Iron Ore', quantity: 3 },
-          { id: 'wood', name: 'Wood', quantity: 1 }
-        ],
-        success: true
-      };
-    } else if (action.item === 'health_potion') {
-      message = 'You craft a Minor Health Potion. The crimson liquid bubbles slightly in the vial.';
-      gameState.crafting = {
-        item: {
-          id: 'health_potion',
-          name: 'Minor Health Potion',
-          type: 'consumable',
-          stats: { health: 20 }
-        },
-        materialsUsed: [
-          { id: 'herbs', name: 'Medicinal Herbs', quantity: 2 }
-        ],
-        success: true
-      };
-    } else if (action.item === 'leather_armor') {
-      message = 'You craft Leather Armor. It\'s lightweight but offers decent protection.';
-      gameState.crafting = {
-        item: {
-          id: 'leather_armor',
-          name: 'Leather Armor',
-          type: 'armor',
-          stats: { defense: 3 }
-        },
-        materialsUsed: [
-          { id: 'leather', name: 'Leather', quantity: 5 }
-        ],
-        success: true
-      };
-    } else {
-      message = 'You\'re not sure how to craft that item.';
-      gameState.crafting = {
+  // Simple crafting recipes
+  const recipes: Record<string, { materials: Record<string, number>, description: string }> = {
+    'health potion': {
+      materials: { 'red herb': 2, 'crystal water': 1 },
+      description: 'A simple potion that restores health.'
+    },
+    'mana potion': {
+      materials: { 'blue herb': 2, 'crystal water': 1 },
+      description: 'A simple potion that restores mana.'
+    },
+    'wooden sword': {
+      materials: { 'wood': 3, 'string': 1 },
+      description: 'A basic wooden sword for training.'
+    },
+    'leather armor': {
+      materials: { 'leather': 5, 'string': 2 },
+      description: 'Basic leather armor offering minimal protection.'
+    }
+  };
+  
+  // Check if the target item is a valid recipe
+  const recipe = Object.entries(recipes).find(
+    ([name]) => name === target.toLowerCase() || target.toLowerCase().includes(name)
+  );
+  
+  if (!recipe) {
+    return { 
+      message: `You don't know how to craft "${target}". Visit crafters in town to learn recipes.`,
+      craftingResult: {
         success: false,
         reason: 'unknown_recipe'
-      };
+      }
+    };
+  }
+  
+  const [itemName, itemRecipe] = recipe;
+  
+  // Check if player has the required materials
+  const playerMaterials = player.playerMaterials || [];
+  const missingMaterials = [];
+  
+  for (const [materialName, requiredAmount] of Object.entries(itemRecipe.materials)) {
+    const playerMaterial = playerMaterials.find(
+      (pm: any) => pm.material.name.toLowerCase() === materialName.toLowerCase()
+    );
+    
+    if (!playerMaterial || playerMaterial.quantity < requiredAmount) {
+      missingMaterials.push(`${materialName} (need ${requiredAmount})`);
     }
   }
   
-  return { message, gameState };
+  if (missingMaterials.length > 0) {
+    return { 
+      message: `You can't craft a ${itemName} because you're missing: ${missingMaterials.join(', ')}.`,
+      craftingResult: {
+        success: false,
+        reason: 'missing_materials',
+        missingMaterials
+      }
+    };
+  }
+  
+  // Simplified crafting result (would actually update inventory in a real implementation)
+  return { 
+    message: `You successfully craft a ${itemName}! ${itemRecipe.description}`,
+    craftingResult: {
+      success: true,
+      itemCrafted: itemName,
+      materialsUsed: itemRecipe.materials
+    }
+  };
 }
 
 function handleQuestAction(action: any, player: any) {
-  // Simulate quest logic
-  let message = '';
-  let gameState = { player: { ...player }, quest: null };
+  const { target } = action;
   
-  if (action.action === 'accept') {
-    if (action.quest === 'village_troubles') {
-      message = 'You accept the quest "Village Troubles". Elder Thaddeus looks relieved. "Thank you! Please deal with those wolves and return to me when you\'re done."';
-      gameState.quest = {
-        id: 'village_troubles',
-        name: 'Village Troubles',
-        status: 'active',
-        description: 'The village elder has asked for help dealing with the wolves that have been attacking travelers.',
-        objectives: [
-          { id: 'kill_wolves', description: 'Hunt down and kill the wolves (0/3)', completed: false },
-          { id: 'return_to_elder', description: 'Return to Elder Thaddeus', completed: false }
-        ]
-      };
-    } else {
-      message = 'You try to accept a quest, but can\'t quite understand the details.';
-    }
-  } else if (action.action === 'complete') {
-    if (action.quest === 'village_troubles') {
-      message = 'You complete the quest "Village Troubles". Elder Thaddeus thanks you and rewards you with 50 gold and a pair of leather boots.';
-      gameState.quest = {
-        id: 'village_troubles',
-        name: 'Village Troubles',
-        status: 'completed',
-        rewards: {
-          gold: 50,
-          items: [{ id: 'leather_boots', name: 'Leather Boots', type: 'armor' }],
-          experience: 100
-        }
-      };
-    } else {
-      message = 'That quest isn\'t ready to be completed yet.';
-    }
-  } else if (action.action === 'view') {
-    if (action.quest === 'village_troubles') {
-      message = 'Quest: Village Troubles - The village elder has asked for help dealing with the wolves that have been attacking travelers.';
-      gameState.quest = {
-        id: 'village_troubles',
-        name: 'Village Troubles',
-        status: 'active',
-        description: 'The village elder has asked for help dealing with the wolves that have been attacking travelers.',
-        objectives: [
-          { id: 'kill_wolves', description: 'Hunt down and kill the wolves (0/3)', completed: false },
-          { id: 'return_to_elder', description: 'Return to Elder Thaddeus', completed: false }
-        ]
-      };
-    } else if (action.quest === 'all') {
-      message = 'Your active quests: Village Troubles';
-      gameState.quest = {
-        activeQuests: [
-          {
-            id: 'village_troubles',
-            name: 'Village Troubles',
-            status: 'active'
-          }
-        ]
-      };
-    } else {
-      message = 'You don\'t have that quest in your journal.';
-    }
-  }
-  
-  return { message, gameState };
-}
-
-function handleExamineAction(action: any, player: any) {
-  // Simulate examine logic
-  let message = '';
-  let gameState = { player: { ...player }, examination: null };
-  
-  if (action.action === 'look') {
-    if (action.target === 'self' || action.target === 'inventory') {
-      message = `You check your inventory. You have a backpack containing various items.`;
-      gameState.examination = {
-        type: 'inventory',
-        inventory: {
-          gold: player.gold,
-          items: [
-            { id: 'iron_sword', name: 'Iron Sword', type: 'weapon', quantity: 1 },
-            { id: 'health_potion', name: 'Minor Health Potion', type: 'consumable', quantity: 3 }
-          ],
-          materials: [
-            { id: 'iron_ore', name: 'Iron Ore', type: 'material', quantity: 5 },
-            { id: 'wood', name: 'Wood', type: 'material', quantity: 8 },
-            { id: 'herbs', name: 'Medicinal Herbs', type: 'material', quantity: 3 }
-          ]
-        }
-      };
-    } else {
-      let location = '';
-      let description = '';
-      let features: string[] = [];
-      let npcs: Array<{id: string, name: string}> = [];
-      
-      if (player.locationArea === 'crossroads') {
-        location = 'Crossroads';
-        description = 'A crossroads where several paths meet. A weathered signpost points in different directions.';
-        features = ['signpost', 'dirt paths'];
-        npcs = [{ id: 'elder_thaddeus', name: 'Elder Thaddeus' }];
-      } else if (player.locationArea === 'forest_path') {
-        location = 'Forest Path';
-        description = 'A narrow path winding through dense forest. You can hear the sounds of wildlife all around you.';
-        features = ['tall trees', 'underbrush', 'animal tracks'];
-        npcs = [];
-      } else if (player.locationArea === 'village_square') {
-        location = 'Village Square';
-        description = 'The bustling center of the village. Merchants sell their wares and villagers go about their daily business.';
-        features = ['well', 'market stalls', 'blacksmith forge'];
-        npcs = [{ id: 'blacksmith_goran', name: 'Blacksmith Goran' }];
+  // List of available quests in different areas
+  const areaQuests: Record<string, Record<string, { title: string, description: string, giver: string }>> = {
+    'Mossy_Hollow': {
+      'wolves': {
+        title: 'Wolf Problem',
+        description: 'The village elder asks you to deal with wolves that have been threatening livestock.',
+        giver: 'elder'
+      },
+      'herbs': {
+        title: 'Healing Herbs',
+        description: 'The alchemist needs specific herbs from the forest for her potions.',
+        giver: 'alchemist'
+      },
+      'delivery': {
+        title: 'Urgent Delivery',
+        description: 'The blacksmith needs you to deliver a package to the miner in the Mountain Pass.',
+        giver: 'blacksmith'
       }
-      
-      message = `You look around the ${location}. ${description}`;
-      gameState.examination = {
-        type: 'surroundings',
-        location: {
-          name: location,
-          description,
-          features,
-          npcs
+    },
+    'Whisperwind_Forest': {
+      'lost child': {
+        title: 'Lost Child',
+        description: 'A child from the village has wandered into the forest and gone missing.',
+        giver: 'ranger'
+      }
+    },
+    'Crystal_Lake': {
+      'water samples': {
+        title: 'Unusual Water',
+        description: 'The water mage needs samples from different parts of the lake for research.',
+        giver: 'water mage'
+      }
+    },
+    'Ancient_Ruins': {
+      'artifacts': {
+        title: 'Ancient Artifacts',
+        description: 'The archaeologist wants you to recover specific artifacts from deeper in the ruins.',
+        giver: 'archaeologist'
+      }
+    },
+    'Mountain_Pass': {
+      'ore samples': {
+        title: 'Rare Ore',
+        description: 'The miner asks you to collect samples of a strange ore he discovered.',
+        giver: 'miner'
+      }
+    }
+  };
+  
+  // Check active quests if looking for status
+  if (['status', 'log', 'active', 'current'].includes(target.toLowerCase())) {
+    const activeQuests = player.playerQuests?.filter((pq: any) => pq.status !== 'completed') || [];
+    
+    if (activeQuests.length === 0) {
+      return { message: 'You have no active quests. Talk to NPCs in the village to find quests.' };
+    }
+    
+    const questList = activeQuests.map((pq: any) => `- ${pq.quest.name}: ${pq.quest.description}`).join('\n');
+    return { 
+      message: `Your active quests:\n${questList}`,
+      questResult: {
+        type: 'status',
+        activeQuests: activeQuests.map((pq: any) => ({
+          id: pq.id,
+          name: pq.quest.name,
+          status: pq.status
+        }))
+      }
+    };
+  }
+  
+  // Check if the target quest exists in the current area
+  const quests = areaQuests[player.locationArea] || {};
+  let questMatch = null;
+  
+  for (const [key, quest] of Object.entries(quests)) {
+    if (target.toLowerCase().includes(key) || quest.title.toLowerCase().includes(target.toLowerCase())) {
+      questMatch = { key, ...quest };
+      break;
+    }
+  }
+  
+  if (!questMatch) {
+    return { 
+      message: `There is no quest related to "${target}" in this area. Talk to the locals to discover quests.`,
+      questResult: {
+        type: 'not_found'
+      }
+    };
+  }
+  
+  // Check if player already has this quest
+  const existingQuest = player.playerQuests?.find(
+    (pq: any) => pq.quest.name.toLowerCase() === questMatch.title.toLowerCase()
+  );
+  
+  if (existingQuest) {
+    if (existingQuest.status === 'completed') {
+      return { 
+        message: `You've already completed the quest "${questMatch.title}".`,
+        questResult: {
+          type: 'already_completed',
+          quest: {
+            id: existingQuest.id,
+            name: existingQuest.quest.name
+          }
+        }
+      };
+    } else {
+      return { 
+        message: `You already have the quest "${questMatch.title}" in progress. ${questMatch.description}`,
+        questResult: {
+          type: 'in_progress',
+          quest: {
+            id: existingQuest.id,
+            name: existingQuest.quest.name,
+            status: existingQuest.status
+          }
         }
       };
     }
   }
   
-  return { message, gameState };
+  // Return quest info (would actually add quest to player in a real implementation)
+  return { 
+    message: `${questMatch.giver} offers you a new quest: "${questMatch.title}"\n${questMatch.description}\n\nDo you accept?`,
+    questResult: {
+      type: 'offer',
+      quest: {
+        title: questMatch.title,
+        description: questMatch.description,
+        giver: questMatch.giver
+      }
+    }
+  };
 }
 
 export default router;
