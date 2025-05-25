@@ -1095,6 +1095,137 @@ RELICSMITHING_RECIPES = [
             {"skill_name": "Relicsmithing", "level": 4, "affects_quality": True},
             {"skill_name": "Sound Artifice", "level": 3, "affects_quality": True}
         ]
+    },
+    # Dangerous Relic Procedures
+    {
+        "name": "Procedure: Stabilize Minor War-Core Fragment",
+        "description": "A risky procedure to temporarily stabilize a small fragment of a Crimson Dissonance War-Core, reducing its ambient corruption and allowing for safer study or use as a very short-term power source.",
+        "recipe_category": "Relic Stabilization - Power Core",
+        "crafting_time_seconds": 7200,
+        "required_station_type": "Relic Containment Workbench with Nullifier Array",
+        "difficulty_level": 8,
+        "is_discoverable": True,
+        "unlock_conditions": {"research_notes_found": "Fragmented_Dissonance_Core_Studies_Crucible_Spire", "skill_name": "Relic Tinkering", "level": 5, "tool_possessed": "Accord-Standard Nullifier Rod"},
+        "experience_gained": [{"skill_name": "Relic Tinkering", "amount": 1000}, {"skill_name": "Dissonance Lore", "amount": 200}, {"skill_name": "Hazardous Material Handling", "amount": 100}],
+        "quality_range": {"min": 1, "max": 4},
+        "ingredients": [
+            {"item_id": "Shattered War-Core Fragment", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Accord-Standard Nullifier Rod", "quantity": 1.0, "consumed_in_crafting": False},
+            {"item_id": "Inert Clay (Mana Absorptive)", "quantity": 5.0, "consumed_in_crafting": True},
+            {"item_id": "Quenched Quicksilver Solution", "quantity": 1.0, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Stabilized Minor War-Core Fragment", "quantity": 1.0},
+        "secondary_outputs": [
+            {"item_id": "Highly Corrupted Dross", "quantity": 1.0, "chance": 0.3},
+            {"item_id": "Empty Containment Vessel", "quantity": 1.0, "chance": 0.1}
+        ],
+        "required_skills": [
+            {"skill_name": "Relic Tinkering", "level": 7, "affects_quality": True, "affects_speed": False},
+            {"skill_name": "Energy Systems (Relic)", "level": 5, "affects_quality": True},
+            {"skill_name": "Hazardous Material Handling", "level": 3, "affects_quality": False}
+        ],
+        "custom_data": {
+            "failure_consequences_critical": "Mana_explosion_corruption_spread_spawns_energy_wisp",
+            "failure_consequences_minor": "Increased_instability_nullifier_rod_drained_minor_researcher_corruption",
+            "successful_output_lifespan_hours": "quality_level_x_6"
+        }
+    },
+    {
+        "name": "Blueprint: Repurpose Sentinel Plating for Shield Core",
+        "description": "A complex blueprint detailing how to integrate a segment of Dissonance-era Sentinel Plating into the core of a modern shield, hoping to impart some of its legendary resilience and energy dampening.",
+        "recipe_category": "Relic Repurposing - Armor Enhancement",
+        "crafting_time_seconds": 10800,
+        "required_station_type": "Master Armorer's Forge with Relic Integration Rig",
+        "difficulty_level": 7,
+        "is_discoverable": True,
+        "unlock_conditions": {"blueprint_acquired": "Salvaged_Accord_R&D_Notes_Stonewake_Vault", "skill_name": "Armorsmithing (Master)", "level": 8, "skill_name_2": "Relic Tinkering", "level_2": 4},
+        "experience_gained": [{"skill_name": "Armorsmithing (Master)", "amount": 700}, {"skill_name": "Relic Tinkering", "amount": 300}, {"skill_name": "Material Science (Alloy)", "amount": 150}],
+        "quality_range": {"min": 3, "max": 7},
+        "ingredients": [
+            {"item_id": "Inert Sentinel Plating Segment", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Dwarven Steel Ingot", "quantity": 3.0, "consumed_in_crafting": True},
+            {"item_id": "Silver Wire Spool (Fine)", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Elven Ward-Weave Mesh", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Multi-Spectrum Goggles", "quantity": 1.0, "consumed_in_crafting": False}
+        ],
+        "primary_output": {"item_id": "Sentinel-Core Shield", "quantity": 1.0},
+        "secondary_outputs": [
+            {"item_id": "Cracked Sentinel Plating & Ruined Shield Frame", "quantity": 1.0, "chance": 0.25}
+        ],
+        "required_skills": [
+            {"skill_name": "Armorsmithing (Master)", "level": 7, "affects_quality": True},
+            {"skill_name": "Relic Tinkering", "level": 6, "affects_quality": True},
+            {"skill_name": "Material Science (Alloy)", "level": 4, "affects_quality": True}
+        ],
+        "custom_data": {
+            "resulting_shield_properties": ["enhanced_physical_dr", "chance_to_dampen_specific_magic_type_if_aligned"],
+            "risk_of_latent_energy_awakening": 0.05
+        }
+    },
+    {
+        "name": "Experiment: Controlled Discharge of Dissonance Echo Crystal",
+        "description": "EXTREMELY DANGEROUS. An experimental attempt to trigger a controlled, minor discharge from a Dissonance Echo Crystal, hoping to capture a sliver of its trapped energy or information without causing a catastrophic release. Success is highly improbable.",
+        "recipe_category": "Relic Research - Forbidden Knowledge",
+        "crafting_time_seconds": 21600,
+        "required_station_type": "Remote Relic Analysis Chamber (Fortified)",
+        "difficulty_level": 10,
+        "is_discoverable": True,
+        "unlock_conditions": {"forbidden_knowledge_fragments_combined": 5, "skill_name": "Relic Tinkering (Grandmaster)", "level": 10, "will_to_risk_everything_flag": True, "containment_field_projector_available": True},
+        "experience_gained": [{"skill_name": "Relic Tinkering (Grandmaster)", "amount": 5000}, {"skill_name": "Dissonance Theory (PhD)", "amount": 1000}],
+        "quality_range": {"min": 0, "max": 2},
+        "ingredients": [
+            {"item_id": "Echo Crystal Shard (Dissonance)", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Containment Field Projector (Small)", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Ferverl Leyline Siphon", "quantity": 3.0, "consumed_in_crafting": True},
+            {"item_id": "Sonic Emitter (Fine Tuned)", "quantity": 1.0, "consumed_in_crafting": False},
+            {"item_id": "Researcher's Last Will and Testament", "quantity": 1.0, "consumed_in_crafting": False}
+        ],
+        "primary_output": {"item_id": "Fragment of Lost Dissonance Knowledge", "quantity": 1.0},
+        "secondary_outputs": [
+            {"item_id": "Unstable Temporal Essence", "quantity": 1.0, "chance": 0.02},
+            {"item_id": "Zone of Complete Annihilation", "quantity": 1.0, "chance": 0.93}
+        ],
+        "required_skills": [
+            {"skill_name": "Relic Tinkering (Grandmaster)", "level": 10, "affects_quality": True},
+            {"skill_name": "Theoretical Physics (Dissonance)", "level": 8, "affects_quality": True},
+            {"skill_name": "Planetary Scale Evacuation Planning", "level": 1, "affects_quality": False}
+        ],
+        "custom_data": {
+            "catastrophic_failure_outcomes": ["reality_tear_local_area", "summon_powerful_dissonance_echo_entity", "temporal_distortion_wave", "researcher_disintegrated_or_driven_mad"],
+            "success_rewards_potential": ["unique_spell_fragment", "blueprint_for_lost_tech", "glimpse_into_dissonance_event"]
+        }
+    },
+    {
+        "name": "Procedure: Attune Relic Shard to User (Minor)",
+        "description": "A dangerous ritual to attempt a minor psychic and magical attunement between a user and a relatively stable, small relic shard. Success can grant minor passive bonuses or abilities, but failure can lead to corruption or backlash.",
+        "recipe_category": "Relic Attunement - Personal Enhancement",
+        "crafting_time_seconds": 3600,
+        "required_station_type": "Attunement Circle with Warding Runes",
+        "difficulty_level": 6,
+        "is_discoverable": True,
+        "unlock_conditions": {"study_of_ferverl_symbiosis_texts": True, "skill_name": "Relic Empathy", "level": 3, "item_to_attune_is_minor_and_semi_stable": True},
+        "experience_gained": [{"skill_name": "Relic Empathy", "amount": 500}, {"skill_name": "Willpower Training", "amount": 100}],
+        "quality_range": {"min": 0, "max": 3},
+        "ingredients": [
+            {"item_id": "Inert Sentinel Plating Fragment", "quantity": 1.0, "consumed_in_crafting": False},
+            {"item_id": "User's Own Blood", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Purified Leyline Water", "quantity": 1.0, "consumed_in_crafting": True},
+            {"item_id": "Thal-Zirad Sun-Dried Petals", "quantity": 3.0, "consumed_in_crafting": True}
+        ],
+        "primary_output": {"item_id": "Attuned Relic Shard", "quantity": 1.0},
+        "secondary_outputs": [
+            {"item_id": "Corrupted Relic Shard", "quantity": 1.0, "chance": 0.3}
+        ],
+        "required_skills": [
+            {"skill_name": "Relic Empathy", "level": 5, "affects_quality": True},
+            {"skill_name": "Meditation & Focus", "level": 4, "affects_quality": True},
+            {"skill_name": "Ritualism (Warding)", "level": 3, "affects_quality": False}
+        ],
+        "custom_data": {
+            "attunement_effect_depends_on_relic_type": True,
+            "corruption_points_gained_on_failure_1d6": True,
+            "mental_strain_involved": True
+        }
     }
 ]
 
