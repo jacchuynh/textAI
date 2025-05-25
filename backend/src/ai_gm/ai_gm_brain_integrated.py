@@ -1,5 +1,5 @@
 """
-AI Game Master Brain Module
+AI Game Master Brain Module (texting module)
 
 This module implements a simplified AI Game Master that can handle
 complex or ambiguous player commands that don't fit cleanly into 
@@ -16,10 +16,11 @@ class AIGMBrain:
     This is a simplified implementation for demonstration purposes.
     In a real system, this would likely use a language model API.
     """
+
     def __init__(self):
         # Initialize response templates
         self._init_response_templates()
-    
+
     def _init_response_templates(self):
         """Initialize templates for AI GM responses."""
         self.templates = {
@@ -59,8 +60,9 @@ class AIGMBrain:
                 "The path to {objective} has changed. {update_details}"
             ]
         }
-    
-    def process_player_input(self, player_input: str, context: Dict[str, Any]) -> Dict[str, Any]:
+
+    def process_player_input(self, player_input: str,
+                             context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process player input and generate an appropriate response.
         
@@ -73,17 +75,18 @@ class AIGMBrain:
         """
         # Analyze the input to determine intent
         intent = self._determine_intent(player_input)
-        
+
         # Generate a response based on intent and context
         response = self._generate_response(intent, player_input, context)
-        
+
         # Return the response and any game state updates
         return {
             "response": response,
             "intent": intent,
-            "state_updates": {}  # Would contain game state updates in a real implementation
+            "state_updates":
+            {}  # Would contain game state updates in a real implementation
         }
-    
+
     def _determine_intent(self, player_input: str) -> str:
         """
         Determine the player's intent from their input.
@@ -92,38 +95,46 @@ class AIGMBrain:
         This simplified version just checks for keywords.
         """
         player_input = player_input.lower()
-        
-        if any(word in player_input for word in ["hello", "hi", "greet", "hey"]):
+
+        if any(word in player_input
+               for word in ["hello", "hi", "greet", "hey"]):
             return "greeting"
-        
-        if any(word in player_input for word in ["look", "see", "observe", "examine"]):
+
+        if any(word in player_input
+               for word in ["look", "see", "observe", "examine"]):
             return "observe"
-        
-        if any(word in player_input for word in ["talk", "speak", "ask", "tell"]):
+
+        if any(word in player_input
+               for word in ["talk", "speak", "ask", "tell"]):
             return "talk"
-        
-        if any(word in player_input for word in ["attack", "fight", "kill", "hit"]):
+
+        if any(word in player_input
+               for word in ["attack", "fight", "kill", "hit"]):
             return "combat"
-        
+
         if any(word in player_input for word in ["quest", "mission", "task"]):
             return "quest"
-        
-        if any(word in player_input for word in ["go", "move", "travel", "walk"]):
+
+        if any(word in player_input
+               for word in ["go", "move", "travel", "walk"]):
             return "movement"
-        
-        if any(word in player_input for word in ["use", "equip", "wield", "wear"]):
+
+        if any(word in player_input
+               for word in ["use", "equip", "wield", "wear"]):
             return "item_use"
-        
-        if any(word in player_input for word in ["craft", "make", "create", "build"]):
+
+        if any(word in player_input
+               for word in ["craft", "make", "create", "build"]):
             return "crafting"
-        
+
         if any(word in player_input for word in ["cast", "spell", "magic"]):
             return "magic"
-        
+
         # Default to unknown
         return "unknown"
-    
-    def _generate_response(self, intent: str, player_input: str, context: Dict[str, Any]) -> str:
+
+    def _generate_response(self, intent: str, player_input: str,
+                           context: Dict[str, Any]) -> str:
         """
         Generate a response based on the player's intent and game context.
         
@@ -131,52 +142,54 @@ class AIGMBrain:
         This simplified version uses basic templates with some context filling.
         """
         import random
-        
+
         # Get player information
         player = context.get("player", {})
         player_name = player.get("name", "Adventurer")
-        
+
         # Get location information
         location_info = context.get("location", {})
         location_name = location_info.get("area", {}).get("name", "this area")
-        
+
         # Get NPC information if relevant
         npcs = context.get("npcs", [])
         npc_name = npcs[0].get("name", "a stranger") if npcs else "a stranger"
-        
+
         # Handle based on intent
         if intent == "greeting":
             return random.choice(self.templates["greeting"])
-        
+
         elif intent == "unknown":
             return random.choice(self.templates["unknown_command"])
-        
+
         elif intent == "observe":
             # Fill in location description template
-            location_desc = location_info.get("area", {}).get("description", "an interesting place")
-            atmosphere = "mysterious" if "ruins" in location_name.lower() else "peaceful"
+            location_desc = location_info.get("area",
+                                              {}).get("description",
+                                                      "an interesting place")
+            atmosphere = "mysterious" if "ruins" in location_name.lower(
+            ) else "peaceful"
             details = "There's much to explore here." if location_desc else "Nothing particularly stands out."
-            
+
             template = random.choice(self.templates["location_description"])
-            return template.format(
-                location=location_name,
-                atmosphere=atmosphere,
-                details=details
-            )
-        
+            return template.format(location=location_name,
+                                   atmosphere=atmosphere,
+                                   details=details)
+
         elif intent == "talk" and npcs:
             # Fill in NPC interaction template
-            dialogue = npcs[0].get("dialogue", {}).get("greeting", "Hello there.")
-            expression = "curiously" if "elder" in npc_name.lower() else "cautiously"
-            action = "nods respectfully" if "elder" in npc_name.lower() else "smiles faintly"
-            
+            dialogue = npcs[0].get("dialogue", {}).get("greeting",
+                                                       "Hello there.")
+            expression = "curiously" if "elder" in npc_name.lower(
+            ) else "cautiously"
+            action = "nods respectfully" if "elder" in npc_name.lower(
+            ) else "smiles faintly"
+
             template = random.choice(self.templates["npc_interaction"])
-            return template.format(
-                npc_name=npc_name,
-                expression=expression,
-                action=action,
-                dialogue=dialogue
-            )
-        
+            return template.format(npc_name=npc_name,
+                                   expression=expression,
+                                   action=action,
+                                   dialogue=dialogue)
+
         # For other intents, return a generic but contextual response
         return f"You try to {intent}, but the specific action isn't clear. Perhaps try a more direct command?"
