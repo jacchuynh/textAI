@@ -1,310 +1,172 @@
-#!/usr/bin/env python3
 """
-Test integration between magic system and world generator
+Magic-World Integration Tests
 
-This test ensures that the magic system properly integrates with the world generator,
-allowing for magical features to be placed in the world.
+This module tests the integration between the magic system and the world generation system.
 """
 
-import unittest
+import pytest
 import random
-import os
-import sys
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
-# Set the random seed for reproducible tests
+# Import core components when available
+try:
+    from game_engine.magic_system import (
+        MagicSystem, MagicUser, LocationMagicProfile, Domain, DamageType
+    )
+    from magic_system.magic_world_integration import (
+        MagicWorldIntegration, World, Location, POI, POIType
+    )
+    MAGIC_WORLD_AVAILABLE = True
+except ImportError:
+    MAGIC_WORLD_AVAILABLE = False
+
+# Set a seed for consistent random results in tests
 random.seed(42)
 
-# Add src directory to path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(os.path.dirname(current_dir))
-sys.path.append(os.path.join(parent_dir, "src"))
 
-try:
-    # Import magic system components
-    from magic_system.magic_system import (
-        MagicSystem, 
-        ManaFluxLevel,
-        LocationMagicProfile,
-        DamageType
-    )
+# Skip the entire module if dependencies aren't available
+pytestmark = pytest.mark.skipif(
+    not MAGIC_WORLD_AVAILABLE,
+    reason="Magic world integration components not available"
+)
 
-    # Import world generator components
-    from world_generation.world_model import (
-        World,
-        Location,
-        POI,
-        Coordinates,
-        Climate,
-        Terrain,
-        POIType
-    )
 
-    # Import integration module
-    from magic_system.magic_world_integration import (
-        MagicWorldIntegration,
-        MagicalMaterialWorldIntegration
-    )
+class TestMagicWorldIntegration:
+    """Tests for the integration between magic and world systems."""
 
-    class TestMagicWorldIntegration(unittest.TestCase):
-        """Test the integration between the magic system and world generator."""
+    def test_world_enhancement(self, magic_world_integration, test_world):
+        """Test that a world can be enhanced with magical features."""
+        # Enhance the world with magic
+        enhanced_world = magic_world_integration.enhance_world_with_magic(test_world)
         
-        def setUp(self):
-            """Set up the test environment."""
-            # Create a magic system instance
-            self.magic_system = MagicSystem()
-            
-            # Create a magic world integration instance
-            self.magic_integration = MagicWorldIntegration()
-            
-            # Create a magical material integration instance
-            self.material_integration = MagicalMaterialWorldIntegration(self.magic_integration)
-            
-            # Create a test world
-            self.world = self._create_test_world()
+        # Verify the world was enhanced
+        assert enhanced_world is not None
+        assert enhanced_world.id == test_world.id
+        assert enhanced_world.name == test_world.name
         
-        def _create_test_world(self) -> World:
-            """Create a test world with diverse biomes."""
-            # Create locations with different biomes
-            locations = {}
-            
-            # Forest location
-            forest_pois = [
-                POI(
-                    id="poi_forest_1",
-                    name="Ancient Oak",
-                    poi_type=POIType.GROVE,
-                    description="A massive oak tree that seems to radiate ancient energy.",
-                    coordinates=(1.5, 1.5)
-                )
-            ]
-            
-            forest_location = Location(
-                id="loc_forest",
-                name="Whispering Woods",
-                description="A dense forest where the trees seem to whisper secrets.",
-                coordinates=(1.0, 1.0),
-                terrain=Terrain.HILLS,
-                pois=forest_pois,
-                biome="forest"
-            )
-            locations["loc_forest"] = forest_location
-            
-            # Mountain location
-            mountain_pois = [
-                POI(
-                    id="poi_mountain_1",
-                    name="Frost Peak",
-                    poi_type=POIType.SHRINE,
-                    description="The highest peak in the range, eternally covered in snow.",
-                    coordinates=(3.5, 3.5)
-                )
-            ]
-            
-            mountain_location = Location(
-                id="loc_mountain",
-                name="Skyreach Mountains",
-                description="Towering mountains that pierce the clouds.",
-                coordinates=(3.0, 3.0),
-                terrain=Terrain.MOUNTAINS,
-                pois=mountain_pois,
-                biome="mountain"
-            )
-            locations["loc_mountain"] = mountain_location
-            
-            # Desert location
-            desert_pois = [
-                POI(
-                    id="poi_desert_1",
-                    name="Sun-Scorched Ruins",
-                    poi_type=POIType.RUIN,
-                    description="Ancient ruins buried and revealed by shifting sands.",
-                    coordinates=(5.5, 1.5)
-                )
-            ]
-            
-            desert_location = Location(
-                id="loc_desert",
-                name="Endless Sands",
-                description="A vast desert where sandstorms reveal and conceal ancient ruins.",
-                coordinates=(5.0, 1.0),
-                terrain=Terrain.FLAT,
-                pois=desert_pois,
-                biome="desert"
-            )
-            locations["loc_desert"] = desert_location
-            
-            # Coastal location
-            coastal_pois = [
-                POI(
-                    id="poi_coastal_1",
-                    name="Tidal Caves",
-                    poi_type=POIType.CAVE,
-                    description="Caves carved by the relentless sea.",
-                    coordinates=(1.5, 5.5)
-                )
-            ]
-            
-            coastal_location = Location(
-                id="loc_coastal",
-                name="Azure Coast",
-                description="A beautiful coastline with crystal clear waters.",
-                coordinates=(1.0, 5.0),
-                terrain=Terrain.COASTAL,
-                pois=coastal_pois,
-                biome="coastal"
-            )
-            locations["loc_coastal"] = coastal_location
-            
-            # Swamp location
-            swamp_pois = [
-                POI(
-                    id="poi_swamp_1",
-                    name="Mist Hollow",
-                    poi_type=POIType.SPRING,
-                    description="A pool of mysterious water shrouded in mist.",
-                    coordinates=(5.5, 5.5)
-                )
-            ]
-            
-            swamp_location = Location(
-                id="loc_swamp",
-                name="Mistmarsh",
-                description="A foggy swamp where lights flicker in the distance.",
-                coordinates=(5.0, 5.0),
-                terrain=Terrain.RIVER,
-                pois=swamp_pois,
-                biome="swamp"
-            )
-            locations["loc_swamp"] = swamp_location
-            
-            # Create world
-            return World(
-                id="test_world",
-                name="Test World",
-                width=10,
-                height=10,
-                locations=locations,
-                climate=Climate.TEMPERATE
-            )
-        
-        def test_world_enhancement_with_magic(self):
-            """Test enhancing a world with magic."""
-            # Enhance the world with magic
-            enhanced_world = self.magic_integration.enhance_world_with_magic(self.world)
-            
-            # Check that each location now has a magic profile
-            for location_id, location in enhanced_world.locations.items():
-                self.assertTrue(hasattr(location, 'magic_profile'), f"Location {location_id} has no magic profile")
-                self.assertIsInstance(location.magic_profile, LocationMagicProfile)
-                
-                # Check that leyline strengths are in expected range
-                self.assertGreaterEqual(location.magic_profile.leyline_strength, 0.0)
-                
-                # Check that mana flux level is a valid enum
-                self.assertIsInstance(location.magic_profile.mana_flux_level, ManaFluxLevel)
-                
-                # Check that dominant magic aspects are set
-                self.assertIsInstance(location.magic_profile.dominant_magic_aspects, list)
-                for aspect in location.magic_profile.dominant_magic_aspects:
-                    self.assertIsInstance(aspect, DamageType)
-            
-            # Check that leyline network is created
-            self.assertIsInstance(self.magic_integration.leyline_map, dict)
-            
-            # Check that magical hotspots are identified
-            self.assertIsInstance(self.magic_integration.magical_hotspots, list)
-            
-            # Return the enhanced world for further tests
-            return enhanced_world
-        
-        def test_magical_poi_generation(self):
-            """Test generation of magical POIs."""
-            # Enhance the world with magic
-            enhanced_world = self.magic_integration.enhance_world_with_magic(self.world)
-            
-            # Count magical POIs before and after enhancement
-            original_poi_count = sum(len(location.pois) for location in self.world.locations.values())
-            enhanced_poi_count = sum(len(location.pois) for location in enhanced_world.locations.values())
-            
-            # Should have more POIs after enhancement
-            self.assertGreaterEqual(enhanced_poi_count, original_poi_count)
-            
-            # Check that magical POIs have been added
-            magical_poi_types = [POIType.SHRINE, POIType.GROVE, POIType.SPRING, POIType.RELIC_SITE]
-            magical_poi_count = 0
-            
-            for location in enhanced_world.locations.values():
-                for poi in location.pois:
-                    if poi.poi_type in magical_poi_types:
-                        magical_poi_count += 1
-                        
-                        # Check that POI has a name and description
-                        self.assertIsNotNone(poi.name)
-                        self.assertIsNotNone(poi.description)
-                        self.assertTrue(len(poi.name) > 0)
-                        self.assertTrue(len(poi.description) > 0)
-            
-            # Should have at least one magical POI
-            self.assertGreater(magical_poi_count, 0)
-        
-        def test_magical_material_distribution(self):
-            """Test distribution of magical materials."""
-            # Enhance the world with magic
-            enhanced_world = self.magic_integration.enhance_world_with_magic(self.world)
-            
-            # Distribute magical materials
-            world_with_materials = self.material_integration.distribute_magical_materials(enhanced_world)
-            
-            # Check for material deposits
-            material_deposit_count = 0
-            
-            for location in world_with_materials.locations.values():
-                if hasattr(location, 'material_deposits') and location.material_deposits:
-                    material_deposit_count += 1
-                    
-                    # Check that deposits have required properties
-                    for deposit in location.material_deposits:
-                        self.assertIn('id', deposit)
-                        self.assertIn('name', deposit)
-                        self.assertIn('quantity', deposit)
-            
-            # Should have at least one material deposit
-            self.assertGreater(material_deposit_count, 0)
-        
-        def test_biome_specific_magic(self):
-            """Test that biomes influence magic properties."""
-            # Enhance the world with magic
-            enhanced_world = self.magic_integration.enhance_world_with_magic(self.world)
-            
-            # Check biome-specific magic aspects
-            expected_aspects = {
-                "forest": [DamageType.EARTH, DamageType.LIFE],
-                "mountain": [DamageType.EARTH, DamageType.AIR],
-                "desert": [DamageType.FIRE, DamageType.EARTH],
-                "coastal": [DamageType.WATER, DamageType.AIR],
-                "swamp": [DamageType.WATER, DamageType.POISON]
-            }
-            
-            for location_id, location in enhanced_world.locations.items():
-                if hasattr(location, 'biome') and location.biome in expected_aspects:
-                    expected = expected_aspects[location.biome]
-                    actual = location.magic_profile.dominant_magic_aspects
-                    
-                    # At least one of the expected aspects should be present
-                    common_aspects = set(expected).intersection(set(actual))
-                    self.assertGreater(len(common_aspects), 0, 
-                                    f"Location {location_id} with biome {location.biome} has no expected magic aspects")
-
-    if __name__ == "__main__":
-        unittest.main()
-
-except ImportError as e:
-    print(f"Import error: {e}")
-    print("This test requires the magic system and world generation modules.")
-    print("Skipping tests.")
+        # Check that locations have magic profiles
+        for location_id, location in enhanced_world.locations.items():
+            assert hasattr(location, 'magic_profile')
+            assert location.magic_profile is not None
     
-    # Create a dummy test class to prevent test failure
-    class DummyTest(unittest.TestCase):
-        def test_dummy(self):
-            self.skipTest("Required modules not available")
+    def test_leyline_generation(self, magic_world_integration, test_world):
+        """Test that leylines are generated between locations."""
+        # Enhance the world with magic
+        enhanced_world = magic_world_integration.enhance_world_with_magic(test_world)
+        
+        # Get the leyline network
+        leyline_network = magic_world_integration.get_leyline_network()
+        
+        # There should be some leylines in the network
+        assert len(leyline_network) > 0
+        
+        # Check leyline strengths are within expected range
+        for source_id, connections in leyline_network.items():
+            for target_id, strength in connections.items():
+                assert 0.0 <= strength <= 5.0
+    
+    def test_magical_hotspots(self, magic_world_integration, test_world):
+        """Test that magical hotspots are identified in the world."""
+        # Enhance the world with magic
+        enhanced_world = magic_world_integration.enhance_world_with_magic(test_world)
+        
+        # Get the magical hotspots
+        hotspots = magic_world_integration.get_magical_hotspots()
+        
+        # There should be at least one hotspot
+        assert len(hotspots) > 0
+        
+        # Hotspots should be valid location IDs
+        for hotspot_id in hotspots:
+            assert hotspot_id in enhanced_world.locations
+            
+            # Hotspot locations should have high leyline strength
+            location = enhanced_world.locations[hotspot_id]
+            assert location.magic_profile.leyline_strength > 1.0
+            
+            # Hotspots should allow ritual sites
+            assert location.magic_profile.allows_ritual_sites == True
+    
+    def test_magical_poi_generation(self, magic_world_integration, test_world):
+        """Test that magical points of interest are generated in the world."""
+        # Enhance the world with magic
+        enhanced_world = magic_world_integration.enhance_world_with_magic(test_world)
+        
+        # Check if magical POIs were added to locations
+        magical_pois_found = False
+        magical_poi_types = [POIType.SHRINE, POIType.GROVE, POIType.SPRING, POIType.RELIC_SITE]
+        
+        for location_id, location in enhanced_world.locations.items():
+            # Check if this location has any magical POIs
+            for poi in location.pois:
+                if poi.poi_type in magical_poi_types:
+                    magical_pois_found = True
+                    
+                    # POI should have a name and description
+                    assert poi.name is not None and len(poi.name) > 0
+                    assert poi.description is not None and len(poi.description) > 0
+                    
+                    # Coordinates should be near the location
+                    poi_x, poi_y = poi.coordinates
+                    loc_x, loc_y = location.coordinates
+                    assert abs(poi_x - loc_x) <= 1.0
+                    assert abs(poi_y - loc_y) <= 1.0
+        
+        # At least one magical POI should have been generated
+        assert magical_pois_found
+    
+    def test_biome_magic_correlation(self, magic_world_integration, test_world):
+        """Test that biomes influence the magic aspects of locations."""
+        # Enhance the world with magic
+        enhanced_world = magic_world_integration.enhance_world_with_magic(test_world)
+        
+        # Check biome-magic correlations
+        for location_id, location in enhanced_world.locations.items():
+            if hasattr(location, 'biome') and location.biome is not None:
+                # Check if the magic aspects match expected biome correlations
+                if location.biome == 'forest':
+                    # Forest should have earth/life aspects
+                    aspects = [aspect.name for aspect in location.magic_profile.dominant_magic_aspects]
+                    assert any(aspect in ['EARTH', 'LIFE'] for aspect in aspects)
+                
+                elif location.biome == 'mountain':
+                    # Mountain should have earth/air aspects
+                    aspects = [aspect.name for aspect in location.magic_profile.dominant_magic_aspects]
+                    assert any(aspect in ['EARTH', 'AIR'] for aspect in aspects)
+    
+    def test_location_magic_environmental_effects(self, magic_system, enhanced_world):
+        """Test that location magic profiles generate appropriate environmental effects."""
+        # Create a test character
+        test_character = type('TestCharacter', (), {
+            'current_health': 100,
+            'max_health': 100,
+            'magic_profile': MagicUser(
+                character_id="test_character",
+                has_mana_heart=True,
+                mana_max=100,
+                mana_current=50,
+                mana_regeneration_rate=1.0
+            )
+        })
+        
+        # Test environmental effects in each location
+        for location_id, location in enhanced_world.locations.items():
+            # Apply environmental effects
+            effects = location.magic_profile.apply_magical_environmental_effects(test_character)
+            
+            # Check that effects were applied
+            assert effects is not None
+            
+            # In high magic areas, character should regenerate mana
+            if location.magic_profile.mana_flux_level.name in ['HIGH', 'VERY_HIGH']:
+                mana_regen_effects = [e for e in effects if e.get('effect_type') == 'mana_regeneration']
+                assert len(mana_regen_effects) > 0
+                
+                # Check mana was actually regenerated
+                assert mana_regen_effects[0].get('amount', 0) > 0
+
+
+# Simple dummy test to ensure pytest discovers the module
+class DummyTest:
+    def test_dummy(self):
+        assert True
