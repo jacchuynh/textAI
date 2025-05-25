@@ -2372,6 +2372,133 @@ WOODWORKING_MATERIALS = [
         }
     },
     {
+        "name": "Oak Planks (Bundle of 3)",
+        "description": "High-quality oak planks milled from seasoned logs. Excellent for fine furniture and structural applications.",
+        "material_type": MaterialType.WOOD_PROCESSED,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 25,
+        "weight": 7.0,
+        "is_craftable": True,
+        "source_tags": ["milled_seasoned_oak_logs_skarport_carpentry_guild", "high_quality_furniture_construction"],
+        "illicit_in_regions": [],
+        "properties": {
+            "dimensions_cm_each_plank": "200x15x3",
+            "finish": "planed_smooth",
+            "nail_holding_ability": "good",
+            "stain_affinity": "excellent",
+            "uses": ["fine_furniture", "weapon_hafts", "ship_decking", "heavy_doors"]
+        }
+    },
+    {
+        "name": "Ash Wood Branches (Bundle)",
+        "description": "Flexible ash wood branches from pruned trees. Excellent for tool handles due to shock resistance.",
+        "material_type": MaterialType.WOOD_RAW,
+        "rarity": Rarity.COMMON,
+        "base_value": 3,
+        "weight": 4.0,
+        "is_craftable": False,
+        "source_tags": ["pruned_verdant_frontier_ash_trees_tool_handles", "flexible_strong_wood"],
+        "illicit_in_regions": [],
+        "properties": {
+            "processes_into": "Ash Staves_Tool Handles",
+            "flexibility": "high",
+            "shock_resistance": "excellent",
+            "workability": "good",
+            "uses_raw": ["temporary_tool_handles", "kindling"]
+        }
+    },
+    {
+        "name": "Ironwood Log (Small)",
+        "description": "A rare log of ironwood from the deep forests. Extremely hard and dense, favored by orcs for weapons.",
+        "material_type": MaterialType.WOOD_RAW,
+        "rarity": Rarity.RARE,
+        "base_value": 50,
+        "weight": 30.0,
+        "is_craftable": False,
+        "source_tags": ["harvested_deep_whispering_woods_ironwood_trees_orcish_preference", "extremely_hard_wood"],
+        "illicit_in_regions": [],
+        "properties": {
+            "processes_into": "Ironwood Planks_Ironwood Blocks",
+            "density_kg_m3": 950,
+            "hardness_janka_lbf": 3200,
+            "workability": "very_difficult_blunts_tools",
+            "strength": "exceptional",
+            "uses": ["weapon_hafts", "fortifications"]
+        }
+    },
+    {
+        "name": "Ironwood Planks (Single)",
+        "description": "A single plank of processed ironwood. Incredibly hard and impact-resistant but difficult to work with.",
+        "material_type": MaterialType.WOOD_PROCESSED,
+        "rarity": Rarity.RARE,
+        "base_value": 70,
+        "weight": 8.0,
+        "is_craftable": True,
+        "source_tags": ["milled_ironwood_log_orcish_master_carpenter_rivemark", "premium_impact_resistant_wood"],
+        "illicit_in_regions": [],
+        "properties": {
+            "dimensions_cm_plank": "150x20x4",
+            "finish": "rough_difficult_to_plane",
+            "nail_holding_ability": "poor_requires_drilling",
+            "uses": ["heavy_weapon_components", "shield_cores", "reinforced_structures"]
+        }
+    },
+    {
+        "name": "Lethandrel Spiritwood Branch",
+        "description": "A mana-infused branch from ancient spirit trees. Glows faintly and conducts magical energy.",
+        "material_type": MaterialType.WOOD_MAGICAL,
+        "rarity": Rarity.EPIC,
+        "base_value": 400,
+        "weight": 1.5,
+        "is_craftable": False,
+        "source_tags": ["ethically_harvested_lethandrel_ancient_spirit_trees_elven_ritual", "mana_infused_wood"],
+        "illicit_in_regions": ["Stonewake_unlicensed"],
+        "properties": {
+            "processes_into": "Spiritwood Wand_Staff Core_Enchanted Carvings",
+            "mana_conductivity": "high",
+            "natural_wards": "minor_vs_undead_corruption",
+            "workability": "easy_responds_to_elven_tools_chants",
+            "glows_faintly": True
+        }
+    },
+    {
+        "name": "Shimmering Marshes Mangrove Root",
+        "description": "Water-logged mangrove root from the marshes. Naturally resistant to rot and salt water.",
+        "material_type": MaterialType.WOOD_RAW,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 10,
+        "weight": 8.0,
+        "is_craftable": False,
+        "source_tags": ["harvested_shimmering_marshes_mangrove_water_logged_wood", "rot_resistant_wood"],
+        "illicit_in_regions": [],
+        "properties": {
+            "processes_into": "Mangrove Planks_Carved Fetishes",
+            "water_resistance": "very_high",
+            "salt_resistance": "high",
+            "workability": "moderate_stringy_fibers",
+            "density": "medium_light_when_dried",
+            "uses": ["boat_parts", "dock_pilings"]
+        }
+    },
+    {
+        "name": "Petrified Wood Chunk",
+        "description": "Ancient fossilized wood that has turned to stone. Extremely durable but requires special tools to work.",
+        "material_type": MaterialType.WOOD_MINERAL,
+        "rarity": Rarity.RARE,
+        "base_value": 60,
+        "weight": 5.0,
+        "is_craftable": False,
+        "source_tags": ["found_ember_wastes_ancient_forest_remains_fossilized_wood", "stone_like_wood"],
+        "illicit_in_regions": [],
+        "properties": {
+            "processes_into": "Petrified Wood Carvings_Inlays",
+            "hardness_mohs": 7,
+            "workability": "difficult_requires_stone_tools_or_magic",
+            "appearance": "polished_stone_wood_grain",
+            "uses": ["durable_ornaments", "weapon_pommels"]
+        }
+    },
+    {
         "name": "Whispering Birch Planks",
         "description": "Silvery white planks with a soft, almost luminous appearance. Favored by Lethandrel elves for musical instruments.",
         "material_type": MaterialType.WOOD_PROCESSED,
@@ -2388,6 +2515,116 @@ WOODWORKING_MATERIALS = [
             "accepts_finish": "extremely_well",
             "mana_conductivity": "low_trace",
             "appearance": "silvery_pale"
+        }
+    },
+    # Adhesives, Finishes & Fasteners (Wood Specific)
+    {
+        "name": "Pine Resin (Lump)",
+        "description": "Natural resin tapped from pine trees. Useful for waterproofing and as a crude adhesive.",
+        "material_type": MaterialType.RESIN,
+        "rarity": Rarity.COMMON,
+        "base_value": 1,
+        "weight": 0.1,
+        "is_craftable": False,
+        "source_tags": ["tapped_pine_trees_verdant_frontier", "sticky_natural_adhesive_waterproofer"],
+        "illicit_in_regions": [],
+        "properties": {
+            "use": "crude_adhesive_waterproofing_torches",
+            "melting_point_celsius": 70,
+            "flammability": "high",
+            "processed_into": "Pine Tar_Pitch"
+        }
+    },
+    {
+        "name": "Animal Hide Glue (Pot)",
+        "description": "Traditional wood glue made from rendered animal hides and bones. Strong but brittle when dry.",
+        "material_type": MaterialType.ADHESIVE,
+        "rarity": Rarity.COMMON,
+        "base_value": 3,
+        "weight": 0.2,
+        "is_craftable": True,
+        "source_tags": ["rendered_animal_hides_bones_traditional_wood_glue", "strong_brittle_glue"],
+        "illicit_in_regions": [],
+        "properties": {
+            "bond_strength_psi": 3000,
+            "shelf_life_prepared_days": 7,
+            "application_method": "hot_brush",
+            "water_resistance": "low",
+            "reversibility": "with_heat_moisture"
+        }
+    },
+    {
+        "name": "Beeswax Polish (Tin)",
+        "description": "Natural wood finish made from beeswax and linseed oil. Provides water resistance and enhances grain.",
+        "material_type": MaterialType.FINISH,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 8,
+        "weight": 0.1,
+        "is_craftable": True,
+        "source_tags": ["beeswax_linseed_oil_blend_human_craft", "natural_wood_finish_and_protector"],
+        "illicit_in_regions": [],
+        "properties": {
+            "finish_type": "soft_sheen_water_resistant",
+            "application_method": "cloth_buff",
+            "drying_time_hours": 2,
+            "scent": "honey_mild",
+            "enhances_wood_grain": True
+        }
+    },
+    {
+        "name": "Elven Moonpetal Varnish (Vial)",
+        "description": "Magical varnish that enhances mana conductivity and provides minor warding. Must be applied under moonlight.",
+        "material_type": MaterialType.FINISH_MAGICAL,
+        "rarity": Rarity.RARE,
+        "base_value": 50,
+        "weight": 0.05,
+        "is_craftable": True,
+        "source_tags": ["lethandrel_alchemical_preparation_moonpetal_essence_tree_saps", "magically_protective_finish"],
+        "illicit_in_regions": [],
+        "properties": {
+            "finish_type": "hard_clear_magically_resonant",
+            "application_method": "fine_brush_moonlight_curing",
+            "drying_time_hours": "12_under_moon",
+            "enhances_mana_conductivity_of_wood": True,
+            "minor_warding_properties": True
+        }
+    },
+    {
+        "name": "Wooden Dowels (Bag of 50)",
+        "description": "Traditional hardwood pegs for joinery. Metal-free fastening method preferred by some craftsmen.",
+        "material_type": MaterialType.FASTENER_WOOD,
+        "rarity": Rarity.COMMON,
+        "base_value": 2,
+        "weight": 0.3,
+        "is_craftable": True,
+        "source_tags": ["turned_hardwood_pegs_joinery_component", "metal_free_fastening"],
+        "illicit_in_regions": [],
+        "properties": {
+            "material": "oak_birch",
+            "diameter_mm": 8,
+            "length_cm": 5,
+            "strength": "good_in_shear",
+            "quantity": 50,
+            "use": "furniture_joinery_reinforcement"
+        }
+    },
+    {
+        "name": "Iron Wood Screws (Box of 20)",
+        "description": "Threaded iron screws designed for wood construction. Prone to rust if not properly maintained.",
+        "material_type": MaterialType.FASTENER_METAL,
+        "rarity": Rarity.COMMON,
+        "base_value": 4,
+        "weight": 0.2,
+        "is_craftable": True,
+        "source_tags": ["forged_iron_threaded_screws_skarport_smithies", "strong_wood_fasteners"],
+        "illicit_in_regions": [],
+        "properties": {
+            "material": "iron",
+            "length_cm": 4,
+            "thread_type": "coarse_wood",
+            "head_type": "flat_slot",
+            "quantity": 20,
+            "rust_prone": "true_if_not_oiled"
         }
     }
 ]
