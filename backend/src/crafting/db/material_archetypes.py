@@ -3183,6 +3183,134 @@ JEWELCRAFTING_MATERIALS = [
         }
     },
     {
+        "name": "Uncut Amethyst Geode",
+        "description": "A beautiful geode containing amethyst crystals. When opened, reveals varying grades of purple crystals suitable for cutting.",
+        "material_type": MaterialType.GEM_RAW,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 15,
+        "weight": 0.2,
+        "is_craftable": False,
+        "source_tags": ["dwarven_mine_stonewake_geode_veins", "volcanic_rock_cavities"],
+        "illicit_in_regions": [],
+        "properties": {
+            "cuts_into": ["Faceted Amethyst", "Amethyst Drusy Piece"],
+            "hardness_mohs": 7,
+            "color_intensity_potential": "pale_lilac_to_deep_purple",
+            "carat_potential_avg_per_crystal": 2,
+            "spiritual_affinity_calm": True
+        }
+    },
+    {
+        "name": "Raw Garnet Nodule",
+        "description": "An unpolished garnet showing deep red coloration. Found in metamorphic rocks of the Ember Wastes.",
+        "material_type": MaterialType.GEM_RAW,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 20,
+        "weight": 0.03,
+        "is_craftable": False,
+        "source_tags": ["metamorphic_rock_ember_wastes_alluvial_deposits", "deep_red_gemstone"],
+        "illicit_in_regions": [],
+        "properties": {
+            "cuts_into": ["Faceted Garnet", "Garnet Cabochon"],
+            "hardness_mohs": 7.5,
+            "color_variety": ["deep_red_almandine_pyrope", "orange_spessartine_rare"],
+            "carat_potential_avg": 3,
+            "fire_element_trace_affinity": True
+        }
+    },
+    {
+        "name": "Flawed Emerald Chunk",
+        "description": "Raw emerald with visible inclusions and fractures. Still valuable despite flaws due to emerald's rarity.",
+        "material_type": MaterialType.GEM_RAW,
+        "rarity": Rarity.RARE,
+        "base_value": 80,
+        "weight": 0.02,
+        "is_craftable": False,
+        "source_tags": ["lethandrel_hidden_groves_pegmatite_veins_elven_mined", "green_beryl_variety_included"],
+        "illicit_in_regions": [],
+        "properties": {
+            "cuts_into": ["Faceted Emerald (Included)", "Emerald Cabochon (Opaque)"],
+            "hardness_mohs": 7.5,
+            "clarity_potential": "heavily_included_to_moderately_included",
+            "carat_potential_avg": 1.5,
+            "nature_magic_affinity": True
+        }
+    },
+    {
+        "name": "Star Ruby (Unpolished)",
+        "description": "A rare ruby with silk inclusions that create asterism when properly cut. Legendary quality gemstone.",
+        "material_type": MaterialType.GEM_RAW,
+        "rarity": Rarity.EPIC,
+        "base_value": 400,
+        "weight": 0.01,
+        "is_craftable": False,
+        "source_tags": ["thal_zirad_legendary_sand_ruby_mines_ferverl_guarded", "asterism_phenomenon_potential"],
+        "illicit_in_regions": ["Skarport_unlicensed_trade"],
+        "properties": {
+            "cuts_into": ["Star Ruby Cabochon"],
+            "hardness_mohs": 9,
+            "clarity_potential": "translucent_with_silk_inclusions",
+            "carat_potential_avg": 2,
+            "phenomenal_property": "asterism_6_ray_star_if_cut_correctly",
+            "fire_sun_affinity_strong": True
+        }
+    },
+    {
+        "name": "Raw Diamond Crystal (Industrial)",
+        "description": "Off-color diamond with inclusions. Too flawed for fine jewelry but valuable for cutting tools and abrasives.",
+        "material_type": MaterialType.GEM_RAW,
+        "rarity": Rarity.RARE,
+        "base_value": 150,
+        "weight": 0.005,
+        "is_craftable": False,
+        "source_tags": ["dwarven_deep_kimberlite_pipes_stonewake", "hardest_natural_substance_off_color_included"],
+        "illicit_in_regions": [],
+        "properties": {
+            "cuts_into": ["Industrial Diamond Grit", "Small Faceted Diamond (Off-Color)"],
+            "hardness_mohs": 10,
+            "clarity_potential": "heavily_included_yellowish_brownish",
+            "carat_potential_avg": 0.5,
+            "use": ["cutting_tools", "abrasives"]
+        }
+    },
+    {
+        "name": "Gem-Quality Diamond Octahedron",
+        "description": "An exceptionally rare flawless diamond in perfect octahedral crystal form. Symbol of ultimate wealth and power.",
+        "material_type": MaterialType.GEM_RAW,
+        "rarity": Rarity.LEGENDARY,
+        "base_value": 2000,
+        "weight": 0.002,
+        "is_craftable": False,
+        "source_tags": ["legendary_dwarven_motherlode_stonewake_once_a_generation_find", "perfect_crystal_structure"],
+        "illicit_in_regions": ["Crucible Spire_Accord_Tax_Evasion"],
+        "properties": {
+            "cuts_into": ["Brilliant Cut Diamond (Flawless)"],
+            "hardness_mohs": 10,
+            "clarity_potential": "internally_flawless_to_vvs",
+            "carat_potential_avg": 1,
+            "light_refraction_index": "exceptional",
+            "symbol_of_power_wealth": True
+        }
+    },
+    {
+        "name": "Mana-Charged Geode Fragment",
+        "description": "Crystallized ley energy formed during mana storms. Pulsates with raw magical power but unstable without proper setting.",
+        "material_type": MaterialType.GEM_MAGICAL,
+        "rarity": Rarity.EPIC,
+        "base_value": 300,
+        "weight": 0.1,
+        "is_craftable": False,
+        "source_tags": ["crucible_spire_mana_storm_aftermath_crystalized_ley_energy", "pulsating_raw_mana_crystal"],
+        "illicit_in_regions": [],
+        "properties": {
+            "cuts_into": ["Mana Crystal Focus", "Charged Crystal Shard"],
+            "hardness_mohs": "variable_5_8",
+            "mana_type_attunement": "random_or_dominant_leyline_type",
+            "energy_output_passive_mu_per_hour": 5,
+            "stability": "low_decays_if_not_set"
+        }
+    },
+    {
         "name": "Ember Garnet (Rough)",
         "description": "Fiery red garnet with orange highlights. Found in the volcanic soils of the Ember Wastes.",
         "material_type": MaterialType.GEM_RAW,
@@ -3207,8 +3335,8 @@ JEWELCRAFTING_MATERIALS = [
         "description": "Sterling silver ingot specifically alloyed for jewelry making. Maintains shine while offering good durability.",
         "material_type": MaterialType.METAL_PRECIOUS,
         "rarity": Rarity.UNCOMMON,
-        "base_value": 200, # total value for 100g bar
-        "weight": 0.1, # 100g converted to kg
+        "base_value": 200,
+        "weight": 0.1,
         "is_craftable": True,
         "source_tags": ["refined_silver_ingot_alloyed_copper_sterling_standard", "skarport_jewelers_supply"],
         "illicit_in_regions": [],
@@ -3221,23 +3349,212 @@ JEWELCRAFTING_MATERIALS = [
         }
     },
     {
-        "name": "Gold Jewelry Bar (18k)",
+        "name": "Gold Jewelry Ingot (18k Yellow)",
         "description": "High-quality gold alloy suitable for fine jewelry work. Warm yellow color with excellent workability.",
         "material_type": MaterialType.METAL_PRECIOUS,
         "rarity": Rarity.RARE,
-        "base_value": 500, # total value for 50g bar
-        "weight": 0.05, # 50g converted to kg
+        "base_value": 1500,
+        "weight": 0.05,
         "is_craftable": True,
-        "source_tags": ["refined_gold_alloyed_copper_silver", "skarport_jewelers_guild_standard"],
+        "source_tags": ["refined_gold_ingot_alloyed_silver_copper_durable_gold_standard", "human_elven_luxury_craft"],
         "illicit_in_regions": [],
         "properties": {
-            "purity_percent": 75,
-            "purity_karat": 18,
-            "malleability": "excellent",
-            "tarnish_resistance": "very_high",
+            "purity_karat_equivalent": "18k_75_percent_gold",
+            "malleability": "good",
+            "tarnish_resistance": "excellent",
+            "melting_point_celsius": 900,
             "color": "rich_yellow",
-            "mana_conductivity": "moderate",
-            "melting_point_celsius": 950
+            "common_uses": ["high_value_jewelry", "intricate_settings"]
+        }
+    },
+    {
+        "name": "Platinum Wire (Pure, 10cm)",
+        "description": "Ultra-refined platinum wire for the most exclusive jewelry work. Inert and corrosion-resistant.",
+        "material_type": MaterialType.METAL_PRECIOUS,
+        "rarity": Rarity.EPIC,
+        "base_value": 500,
+        "weight": 0.01,
+        "is_craftable": True,
+        "source_tags": ["ultra_refined_rare_platinum_group_metals_dwarven_master_refiners", "elite_jewelry_material"],
+        "illicit_in_regions": [],
+        "properties": {
+            "purity_karat_equivalent": "999_fine",
+            "malleability": "good_but_dense",
+            "tarnish_resistance": "superior_inert",
+            "melting_point_celsius": 1768,
+            "color": "bright_silvery_white",
+            "uses": ["secure_settings_for_diamonds_rare_gems"]
+        }
+    },
+    {
+        "name": "Electrum Leaf (Thin Sheet)",
+        "description": "Beaten electrum formed into delicate leaves for gilding and decorative inlays. Extremely fragile but beautiful.",
+        "material_type": MaterialType.METAL_PRECIOUS,
+        "rarity": Rarity.RARE,
+        "base_value": 150,
+        "weight": 0.001,
+        "is_craftable": True,
+        "source_tags": ["beaten_electrum_ingot_elven_gilding_technique", "decorative_metal_leaf"],
+        "illicit_in_regions": [],
+        "properties": {
+            "thickness_microns": 1,
+            "alloy_composition": "gold_silver_variable",
+            "use": "gilding_inlays_on_jewelry_and_art_objects",
+            "fragility": "very_high_handle_with_care"
+        }
+    },
+    {
+        "name": "Rose Gold Pellets (Casting)",
+        "description": "Small pellets of rose gold alloy optimized for casting jewelry. Popular for its warm, romantic coloration.",
+        "material_type": MaterialType.METAL_PRECIOUS,
+        "rarity": Rarity.RARE,
+        "base_value": 1250,
+        "weight": 0.05,
+        "is_craftable": True,
+        "source_tags": ["alloyed_gold_copper_silver_trace_casting_granules", "fashionable_warm_toned_gold"],
+        "illicit_in_regions": [],
+        "properties": {
+            "purity_karat_equivalent": "14k_to_18k_typical",
+            "malleability": "good",
+            "casting_fluidity": "excellent",
+            "color": "pinkish_red_hue",
+            "uses": ["cast_jewelry_settings_decorative_elements"]
+        }
+    },
+    # Tools, Findings & Consumables
+    {
+        "name": "Jeweler's Saw Blades (Dozen)",
+        "description": "Ultra-fine toothed blades for precision cutting of precious metals and soft gemstones. Break easily under stress.",
+        "material_type": MaterialType.TOOL_PART,
+        "rarity": Rarity.COMMON,
+        "base_value": 5,
+        "weight": 0.01,
+        "is_craftable": True,
+        "source_tags": ["fine_toothed_steel_blades_skarport_toolmaker", "for_cutting_metal_and_soft_gems"],
+        "illicit_in_regions": [],
+        "properties": {
+            "blade_thickness_mm": 0.2,
+            "teeth_per_inch": 80,
+            "material": "hardened_steel",
+            "fragility": "high_snap_easily",
+            "quantity": 12
+        }
+    },
+    {
+        "name": "Gem Cutting Dop Sticks (Set of 5)",
+        "description": "Wooden rods with wax cups for securely holding gemstones during cutting and polishing operations.",
+        "material_type": MaterialType.TOOL,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 10,
+        "weight": 0.05,
+        "is_craftable": True,
+        "source_tags": ["wooden_or_metal_rods_with_wax_cup_for_holding_gems_during_cutting", "lapidary_tool"],
+        "illicit_in_regions": [],
+        "properties": {
+            "sizes_included": ["small_medium_large_cabochon_facet"],
+            "material": "hardwood_brass",
+            "wax_type_required": "Dop_Wax"
+        }
+    },
+    {
+        "name": "Dop Wax (Cake)",
+        "description": "Thermoplastic wax blend for securing gems to dop sticks during cutting. Can be remelted and reused multiple times.",
+        "material_type": MaterialType.CONSUMABLE,
+        "rarity": Rarity.COMMON,
+        "base_value": 3,
+        "weight": 0.02,
+        "is_craftable": True,
+        "source_tags": ["beeswax_shellac_resin_blend_jewelers_adhesive_for_dop_sticks", "thermoplastic_adhesive"],
+        "illicit_in_regions": [],
+        "properties": {
+            "melting_point_celsius": 60,
+            "adhesion_strength": "good_for_gems",
+            "reusability": "high_can_be_remelted",
+            "color": "dark_brown_or_green"
+        }
+    },
+    {
+        "name": "Diamond Dust (Abrasive Grade)",
+        "description": "Crushed industrial diamonds used as abrasive for polishing the hardest gemstones. Essential for diamond cutting.",
+        "material_type": MaterialType.GEM_PROCESSED,
+        "rarity": Rarity.RARE,
+        "base_value": 50,
+        "weight": 0.001,
+        "is_craftable": True,
+        "source_tags": ["crushed_industrial_diamonds_lapidary_abrasive_for_hard_gems", "ultra_hard_polishing_agent"],
+        "illicit_in_regions": [],
+        "properties": {
+            "grit_size_microns": "variable_1_to_50",
+            "use": "grinding_faceting_polishing_diamonds_rubies_sapphires",
+            "application": "mixed_with_oil_on_lap_wheel"
+        }
+    },
+    {
+        "name": "Jeweler's Rouge (Polishing Bar)",
+        "description": "Fine iron oxide compound in wax binder for achieving mirror polish on precious metals. Final finishing step.",
+        "material_type": MaterialType.CONSUMABLE,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 8,
+        "weight": 0.03,
+        "is_craftable": True,
+        "source_tags": ["fine_iron_oxide_powder_in_wax_binder_metal_polishing_compound", "final_polish_for_metals"],
+        "illicit_in_regions": [],
+        "properties": {
+            "abrasive_type": "very_fine_ferric_oxide",
+            "use": "high_mirror_polish_on_gold_silver_platinum",
+            "color_imparted_residue": "reddish_brown_wash_off"
+        }
+    },
+    {
+        "name": "Silver Earring Hooks (10 Pairs)",
+        "description": "Pre-formed sterling silver ear wires for earring construction. Standard jewelry findings for pierced ears.",
+        "material_type": MaterialType.FINDING,
+        "rarity": Rarity.COMMON,
+        "base_value": 12,
+        "weight": 0.01,
+        "is_craftable": True,
+        "source_tags": ["bent_silver_wire_basic_earring_component", "standard_jewelry_finding"],
+        "illicit_in_regions": [],
+        "properties": {
+            "material": "sterling_silver",
+            "gauge_mm": 0.8,
+            "style": "french_hook_fish_hook",
+            "quantity": 20
+        }
+    },
+    {
+        "name": "Gold Necklace Clasp (Lobster)",
+        "description": "High-quality spring-loaded clasp for securing necklaces. Made from durable 14k gold alloy.",
+        "material_type": MaterialType.FINDING,
+        "rarity": Rarity.RARE,
+        "base_value": 40,
+        "weight": 0.005,
+        "is_craftable": True,
+        "source_tags": ["14k_gold_spring_loaded_clasp_secure_necklace_closure", "quality_jewelry_finding"],
+        "illicit_in_regions": [],
+        "properties": {
+            "material": "14k_yellow_gold",
+            "size_mm_length": 10,
+            "mechanism": "spring_loaded_lobster_claw",
+            "durability": "good"
+        }
+    },
+    {
+        "name": "Bezel Setting Strip (Silver, 10cm)",
+        "description": "Thin silver strip for forming bezels around cabochon gemstones. Flexible enough to shape by hand.",
+        "material_type": MaterialType.FINDING,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 15,
+        "weight": 0.02,
+        "is_craftable": True,
+        "source_tags": ["thin_flat_silver_strip_for_forming_bezels_around_cabochons", "gem_setting_component"],
+        "illicit_in_regions": [],
+        "properties": {
+            "material": "fine_silver_or_sterling",
+            "width_mm": 3,
+            "thickness_mm": 0.5,
+            "length_cm": 10,
+            "flexibility": "high_easy_to_form"
         }
     }
 ]
