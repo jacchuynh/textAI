@@ -10,6 +10,7 @@ import math
 from typing import Dict, List, Any, Tuple, Set, Optional
 import uuid
 import logging
+from datetime import datetime
 
 from ..world_generation.world_model import World, Location, POI, Coordinates
 from ..world_generation.poi_placement_service import POIType, POIPlacementService
@@ -21,10 +22,13 @@ from .magic_system import (
     TargetType, 
     DamageType,
     ManaFluxLevel,
-    LocationMagicProfile
+    LocationMagicProfile,
+    MagicSystem
 )
 
 from .magical_material_service import MagicalMaterialService
+from .leyline_crafting_service import LeylineCraftingService
+from .magic_crafting_seed import seed_magical_materials
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -36,11 +40,18 @@ class MagicWorldIntegration:
     Handles adding magical features to the world.
     """
     
-    def __init__(self):
-        """Initialize the magic world integration"""
+    def __init__(self, magic_system=None):
+        """
+        Initialize the magic world integration
+        
+        Args:
+            magic_system: Optional MagicSystem instance
+        """
         self.leyline_map = {}  # Map of leyline connections between locations
         self.magical_hotspots = []  # List of locations with high magical energy
         self.poi_service = POIPlacementService()
+        self.magic_system = magic_system or MagicSystem()
+        self.leyline_service = LeylineCraftingService(self.magic_system)
     
     def enhance_world_with_magic(self, world: World) -> World:
         """
@@ -52,6 +63,13 @@ class MagicWorldIntegration:
         Returns:
             The enhanced world
         """
+        # Ensure magical materials are seeded
+        try:
+            seed_magical_materials()
+            logger.info("Magical materials seeded successfully")
+        except Exception as e:
+            logger.warning(f"Could not seed magical materials: {e}")
+            
         # Generate leyline network
         self._generate_leyline_network(world)
         
@@ -61,8 +79,104 @@ class MagicWorldIntegration:
             
             # Add magical POIs based on the location's magic profile
             self._add_magical_pois(location)
+            
+            # Add leyline crafting stations to locations with strong leylines
+            self._add_leyline_crafting_stations(location)
         
         return world
+        
+    def _add_leyline_crafting_stations(self, location: Location) -> None:
+        """
+        Add leyline crafting stations to locations with strong magic
+        
+        Args:
+            location: The location to add crafting stations to
+        """
+        # Skip if location has no magic profile
+        if not hasattr(location, 'magic_profile'):
+            return
+            
+        # Only add stations to locations with sufficient leyline strength
+        if location.magic_profile.leyline_strength < 0.5:
+            return
+            
+        # Determine station types based on magic profile and biome
+        station_types = []
+        
+        # Add possible station types based on dominant magic aspects
+        magic_aspects = [aspect.name.lower() for aspect in location.magic_profile.dominant_magic_aspects]
+        
+        if "fire" in magic_aspects:
+            station_types.append("forge")
+        if "water" in magic_aspects:
+            station_types.append("alchemist")
+        if "earth" in magic_aspects:
+            station_types.append("enchanter")
+        if "air" in magic_aspects:
+            station_types.append("weaver")
+        if "arcane" in magic_aspects:
+            station_types.append("arcane_workshop")
+        if "life" in magic_aspects:
+            station_types.append("life_altar")
+            
+        # Default station type if none matched
+        if not station_types:
+            station_types = ["general_crafting"]
+            
+        # High magic locations might have multiple stations
+        num_stations = 1
+        if location.magic_profile.leyline_strength > 1.5:
+            num_stations = min(3, len(station_types))
+        elif location.magic_profile.leyline_strength > 1.0:
+            num_stations = min(2, len(station_types))
+            
+        # Select random station types
+        selected_types = random.sample(station_types, min(num_stations, len(station_types)))
+        
+        # Create stations
+        for station_type in selected_types:
+            try:
+                # Generate a name
+                name_prefixes = {
+                    "forge": ["Blazing", "Molten", "Fiery", "Inferno"],
+                    "alchemist": ["Bubbling", "Mystical", "Elixir", "Essence"],
+                    "enchanter": ["Arcane", "Mystical", "Ethereal", "Powerful"],
+                    "weaver": ["Whispering", "Windswept", "Airy", "Breeze"],
+                    "arcane_workshop": ["Starlit", "Cosmic", "Dimensional", "Astral"],
+                    "life_altar": ["Verdant", "Living", "Growing", "Natural"],
+                    "general_crafting": ["Magical", "Leyline", "Enchanted", "Arcane"]
+                }
+                
+                prefix = random.choice(name_prefixes.get(station_type, ["Magical"]))
+                name = f"{prefix} {station_type.replace('_', ' ').title()}"
+                
+                # Create the station in the leyline service
+                result = self.leyline_service.create_crafting_station(
+                    name=name,
+                    location_id=location.id,
+                    station_type=station_type,
+                    leyline_strength=location.magic_profile.leyline_strength
+                )
+                
+                if result.get("success", False):
+                    logger.info(f"Created {station_type} crafting station at {location.id}: {name}")
+                    
+                    # Add station to location metadata
+                    if not hasattr(location, 'crafting_stations'):
+                        location.crafting_stations = []
+                        
+                    location.crafting_stations.append({
+                        "id": result["station"]["id"],
+                        "name": result["station"]["name"],
+                        "type": result["station"]["station_type"],
+                        "leyline_strength": result["station"]["leyline_connection"]
+                    })
+                else:
+                    logger.warning(f"Failed to create crafting station: {result.get('reason', 'Unknown error')}")
+            
+            except Exception as e:
+                logger.error(f"Error creating crafting station: {e}")
+                # Continue with other stations even if one fails
     
     def _generate_leyline_network(self, world: World) -> None:
         """
@@ -394,6 +508,121 @@ class MagicalMaterialWorldIntegration:
         """
         self.magic_integration = magic_integration
         self.material_service = MagicalMaterialService()
+        self.materials = None
+    
+    def _load_materials_from_seed(self):
+        """
+        Load materials from the seed file instead of using mock data.
+        This gives us access to the full range of magical materials defined in the game.
+        """
+        # Ensure materials are seeded first
+        try:
+            seed_magical_materials()
+        except Exception as e:
+            logger.warning(f"Error seeding materials: {e}")
+        
+        # Get materials from service
+        try:
+            return self.material_service.get_all_materials()
+        except Exception as e:
+            logger.warning(f"Error loading materials from service: {e}")
+            # Fallback to get_mock_materials if service fails
+            return self._get_mock_materials()
+    
+    def _get_mock_materials(self):
+        """Get mock magical materials as a fallback"""
+        return [
+            {
+                "id": "luminite_crystal",
+                "name": "Luminite Crystal",
+                "rarity": "uncommon",
+                "magical_affinity": ["LIGHT"],
+                "leyline_resonance": 1.4,
+                "primary_locations": ["mountain", "cave"],
+                "magical_aspect": "light"
+            },
+            {
+                "id": "fire_crystal",
+                "name": "Fire Crystal",
+                "rarity": "uncommon",
+                "magical_affinity": ["FIRE"],
+                "leyline_resonance": 1.5,
+                "primary_locations": ["volcanic", "mountain", "hot_springs"],
+                "magical_aspect": "fire"
+            },
+            {
+                "id": "deep_sea_pearl",
+                "name": "Deep Sea Pearl",
+                "rarity": "uncommon",
+                "magical_affinity": ["WATER"],
+                "leyline_resonance": 1.4,
+                "primary_locations": ["ocean_depth", "underwater_cave", "coastal"],
+                "magical_aspect": "water"
+            },
+            {
+                "id": "resonant_quartz",
+                "name": "Resonant Quartz",
+                "rarity": "common",
+                "magical_affinity": ["EARTH"],
+                "leyline_resonance": 1.7,
+                "primary_locations": ["cave", "mountain", "crystal_formation"],
+                "magical_aspect": "earth"
+            },
+            {
+                "id": "cloud_essence",
+                "name": "Cloud Essence",
+                "rarity": "uncommon",
+                "magical_affinity": ["AIR"],
+                "leyline_resonance": 1.5,
+                "primary_locations": ["mountain_peak", "sky_island"],
+                "magical_aspect": "air"
+            },
+            {
+                "id": "ghost_silk",
+                "name": "Ghost Silk",
+                "rarity": "rare",
+                "magical_affinity": ["SPIRIT"],
+                "leyline_resonance": 2.1,
+                "primary_locations": ["haunted_ruin", "ancient_battlefield"],
+                "magical_aspect": "spirit"
+            },
+            {
+                "id": "void_shard",
+                "name": "Void Shard",
+                "rarity": "rare",
+                "magical_affinity": ["VOID"],
+                "leyline_resonance": 0.5,
+                "primary_locations": ["corruption_zone", "reality_tear"],
+                "magical_aspect": "void"
+            },
+            {
+                "id": "heartwood",
+                "name": "Heartwood",
+                "rarity": "uncommon",
+                "magical_affinity": ["LIFE"],
+                "leyline_resonance": 1.6,
+                "primary_locations": ["ancient_forest", "sacred_grove"],
+                "magical_aspect": "life"
+            },
+            {
+                "id": "thought_crystal",
+                "name": "Thought Crystal",
+                "rarity": "rare",
+                "magical_affinity": ["MIND"],
+                "leyline_resonance": 1.7,
+                "primary_locations": ["meditation_site", "ancient_library"],
+                "magical_aspect": "mind"
+            },
+            {
+                "id": "dragon_scale",
+                "name": "Dragon Scale",
+                "rarity": "legendary",
+                "magical_affinity": ["FIRE", "EARTH", "SPIRIT"],
+                "leyline_resonance": 3.0,
+                "primary_locations": ["dragon_lair", "volcanic_peak"],
+                "magical_aspect": "dragon"
+            }
+        ]
     
     def distribute_magical_materials(self, world: World) -> None:
         """
@@ -402,8 +631,9 @@ class MagicalMaterialWorldIntegration:
         Args:
             world: The world to distribute materials in
         """
-        # Get all possible magical materials
-        materials = self.material_service.get_all_materials()
+        # Load materials if not already loaded
+        if self.materials is None:
+            self.materials = self._load_materials_from_seed()
         
         # For each location, determine if it should have material deposits
         for location_id, location in world.locations.items():
@@ -415,35 +645,74 @@ class MagicalMaterialWorldIntegration:
             chance = min(0.8, location.magic_profile.leyline_strength * 0.5)
             
             if random.random() < chance:
-                self._add_material_deposit(location, materials)
+                self._add_material_deposit(location)
     
-    def _add_material_deposit(self, location: Location, materials: List[Dict[str, Any]]) -> None:
+    def _get_biome_to_magical_affinity_mapping(self):
+        """Map world biomes to magical affinities for material compatibility"""
+        return {
+            'forest': ['EARTH', 'LIFE', 'SPIRIT'],
+            'mountain': ['EARTH', 'AIR', 'FIRE'],
+            'desert': ['FIRE', 'EARTH', 'VOID'],
+            'coastal': ['WATER', 'AIR', 'LIFE'],
+            'swamp': ['WATER', 'LIFE', 'POISON'],
+            'plains': ['EARTH', 'AIR', 'LIFE'],
+            'tundra': ['ICE', 'AIR', 'WATER'],
+            'jungle': ['LIFE', 'WATER', 'EARTH'],
+            'volcanic': ['FIRE', 'EARTH', 'VOID'],
+            'cave': ['EARTH', 'VOID', 'WATER']
+        }
+    
+    def _add_material_deposit(self, location: Location) -> None:
         """
         Add a magical material deposit to a location
         
         Args:
             location: The location to add a deposit to
-            materials: List of possible materials
         """
-        # Filter materials by location biome compatibility
+        # Get biome affinity mapping
+        biome_affinities = self._get_biome_to_magical_affinity_mapping()
+        
+        # Get compatible materials
         compatible_materials = []
         
-        if hasattr(location, 'biome'):
-            for material in materials:
-                # Check if material has biome preferences
-                if 'preferred_biomes' not in material:
-                    compatible_materials.append(material)
-                    continue
+        if hasattr(location, 'biome') and location.biome in biome_affinities:
+            # Get affinities for this biome
+            affinities = biome_affinities[location.biome]
+            
+            # Filter materials by affinity
+            for material in self.materials:
+                material_affinities = material.get('magical_affinity', [])
                 
-                # Check if this biome is preferred for the material
-                if location.biome in material['preferred_biomes']:
-                    # Higher weight for preferred biomes
-                    compatible_materials.extend([material] * 3)
+                # Convert to list if it's a string
+                if isinstance(material_affinities, str):
+                    material_affinities = [material_affinities]
+                
+                # Check for affinity matches
+                matches = [a for a in material_affinities if a in affinities]
+                
+                if matches:
+                    # Higher weight for more matches
+                    for _ in range(len(matches)):
+                        compatible_materials.append(material)
                 else:
-                    # Still possible but less likely
-                    compatible_materials.append(material)
+                    # Add with low weight if no match but location has high magic
+                    if location.magic_profile.leyline_strength > 1.0:
+                        compatible_materials.append(material)
+                        
+            # Add materials that have this specific biome listed in primary_locations
+            for material in self.materials:
+                primary_locations = material.get('primary_locations', [])
+                
+                # Convert to list if it's a string
+                if isinstance(primary_locations, str):
+                    primary_locations = [primary_locations]
+                
+                if location.biome in primary_locations:
+                    # Add multiple times for higher weight
+                    compatible_materials.extend([material] * 3)
         else:
-            compatible_materials = materials
+            # If no biome information, just use all materials
+            compatible_materials = self.materials
         
         # No compatible materials
         if not compatible_materials:
@@ -452,6 +721,18 @@ class MagicalMaterialWorldIntegration:
         # Select a random material
         material = random.choice(compatible_materials)
         
+        # Determine rarity based on leyline strength
+        rarity = material.get('rarity', 'common')
+        
+        # Higher leyline strength may increase rarity
+        if location.magic_profile.leyline_strength > 1.5 and random.random() < 0.3:
+            rarity_levels = ['common', 'uncommon', 'rare', 'very rare', 'legendary']
+            current_index = rarity_levels.index(rarity) if rarity in rarity_levels else 0
+            
+            # Increase rarity by 1 level
+            if current_index < len(rarity_levels) - 1:
+                rarity = rarity_levels[current_index + 1]
+        
         # Create a mine POI for the material
         mine_name = f"Glimmering {material['name']} Deposit"
         
@@ -459,7 +740,7 @@ class MagicalMaterialWorldIntegration:
         descriptions = [
             f"A rich deposit of {material['name']}, the crystals glowing with magical energy.",
             f"This mine contains veins of {material['name']}, prized by enchanters and spellcrafters.",
-            f"The walls of this cave sparkle with {material['name']} deposits, emanating {material['magical_aspect'].lower()} energy.",
+            f"The walls of this cave sparkle with {material['name']} deposits, emanating {material.get('magical_aspect', 'magical').lower()} energy.",
             f"A natural formation where {material['name']} can be harvested. The entire area resonates with magical potential."
         ]
         mine_description = random.choice(descriptions)
@@ -480,8 +761,9 @@ class MagicalMaterialWorldIntegration:
         poi.metadata = {
             "material_id": material.get("id", str(uuid.uuid4())),
             "material_name": material["name"],
-            "material_rarity": material.get("rarity", "common"),
-            "material_magical_aspect": material.get("magical_aspect", "arcane")
+            "material_rarity": rarity,
+            "material_magical_aspect": material.get("magical_aspect", "arcane"),
+            "leyline_resonance": material.get("leyline_resonance", 1.0)
         }
         
         # Add to location
