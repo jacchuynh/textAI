@@ -1,0 +1,169 @@
+**Objective:** Design a comprehensive and engaging Magic System for an AI-driven text-based fantasy RPG. This system must deeply integrate with the provided world lore, the existing `DomainSystem`, `CombatSystem`, and the planned `CraftingSystem` (for enchanted items, potions, relics, etc.). The design should be detailed enough to serve as a blueprint for implementation.
+
+**Project Context:**
+*   The main RPG application is built with Python, FastAPI, Pydantic for data validation, and SQLAlchemy for ORM, with services in `app/services/`. Key systems include a `DomainSystem` (managing character attributes like Body, Mind, Spirit, etc.), a `CombatSystem`, and a planned `CraftingSystem`.
+*   The world lore (to be provided in full by the user, summarized below) revolves around "The Crimson Dissonance," a past magical cataclysm, and a magic system based on "The Leyweb" (ambient world energy) and the "Mana Heart" (internalized, refined energy for advanced users), with "Three Tiers of Magical Expression."
+*   The design should consider future integration with a `TextParserEngine` for player commands and a `NarrativeGenerator` for describing magical events.
+
+**Core World Lore Points to Integrate:**
+*   **The Crimson Dissonance:** A century-long cataclysm of war magic. Its truths are fading into myth. Consider forbidden magic, dangerous war-born relics, and lingering environmental or societal scars.
+*   **The Crimson Accord:** A fragile peace maintained by elder races who remember the Dissonance.
+*   **The Leyweb and Mana Heart:**
+    *   Magic from the Worldheart, spreading via leylines.
+    *   Novices borrow from leylines.
+    *   Advanced users develop a Mana Heart/Core for internal storage and shaping.
+    *   Hybrids use rituals to cleanse/amplify the core.
+    *   Overuse/corruption leads to backlash, environmental decay, or spiritual corruption.
+*   **Three Tiers of Magical Expression:**
+    *   **Tier 1: Arcane Mastery (True Magic):** Mages only (Mana Heart). Powerful, costly, risky (Focus-type actions).
+    *   **Tier 2: Mana Infusion / Trick-Techniques:** Limited access for non-mages. Enhanced attacks, relic use, environmental tactics (Trick/Force-type actions).
+    *   **Tier 3: Spiritual or Ritual Utility:** Non-combat/hybrid. High SPIRIT domain. Leyline reading, spirit communing, minor rites.
+*   **Societal Elements:** Magical academies, artisan guilds, factions with differing views on magic, younger races testing limits.
+*   **Themes:** The past bleeding into the present, choices having wide-ranging consequences.
+
+**Core Requirements for the Magic System Design:**
+
+1.  **Pydantic Models (e.g., in `app/models/magic_models.py` or enhancing existing models):**
+    Define Pydantic models for all core magical concepts. Include fields for identification, description, mechanics, costs, requirements, and lore connections.
+    *   **`MagicSource` (Enum):** LEYLINE, MANA_HEART, RELIC, ENVIRONMENTAL.
+    *   **`MagicTier` (Enum):** ARCANE_MASTERY (Tier 1), MANA_INFUSION (Tier 2), SPIRITUAL_UTILITY (Tier 3).
+    *   **`Spell`:**
+        *   `id`, `name`, `description` (including visual/sensory details for narrative).
+        *   `tier: MagicTier`.
+        *   `magic_source_affinity: List[MagicSource]` (primary sources it draws from).
+        *   `effects: List[MagicalEffect]` (see below).
+        *   `mana_cost: Optional[int]` (if drawn from Mana Heart).
+        *   `ley_energy_cost: Optional[int]` (if drawn from Leyline).
+        *   `casting_time_seconds: int` (can be modified by skills/items).
+        *   `components_required: List[RecipeIngredient]` (from crafting system).
+        *   `domain_requirements: List[DomainRequirement]` (e.g., `MIND >= 5`, `SPIRIT >= 3`).
+        *   `skill_tag_requirements: List[str]` (e.g., "PyromancyAffinity", "ManaHeartDeveloped").
+        *   `backlash_potential: float` (0.0 to 1.0).
+        *   `backlash_effects: List[MagicalEffect]` (if backlash occurs).
+        *   `is_ritual: bool` (if it requires ritualistic casting).
+        *   `lore_notes: Optional[str]` (connection to Crimson Dissonance, specific cultures, etc.).
+    *   **`Ritual`:** (Extends or similar to `Spell` but with fields for)
+        *   `duration_minutes_or_hours: int`.
+        *   `participant_requirements: List[ParticipantRequirement]` (e.g., number of casters, specific roles).
+        *   `location_requirements: List[str]` (e.g., "LeylineNexus", "ConsecratedGround").
+        *   `time_of_day_requirements: Optional[str]`.
+    *   **`MagicalEffect`:**
+        *   `effect_type: str` (e.g., "DAMAGE", "HEAL", "BUFF_STAT", "DEBUFF_STAT", "SUMMON", "TELEPORT", "ILLUSION", "CONTROL", "WARD").
+        *   `description_template: str` (for narrative generator).
+        *   `magnitude: Union[int, float, str]` (e.g., damage amount, stat change, duration).
+        *   `damage_type: Optional[str]` (e.g., "FIRE", "ARCANE", "NECROTIC", "SPIRITUAL").
+        *   `target_type: str` (e.g., "SELF", "SINGLE_ENEMY", "AREA_FRIENDLY", "ITEM").
+        *   `duration_seconds: Optional[int]`.
+        *   `associated_domain_checks: List[DomainCheckInfo]` (for applying or resisting).
+    *   **`Enchantment`:** (For crafting system integration)
+        *   `id`, `name`, `description`.
+        *   `tier: MagicTier` (likely Tier 2).
+        *   `applied_effects: List[MagicalEffect]` (e.g., adds fire damage to a weapon, increases armor).
+        *   `passive_or_triggered: str` (e.g., "ON_HIT", "PASSIVE_WHILE_EQUIPPED", "ON_USE").
+        *   `recipe_id: Optional[str]` (linking to a crafting recipe).
+    *   **`PlayerMagicProfile` (or additions to `Character` model):**
+        *   `has_mana_heart: bool` (default False).
+        *   `mana_current: int` (default 0).
+        *   `mana_max: int` (default 0, increases with Mana Heart development).
+        *   `mana_regeneration_rate: float` (per unit of time).
+        *   `ley_energy_sensitivity: int` (affects novice casting).
+        *   `known_spells: List[str]` (list of `Spell.id`).
+        *   `known_rituals: List[str]` (list of `Ritual.id`).
+        *   `active_magical_effects: List[ActiveMagicalEffect]` (tracks current buffs/debuffs on character).
+        *   `corruption_level: int` (0-100).
+        *   `attunements: List[str]` (e.g., "FireAttuned", "LeylineSensitive").
+    *   **`LocationMagicProfile` (or additions to `Location` model):**
+        *   `leyline_strength: int` (0-5, affects ambient magic).
+        *   `mana_flux_level: int` (0-5, can be dynamic).
+        *   `dominant_magic_aspects: List[str]` (e.g., "ELEMENTAL_FIRE", "SHADOW", "NATURE_GROWTH").
+        *   `environmental_decay_level: int` (due to overuse/corruption).
+        *   `allows_ritual_sites: bool`.
+        *   `historical_magic_events: List[str]` (links to Crimson Dissonance, etc.).
+    *   **`ItemMagicProfile` (or additions to `Item` model):**
+        *   `is_enchanted: bool`.
+        *   `enchantment_id: Optional[str]`.
+        *   `is_relic: bool`.
+        *   `relic_power_description: Optional[str]`.
+        *   `relic_effects: List[MagicalEffect]`.
+        *   `mana_cost_to_activate: Optional[int]`.
+        *   `charges: Optional[int]`.
+        *   `attunement_required: bool`.
+        *   `cursed_or_corrupted: bool`.
+
+2.  **SQLAlchemy Models (e.g., in `app/db/models.py`):**
+    Define corresponding SQLAlchemy ORM models for persistent storage. Specify relationships and use of `JSON` type for complex fields.
+
+3.  **CRUD Operations (e.g., in `app/db/crud.py`):**
+    Outline CRUD classes for managing spells, rituals, enchantments, and potentially player magic progression data if not directly on the character.
+
+4.  **Service Layer (e.g., in `app/services/magic_service.py`, `app/services/ritual_service.py`, etc.):**
+    Design services with key methods, input parameters, and return types.
+    *   **`MagicCastingService`:**
+        *   `learn_spell(character_id: str, spell_id: str)`.
+        *   `can_cast_spell(character_id: str, spell_id: str, target_id: Optional[str]) -> Tuple[bool, str]` (checks mana, components, requirements, line of sight, etc.).
+        *   `cast_spell(character_id: str, spell_id: str, target_id: Optional[str], location_id: str) -> SpellCastResult` (handles resource consumption, domain checks via `DomainSystem`, effect application, backlash).
+        *   `calculate_backlash(character_id: str, spell_id: str, leyline_strength: int) -> Optional[BacklashResult]`.
+    *   **`ManaManagementService`:**
+        *   `develop_mana_heart_stage(character_id: str) -> bool` (progression for Mana Heart).
+        *   `regenerate_mana(character_id: str)`.
+        *   `draw_from_leyline(character_id: str, location_id: str, amount_desired: int) -> int` (for novices or recharging).
+    *   **`RitualService`:**
+        *   `learn_ritual(character_id: str, ritual_id: str)`.
+        *   `initiate_ritual(character_id: str, ritual_id: str, participants: List[str], location_id: str) -> RitualAttemptResult`.
+        *   `advance_ritual_stage(ritual_attempt_id: str, action_taken: str) -> RitualStageResult`.
+        *   `conclude_ritual(ritual_attempt_id: str) -> RitualConclusion`.
+    *   **`CorruptionService`:**
+        *   `apply_corruption(character_id: str, amount: int, source: str)`.
+        *   `get_corruption_effects(character_id: str) -> List[MagicalEffect]`.
+        *   `attempt_purification_ritual(character_id: str, ritual_id: str) -> bool`.
+    *   **`MagicalPhenomenaService`:**
+        *   `handle_environmental_magic_effect(location_id: str, effect: MagicalEffect)`.
+        *   `update_leyline_flux(location_id: str, change: int, reason: str)`.
+
+5.  **Integration Points:**
+    Detail how the Magic System will integrate with:
+    *   **`DomainSystem`:** How `MIND`, `SPIRIT`, `CRAFT`, `AWARENESS`, etc., influence spellcasting ability, mana capacity, resistance, crafting magical items, perceiving magic. Specify how domain checks are used for casting, resisting, identifying, and controlling magic.
+    *   **`CombatSystem`:** How spells and magical abilities are used as combat actions. How magical status effects are applied and tracked. How combat outcomes can trigger magical narrative events.
+    *   **`CraftingSystem`:**
+        *   Define how enchanting recipes work (materials, skill checks, station requirements).
+        *   Define how potions with magical effects are brewed.
+        *   Define how magical relics or components are crafted.
+        *   Specify types of magical materials and their sources (e.g., "Ley Crystals," "Spirit Essence," "Corrupted Residue").
+    *   **`Character` Model:** Detail all new fields related to magic (as outlined in Pydantic section).
+    *   **`Item` Model:** Detail all new fields for enchanted items, relics, wands, scrolls, etc.
+    *   **`Location` Model:** Detail new fields for leyline strength, mana flux, magical aspects.
+    *   **`TextParserEngine`:** Suggest command patterns for casting spells, performing rituals, identifying magic, using enchanted items (e.g., "cast fireball at orc," "examine magical aura," "activate runed shield").
+    *   **`NarrativeGenerator`:** Provide examples of how spellcasting, magical effects, backlash, corruption, and environmental magic would be described.
+    *   **`EventBus`:** Define key events (e.g., `SpellCastEvent`, `ManaHeartDevelopedEvent`, `CorruptionGainedEvent`, `LeylineSurgeEvent`, `RitualCompletedEvent`).
+
+6.  **Lore Integration Details:**
+    For each of the "Core World Lore Points" provided by the user (Crimson Dissonance, Leyweb/Mana Heart, Three Tiers, etc.):
+    *   Explain specifically how the proposed game mechanics, models, and services will represent and bring that lore element to life in gameplay.
+    *   Provide concrete examples (e.g., a specific spell related to Crimson Dissonance, a ritual for Mana Heart cleansing, how a Tier 2 infusion is mechanically different from a Tier 1 spell).
+
+7.  **Mechanics for Tiers, Backlash, Corruption:**
+    *   **Tiered Access:** Clearly define how players gain access to spells/abilities in each of the three tiers (e.g., Mana Heart for Tier 1, item properties or specific skills for Tier 2, SPIRIT domain + specific knowledge for Tier 3).
+    *   **Backlash:** Detail mechanics for when and how backlash occurs (e.g., failed domain check during casting, casting powerful spells in weak leylines, critical failure on spell roll). What are the consequences (damage, temporary stat drain, corruption gain, environmental effects)?
+    *   **Corruption:** How is it gained (backlash, using forbidden magic, exposure to corrupted areas/relics)? What are its progressive effects (visual cues, stat penalties, social stigma, forced transformations, loss of control)? How can it be managed or (partially) cleansed?
+
+8.  **Celery Tasks:**
+    Identify potential uses for Celery tasks (e.g., long-duration rituals, slow mana regeneration over time, gradual spread of environmental decay from magical corruption, processing complex narrative consequences of major magical events).
+
+9.  **API Endpoints (FastAPI):**
+    Suggest key FastAPI endpoint definitions for player interactions with the magic system (e.g., learning spells, casting spells, initiating rituals, viewing known magic).
+
+10. **File Structure:**
+    Suggest appropriate file locations for new models, services, etc., within the `app/` directory of the main project.
+
+11. **Token Efficiency Considerations:**
+    Briefly mention design choices that could help with token efficiency if AI is used to generate descriptions or narrative content related to magic (e.g., structured `MagicalEffect` data being easier for an LLM to interpret for narrative generation than free-form text).
+
+**Deliverables Expected from the AI Assistant (based on this prompt):**
+*   A detailed, step-by-step implementation plan document for the Magic System.
+*   Python code snippets for all proposed Pydantic models.
+*   Python code snippets for SQLAlchemy model definitions.
+*   High-level descriptions and method signatures for all proposed Service classes.
+*   Clear explanations for all integration points with existing systems and lore elements, including concrete examples.
+*   Detailed mechanics for Tiers, Backlash, and Corruption.
+*   Suggestions for Celery tasks, API endpoints, and file structure.
+*   A section discussing potential challenges and how to address them.
