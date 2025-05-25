@@ -1,0 +1,65 @@
+
+
+**Design and Implement a Procedurally Assisted World System**
+
+**1. System Vision & Core Goal:**
+   Develop a "Procedurally Assisted World System" for our text-based RPG. The primary goal is to create a vast, explorable, and dynamic world by blending hand-crafted lore (major cities, regions, overarching narrative) with procedurally generated points of interest (villages, ruins, natural landmarks) and their detailed content. This system should enhance replayability, provide rich, evolving context for the AI GM, and support emergent narrative opportunities. The player will experience the world primarily through AI GM narration, supplemented by a static parchment-style world map for general orientation.
+
+**2. Proposed Architecture & Key Modules (Python):**
+   Create a new top-level directory:
+   *   **`world_model.py`:**
+        *   **Data Classes/SQLAlchemy Models (PostgreSQL):**
+            *   `Region`: Name, description, core lore, connections, constituent biome types.
+            *   `Biome`: Name, description, rules for POI generation (types, density, keywords), typical flora/fauna, atmospheric tags, link to parent Region.
+            *   `PredefinedLocation`: Major cities, key landmarks. Attributes: name, detailed lore, key NPCs, services, connections, map coordinates (for static map).
+            *   `PointOfInterest (POI)`: Unique ID, type (e.g., 'village', 'ruin', 'cave', 'shrine'), generated name, parent Biome ID, relative location/tags, current state (e.g., 'undiscovered', 'explored', 'cleared'), link to (or ID of) `GeneratedLocationDetails`.
+            *   `GeneratedLocationDetails`: Specifics for a POI instance. E.g., for a village: list of generated NPCs (names, roles, simple motivations), local issues/rumors, available services, unique descriptive text snippets.
+        *   Store core definitions (Regions, Biomes, PredefinedLocations) and discovered POI stubs/persistent states in PostgreSQL.
+   *   **`poi_placement_service.py`:**
+        *   Logic to procedurally determine the type, quantity, and general placement of POIs within a given Biome instance based on its rules and potentially a seed for determinism.
+        *   Input: Biome ID/instance, player context/exploration history. Output: List of POI stubs (ID, type, location tags).
+   *   **`location_generators/` (Sub-directory):**
+        *   `base_generator.py`: Abstract base class for detail generators.
+        *   `town_generator.py`, `village_generator.py`, `ruin_generator.py`, etc.: Each takes a POI stub and generates its `GeneratedLocationDetails` (NPCs, descriptions, local events/hooks, items). These should be template-driven and use thematic keyword lists.
+   *   **`world_persistence_manager.py`:**
+        *   Manages saving/loading of the dynamic world state, including discovered POIs, their generated details, and any persistent changes (e.g., a cleared dungeon).
+   *   **`world_map_manager.py`:**
+        *   Manages data for the static parchment map (key locations, region boundaries).
+        *   Provides helper functions for the AI GM to describe relative locations or routes based on this map.
+
+**3. Data Flow & Interaction Logic:**
+    *   Player explores -> `Text Parser Engine` interprets movement/exploration command.
+    *   `AI GM Brain` queries `world_engine` for current/target location.
+    *   If entering a new area within a Biome, `poi_placement_service` (potentially triggered asynchronously) determines nearby POIs.
+    *   If player interacts with a POI, the relevant `location_generator` (e.g., `village_generator`) is invoked to flesh out details.
+    *   Generated details are cached (Redis) and/or persisted (PostgreSQL for significant/permanent aspects).
+    *   `AI GM Brain` uses these details for narration, NPC interaction, and to inform the `Narrative Engine`.
+
+**4. Optimization Strategies (Celery & Redis):**
+    *   **Redis Caching:**
+        *   Cache frequently accessed Biome rules and POI generation parameters.
+        *   Cache `GeneratedLocationDetails` for recently visited/active POIs to reduce redundant generation and database load.
+        *   Store short-term player exploration state (e.g., recently "seen" but not fully explored POI stubs).
+    *   **Celery Asynchronous Tasks:**
+        *   **Proactive POI Stub Generation:** When a player enters a new Biome or Region, a Celery task can pre-emptively run `poi_placement_service` for adjacent/likely-to-be-explored areas, caching the POI stubs.
+        *   **Complex Detail Generation:** If a specific `location_generator` is computationally intensive (e.g., generating a large, complex dungeon layout or a town with many intricate NPCs), offload this to a Celery task. The AI GM can provide an interim message ("You begin to explore the sprawling ruins...") and then deliver full details when the task completes.
+        *   **World State Persistence:** Batch and asynchronously write significant persistent world changes (e.g., major quest outcomes affecting a location) to PostgreSQL via Celery to avoid blocking the main game loop.
+        *   Use Redis as the Celery broker and for storing task results/status.
+
+**5. Integration with Existing Systems:**
+    *   **AI GM Brain (`ai_gm_brain`):** Primary consumer. Queries for location data, descriptions, and uses it to drive narration and NPC interactions.
+    *   **Narrative Engine :** Generated POIs, NPCs, and local issues become context and hooks for dynamic quests and narrative branches.
+    *   **Text Parser Engine :** game_context.py to be updated with player's current location within the new world model. Commands like "explore [POI name]" need to be resolved.
+    *   **Economy System:** Generated towns/villages can have procedurally determined resources, needs, and production, feeding into the economy.
+    *   **Combat System:** Biome types and POI details (e.g., "dense forest," "ruined temple interior") inform combat environments, cover, and potential encounter types.
+
+**6. Phased Implementation Plan:**
+    1.  **Core Models & Static World:** Implement `world_model.py` (Regions, Biomes, PredefinedLocations). Enable travel between predefined locations. Integrate with game_context.py.
+    2.  **Basic POI Placement:** Implement `poi_placement_service` for 1-2 Biome types.
+    3.  **Initial Detail Generators:** Create simple `village_generator` and `ruin_generator`.
+    4.  **AI GM Integration (Read-Only):** Allow AI GM to query and narrate these basic generated locations.
+    5.  **Caching & Basic Persistence:** Integrate Redis for caching generated details; basic PostgreSQL for POI stubs.
+    6.  **Celery for Pre-generation:** Implement asynchronous POI stub generation for adjacent areas.
+    7.  **Expand & Refine:** Add more Biome/POI types, deepen generators, integrate further with quest/narrative systems.
+
+This prompt outlines a robust system. Remember to start with the simplest viable version for each component and iterate.
