@@ -1,0 +1,524 @@
+{
+  "enchantments": [
+    {
+      "id": "ENCH_FIRE_TOUCH_T1_01",
+      "name": "Fiery Touch",
+      "description": "A simple enchantment that causes the enchanted item to radiate a gentle warmth and deal minor fire damage on contact.",
+      "tier": 1,
+      "magic_school": "evocation",
+      "compatible_item_types": ["weapon_melee_simple", "gauntlets"],
+      "min_mana_cost": 30,
+      "min_arcane_mastery": 1,
+      "required_materials": {
+        "fire_crystal": 2,
+        "resonant_quartz": 1
+      },
+      "effects": {
+        "bonus_fire_damage_on_hit": "1d2",
+        "radiates_minor_heat": true
+      },
+      "duration_type": "charges",
+      "max_charges": 30,
+      "base_success_chance": 0.80,
+      "complexity": 1
+    },
+    {
+      "id": "ENCH_AQUA_BREATH_T1_01",
+      "name": "Water Lung Charm",
+      "description": "Enchants a small charm or piece of jewelry to allow the wearer to breathe underwater for a short period.",
+      "tier": 1,
+      "magic_school": "transmutation",
+      "compatible_item_types": ["jewelry_amulet", "jewelry_ring"],
+      "min_mana_cost": 40,
+      "min_arcane_mastery": 1,
+      "required_materials": {
+        "deep_sea_pearl": 1,
+        "cloud_essence": 1
+      },
+      "effects": {
+        "water_breathing_duration_seconds": 180
+      },
+      "duration_type": "temporary_activated",
+      "max_charges": 3,
+      "base_success_chance": 0.75,
+      "complexity": 2
+    },
+    {
+      "id": "ENCH_EARTH_STRENGTH_T1_01",
+      "name": "Stonefist Gauntlets (Lesser)",
+      "description": "Infuses gauntlets with the resilience of stone, slightly increasing unarmed damage and impact.",
+      "tier": 1,
+      "magic_school": "transmutation",
+      "compatible_item_types": ["armor_gauntlets_leather", "clothing_gloves"],
+      "min_mana_cost": 35,
+      "min_arcane_mastery": 1,
+      "required_materials": {
+        "resonant_quartz": 3,
+        "BM_SCRAP_IRON_RUSTY_01": 5 
+      },
+      "effects": {
+        "unarmed_damage_bonus_blunt": 1,
+        "minor_knockback_chance_percent": 5
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.80,
+      "complexity": 2
+    },
+    {
+      "id": "ENCH_AIR_LEAP_T1_01",
+      "name": "Zephyr's Leap",
+      "description": "Enchants footwear to allow the wearer to jump slightly higher and farther.",
+      "tier": 1,
+      "magic_school": "transmutation",
+      "compatible_item_types": ["clothing_boots"],
+      "min_mana_cost": 25,
+      "min_arcane_mastery": 1,
+      "required_materials": {
+        "cloud_essence": 2,
+        "TL_LEATHER_BUCKSKIN_01": 0.2 
+      },
+      "effects": {
+        "jump_height_increase_percent": 15,
+        "jump_distance_increase_percent": 10
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.85,
+      "complexity": 1
+    },
+    {
+      "id": "ENCH_SPIRIT_WARD_T1_01",
+      "name": "Lesser Spirit Ward",
+      "description": "A minor ward placed on an item to offer slight protection against hostile spirits or minor curses.",
+      "tier": 1,
+      "magic_school": "abjuration",
+      "compatible_item_types": ["jewelry_amulet", "clothing_any"],
+      "min_mana_cost": 45,
+      "min_arcane_mastery": 1,
+      "required_materials": {
+        "memory_crystal": 1,
+        "ALCH_MINERAL_ROCKSALT_01": 1 
+      },
+      "effects": {
+        "spirit_damage_resistance_points": 2,
+        "minor_curse_resistance_chance_percent": 10
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.70,
+      "complexity": 2
+    },
+    {
+      "id": "ENCH_HEALING_TOUCH_T1_01",
+      "name": "Herbalist's Soothing Touch",
+      "description": "Enchants gloves to slightly amplify the effects of healing herbs or poultices applied by the wearer.",
+      "tier": 1,
+      "magic_school": "transmutation_life",
+      "compatible_item_types": ["clothing_gloves"],
+      "min_mana_cost": 30,
+      "min_arcane_mastery": 1,
+      "required_materials": {
+        "healing_herb": 5,
+        "living_root": 1
+      },
+      "effects": {
+        "healing_item_potency_bonus_percent": 5
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.85,
+      "complexity": 1
+    },
+    {
+      "id": "ENCH_MIND_CALM_T1_01",
+      "name": "Circlet of Calm Thoughts",
+      "description": "A simple circlet enchanted to help soothe the wearer's mind, offering minor resistance to fear or panic.",
+      "tier": 1,
+      "magic_school": "enchantment_mind",
+      "compatible_item_types": ["clothing_headwear", "jewelry_circlet"],
+      "min_mana_cost": 40,
+      "min_arcane_mastery": 1,
+      "required_materials": {
+        "dream_silk": 1,
+        "resonant_quartz": 1
+      },
+      "effects": {
+        "fear_resistance_bonus_points": 3,
+        "focus_bonus_minor_while_calm_percent": 2
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.75,
+      "complexity": 2
+    },
+    {
+      "id": "ENCH_EMBERSTRIKE_WEAPON_T2_01",
+      "name": "Emberstrike Weapon",
+      "description": "The weapon smolders with contained fire, dealing moderate fire damage and having a chance to ignite foes.",
+      "tier": 2,
+      "magic_school": "evocation",
+      "compatible_item_types": ["weapon_melee_metal", "weapon_ranged_ammo_metal"],
+      "min_mana_cost": 80,
+      "min_arcane_mastery": 2,
+      "required_materials": {
+        "fire_crystal": 5,
+        "MM_EMBERFLOW_PETAL_01": 1
+      },
+      "effects": {
+        "bonus_fire_damage_on_hit": "1d6",
+        "chance_to_ignite_flammable_target_percent": 20,
+        "weapon_glows_embers": true
+      },
+      "duration_type": "charges",
+      "max_charges": 100,
+      "base_success_chance": 0.70,
+      "complexity": 3
+    },
+    {
+      "id": "ENCH_FROSTGUARD_ARMOR_T2_01",
+      "name": "Frostguard Armor",
+      "description": "Armor enchanted with glacial shards, providing resistance to cold and chilling melee attackers.",
+      "tier": 2,
+      "magic_school": "abjuration",
+      "compatible_item_types": ["armor_medium_metal", "armor_heavy_metal", "armor_shield"],
+      "min_mana_cost": 100,
+      "min_arcane_mastery": 2,
+      "required_materials": {
+        "glacial_ice_shard": 4,
+        "deep_sea_pearl": 1,
+        "BM_INGOT_STEEL_01": 1 
+      },
+      "effects": {
+        "cold_resistance_percent": 15,
+        "chance_to_chill_melee_attacker_percent": 10,
+        "chill_slow_effect_percent": 10
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.65,
+      "complexity": 4
+    },
+    {
+      "id": "ENCH_ROOTWARD_SHIELD_T2_01",
+      "name": "Shield of Entangling Roots",
+      "description": "A wooden shield enchanted with living roots that can briefly snare an attacker's weapon or limb upon a successful block.",
+      "tier": 2,
+      "magic_school": "transmutation_nature",
+      "compatible_item_types": ["armor_shield_wood"],
+      "min_mana_cost": 90,
+      "min_arcane_mastery": 2,
+      "required_materials": {
+        "living_root": 3,
+        "heartwood": 1,
+        "MM_LEYSTONE_SHARD_01": 2
+      },
+      "effects": {
+        "chance_to_snare_attacker_on_block_percent": 15,
+        "snare_duration_seconds": 2,
+        "shield_regeneration_minor_hp_per_minute": 1
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.70,
+      "complexity": 3
+    },
+    {
+      "id": "ENCH_SHOCKING_GRASP_T2_01",
+      "name": "Gloves of the Startling Grasp",
+      "description": "These gloves crackle with minor electrical energy, delivering a jolt to those touched or struck.",
+      "tier": 2,
+      "magic_school": "evocation",
+      "compatible_item_types": ["clothing_gloves", "armor_gauntlets"],
+      "min_mana_cost": 75,
+      "min_arcane_mastery": 2,
+      "required_materials": {
+        "lightning_quill": 1,
+        "cloud_essence": 3,
+        "BM_INGOT_COPPER_01": 0.5 
+      },
+      "effects": {
+        "bonus_lightning_damage_on_unarmed_hit": "1d4",
+        "chance_to_interrupt_spellcasting_on_hit_percent": 5
+      },
+      "duration_type": "charges",
+      "max_charges": 50,
+      "base_success_chance": 0.70,
+      "complexity": 3
+    },
+    {
+      "id": "ENCH_PHANTOM_CLOAK_T3_01",
+      "name": "Cloak of Whispering Shadows",
+      "description": "A cloak woven with Ghost Silk, rendering the wearer partially translucent and harder to see, especially in low light.",
+      "tier": 3,
+      "magic_school": "illusion",
+      "compatible_item_types": ["clothing_cloak"],
+      "min_mana_cost": 180,
+      "min_arcane_mastery": 3,
+      "required_materials": {
+        "ghost_silk": 3,
+        "shadow_glass": 1,
+        "MM_SHADOWSILK_STRAND_01": 2
+      },
+      "effects": {
+        "stealth_bonus_points": 7,
+        "visual_translucency_percent": 25,
+        "movement_sound_reduction_percent": 15
+      },
+      "duration_type": "permanent_active_toggle",
+      "max_charges": 1200,
+      "base_success_chance": 0.60,
+      "complexity": 5
+    },
+    {
+      "id": "ENCH_VOID_SIPHON_WEAPON_T3_01",
+      "name": "Weapon of the Void's Kiss",
+      "description": "A weapon that seems to drink light, with a chance to temporarily drain a small amount of mana or stamina from the target.",
+      "tier": 3,
+      "magic_school": "necromancy_void",
+      "compatible_item_types": ["weapon_melee_bladed", "weapon_staff_darkwood"],
+      "min_mana_cost": 220,
+      "min_arcane_mastery": 3,
+      "required_materials": {
+        "void_shard": 1,
+        "shadow_glass": 2,
+        "MM_CRIMSONITE_DUST_STABILIZED_01": 1
+      },
+      "effects": {
+        "chance_to_drain_mana_on_hit_percent": 10,
+        "mana_drained_points": "1d6",
+        "chance_to_drain_stamina_on_hit_percent": 10,
+        "stamina_drained_points": "1d8",
+        "absorbs_ambient_light_minorly": true
+      },
+      "duration_type": "permanent_unstable",
+      "max_charges": null,
+      "base_success_chance": 0.50,
+      "complexity": 6
+    },
+    {
+      "id": "ENCH_REJUVENATING_ARMOR_T3_01",
+      "name": "Armor of the Enduring Heartwood",
+      "description": "Armor imbued with the essence of ancient life, slowly mending itself and granting the wearer enhanced natural regeneration.",
+      "tier": 3,
+      "magic_school": "transmutation_life",
+      "compatible_item_types": ["armor_medium_wood_or_hide", "armor_heavy_wood_or_hide"],
+      "min_mana_cost": 250,
+      "min_arcane_mastery": 3,
+      "required_materials": {
+        "heartwood": 3,
+        "living_root": 5,
+        "MM_SPIRITWOOD_HEARTWOOD_01": 1
+      },
+      "effects": {
+        "health_regeneration_per_minute_points": 2,
+        "armor_self_repair_minor_damage_over_time": true,
+        "poison_resistance_bonus_percent": 10
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.60,
+      "complexity": 5
+    },
+    {
+      "id": "ENCH_TELEKINETIC_GRIP_T3_01",
+      "name": "Gloves of the Far Hand",
+      "description": "Allows the wearer to telekinetically manipulate small, unattended objects from a short distance.",
+      "tier": 3,
+      "magic_school": "transmutation_mind",
+      "compatible_item_types": ["clothing_gloves"],
+      "min_mana_cost": 150,
+      "min_arcane_mastery": 3,
+      "required_materials": {
+        "thought_crystal": 2,
+        "cloud_essence": 3,
+        "MM_DREAMSHARD_CRYSTAL_01": 1
+      },
+      "effects": {
+        "telekinesis_range_meters": 5,
+        "telekinesis_weight_limit_kg": 1,
+        "fine_manipulation_possible": true
+      },
+      "duration_type": "temporary_activated_concentration",
+      "max_charges": 300,
+      "base_success_chance": 0.65,
+      "complexity": 4
+    },
+    {
+      "id": "ENCH_PHOENIX_ASH_CLOAK_T4_01",
+      "name": "Cloak of the Phoenix's Embrace",
+      "description": "A legendary cloak woven with a phoenix feather. If the wearer falls in battle, the cloak is consumed in fire, resurrecting the wearer once with a burst of healing flame.",
+      "tier": 4,
+      "magic_school": "conjuration_spirit_fire",
+      "compatible_item_types": ["clothing_cloak_magical"],
+      "min_mana_cost": 700,
+      "min_arcane_mastery": 4,
+      "required_materials": {
+        "phoenix_feather": 1,
+        "MM_SUNSTONE_HEART_01": 1,
+        "ghost_silk": 5,
+        "TL_THREAD_SILK_GILDED_01": 1 
+      },
+      "effects": {
+        "single_use_self_resurrection_on_death": true,
+        "resurrection_health_percent": 50,
+        "aoe_fire_damage_on_resurrection_range_meters": 5,
+        "aoe_fire_damage_points": "3d10",
+        "item_destroyed_after_use": true
+      },
+      "duration_type": "single_use_triggered",
+      "max_charges": 1,
+      "base_success_chance": 0.40,
+      "complexity": 8
+    },
+    {
+      "id": "ENCH_DRAGONHIDE_ARMOR_T5_01",
+      "name": "Armor of Draconic Resilience",
+      "description": "Masterwork armor reinforced with a dragon scale, granting exceptional protection against physical harm and the dragon's primary element.",
+      "tier": 5,
+      "magic_school": "abjuration_elemental_mastery",
+      "compatible_item_types": ["armor_heavy_masterwork_metal", "armor_shield_masterwork_metal"],
+      "min_mana_cost": 1000,
+      "min_arcane_mastery": 5,
+      "required_materials": {
+        "dragon_scale": 1,
+        "MM_CRIMSONITE_DUST_STABILIZED_01": 1,
+        "BM_INGOT_DEEP_IRON_DWARVEN_01": 5,
+        "MM_FROSTWYRM_SCALE_CHIP_01": 1
+      },
+      "effects": {
+        "physical_damage_resistance_increase_percent": 20,
+        "elemental_resistance_fire_percent": 25,
+        "elemental_resistance_earth_percent": 15,
+        "fear_aura_minor_vs_lesser_creatures": true,
+        "unbreakable_property_minor_chance_percent": 5
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.30,
+      "complexity": 10
+    },
+    {
+      "id": "ENCH_STARDUST_BLADE_T5_01",
+      "name": "Blade of Fallen Stars",
+      "description": "A weapon infused with stardust, shimmering with cosmic energy. It deals unpredictable elemental damage and has a chance to banish extraplanar foes.",
+      "tier": 5,
+      "magic_school": "cosmic_evocation_banishment",
+      "compatible_item_types": ["weapon_sword_masterwork_legendary", "weapon_staff_legendary"],
+      "min_mana_cost": 1200,
+      "min_arcane_mastery": 5,
+      "required_materials": {
+        "stardust": 1,
+        "void_shard": 1,
+        "MM_SPIRITWOOD_HEARTWOOD_01": 1,
+        "JC_METAL_PLATINUM_INGOT_01": 2 
+      },
+      "effects": {
+        "bonus_damage_type_random_elemental": "2d12",
+        "chance_to_banish_extraplanar_target_on_crit_percent": 10,
+        "weapon_emits_celestial_light_dim": true,
+        "ignores_minor_magical_resistance": true
+      },
+      "duration_type": "permanent_attuned",
+      "max_charges": null,
+      "base_success_chance": 0.20,
+      "complexity": 10
+    },
+    {
+      "id": "ENCH_MEMORY_WEAVE_ROBE_T4_01",
+      "name": "Robe of the Erudite Mind",
+      "description": "Robes woven with Memory Crystals and Dream Silk, allowing the wearer to occasionally recall forgotten lore or cast spells with slightly reduced mental effort.",
+      "tier": 4,
+      "magic_school": "divination_mind_enchantment",
+      "compatible_item_types": ["clothing_robe_magical"],
+      "min_mana_cost": 400,
+      "min_arcane_mastery": 4,
+      "required_materials": {
+        "memory_crystal": 3,
+        "dream_silk": 5,
+        "thought_crystal": 1,
+        "MM_MOONPEARL_IRIDESCENT_01": 1
+      },
+      "effects": {
+        "chance_to_recall_relevant_lore_percent": 5,
+        "spell_mana_cost_reduction_all_spells_percent": 3,
+        "mental_resistance_bonus_points": 5,
+        "intelligence_attribute_bonus_minor_points": 1
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.45,
+      "complexity": 7
+    },
+    {
+      "id": "ENCH_GLOVES_STRENGTH_T2_01",
+      "name": "Gloves of Ogre Strength",
+      "description": "Enchants gloves or gauntlets to temporarily increase the wearer's physical strength.",
+      "tier": 2,
+      "magic_school": "transmutation",
+      "compatible_item_types": ["clothing_gloves_leather", "armor_heavy_gauntlets"],
+      "min_mana_cost": 130,
+      "min_arcane_mastery": 2,
+      "required_materials": {
+        "MM_ORCISH_BLOODROCK_01": 1,
+        "TL_FASTENER_BONE_TOGGLE_01": 2, 
+        "ALCH_ANIMAL_TROLL_BLOOD_01": 1 
+      },
+      "effects": {
+        "strength_attribute_bonus_points": 2,
+        "carry_capacity_increase_kg": 20
+      },
+      "duration_type": "temporary",
+      "max_charges": 600,
+      "base_success_chance": 0.65,
+      "complexity": 4
+    },
+    {
+      "id": "ENCH_FOCUS_MANAREGEN_T3_01",
+      "name": "Focus of Mana Weaving",
+      "description": "Enchants a mage's focus item (orb, wand, crystal) to passively regenerate a small amount of mana over time.",
+      "tier": 3,
+      "magic_school": "enchantment_meta",
+      "compatible_item_types": ["tool_focus_mage"],
+      "min_mana_cost": 220,
+      "min_arcane_mastery": 3,
+      "required_materials": {
+        "MM_LEYSTONE_SHARD_01": 4,
+        "MM_DREAMSHARD_CRYSTAL_01": 1,
+        "ALCH_MAGICAL_MANA_CRYSTAL_DUST_01": 1
+      },
+      "effects": {
+        "mana_regeneration_per_minute_points": 5,
+        "spell_mana_cost_reduction_minor_percent": 2
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.55,
+      "complexity": 5
+    },
+    {
+      "id": "ENCH_WEAPON_SUNFIRE_T4_01",
+      "name": "Blade of Solar Retribution",
+      "description": "Imbues a weapon with the purifying light of the sun, dealing extra radiant damage, especially effective against undead and shadow creatures.",
+      "tier": 4,
+      "magic_school": "evocation_divinity",
+      "compatible_item_types": ["weapon_melee_sword_masterwork", "weapon_hammer_blessed"],
+      "min_mana_cost": 380,
+      "min_arcane_mastery": 4,
+      "required_materials": {
+        "MM_SUNSTONE_HEART_01": 1,
+        "JC_METAL_GOLD_INGOT_18K_01": 15, 
+        "BM_GEM_SUNSTONE_FERVERL_01": 0.2 
+      },
+      "effects": {
+        "bonus_radiant_damage_on_hit": "2d8",
+        "bonus_damage_vs_undead_shadow_multiplier": 1.5,
+        "chance_to_blind_target_on_crit_percent": 10
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.40,
+      "complexity": 8
+    }
+  ]
+}

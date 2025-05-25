@@ -1,0 +1,592 @@
+{
+  "magical_materials": [
+    {
+      "id": "MM_LEYSTONE_SHARD_01",
+      "name": "Leyline-Charged Stonewake Crystal",
+      "description": "A shard of naturally occurring crystal from the deep Stonewake mountains, visibly pulsing with raw leyline energy. It hums with a faint power.",
+      "rarity": "uncommon",
+      "magical_affinity": ["EARTH", "RAW_MANA"],
+      "leyline_resonance": 3.5,
+      "corruption_resistance": 1.2,
+      "crafting_properties": {
+        "hardness": 6,
+        "mana_conductivity": 7,
+        "brittleness": 4
+      },
+      "gathering_difficulty": 4,
+      "primary_locations": ["stonewake_deep_caverns", "leyline_nexus_points"],
+      "required_tool": "Geomancer's Pick",
+      "base_value": 75,
+      "base_yield": 2
+    },
+    {
+      "id": "MM_EMBERFLOW_PETAL_01",
+      "name": "Emberflow Bloom Petal (Dried)",
+      "description": "Petals from a rare flower that thrives near the Emberflow in Ashkar Vale, retaining a significant amount of latent fire energy even when dried. Used by Ferverl alchemists and enchanters.",
+      "rarity": "rare",
+      "magical_affinity": ["FIRE", "NATURE_VOLATILE"],
+      "leyline_resonance": 2.8,
+      "corruption_resistance": 0.8,
+      "crafting_properties": {
+        "hardness": 1,
+        "flammability": 9,
+        "infusion_potency_fire": 6
+      },
+      "gathering_difficulty": 6,
+      "primary_locations": ["ashkar_vale_emberflow_banks", "ferverl_sacred_groves"],
+      "required_tool": "Ritual Harvesting Sickle (Silvered)",
+      "base_value": 120,
+      "base_yield": 3
+    },
+    {
+      "id": "MM_SPIRITWOOD_HEARTWOOD_01",
+      "name": "Lethandrel Spiritwood Heartwood Sliver",
+      "description": "A sliver taken from the very heartwood of an ancient Lethandrel Spiritwood tree, glowing faintly with serene, natural magic. Highly sought after by Elven crafters.",
+      "rarity": "legendary",
+      "magical_affinity": ["NATURE_LIFE", "SPIRIT_ASTRAL"],
+      "leyline_resonance": 4.5,
+      "corruption_resistance": 1.8,
+      "crafting_properties": {
+        "hardness": 4,
+        "mana_conduit_efficiency": 9,
+        "workability_with_elven_tools": 8,
+        "natural_warding_strength": 5
+      },
+      "gathering_difficulty": 9,
+      "primary_locations": ["lethandrel_ancient_spirit_tree_sanctums"],
+      "required_tool": "Elven Moon-Blessed Hatchet (Ethical Harvesting Only)",
+      "base_value": 800,
+      "base_yield": 1
+    },
+    {
+      "id": "MM_CRIMSONITE_DUST_STABILIZED_01",
+      "name": "Stabilized Crimsonite Dust",
+      "description": "Fine dust from refined Crimsonite, carefully treated through dangerous alchemical processes to reduce its immediate corrupting influence, though it remains inherently unstable. Used in high-risk, high-reward enchanting.",
+      "rarity": "legendary",
+      "magical_affinity": ["DISSONANCE_CHAOS", "RAW_POWER_UNSTABLE"],
+      "leyline_resonance": 1.5,
+      "corruption_resistance": 0.5,
+      "crafting_properties": {
+        "hardness": 2,
+        "power_amplification": 10,
+        "volatility_on_mishandling": 9,
+        "enchantment_instability_modifier": 7
+      },
+      "gathering_difficulty": 10,
+      "primary_locations": ["crucible_spire_relic_labs (processed)", "dissonance_scar_sites (raw, extremely dangerous)"],
+      "required_tool": "Containment Scoop & Nullifier Field",
+      "base_value": 1500,
+      "base_yield": 1
+    },
+    {
+      "id": "MM_MOONPEARL_IRIDESCENT_01",
+      "name": "Iridescent Moonpearl",
+      "description": "A rare pearl found in giant oysters within Lethandrel's moon-touched grottos. It shimmers with captivating colors and holds a strong affinity for lunar and illusion magics.",
+      "rarity": "rare",
+      "magical_affinity": ["WATER_LUNAR", "ILLUSION_SUBTLETY"],
+      "leyline_resonance": 3.0,
+      "corruption_resistance": 1.5,
+      "crafting_properties": {
+        "hardness": 3,
+        "light_refraction_index": 8,
+        "enchantment_focus_illusion": 7
+      },
+      "gathering_difficulty": 7,
+      "primary_locations": ["lethandrel_coastal_caverns_moonlit_tides", "elven_pearl_beds"],
+      "required_tool": "Diver's Hook (Mother-of-Pearl)",
+      "base_value": 250,
+      "base_yield": 1
+    },
+    {
+      "id": "MM_SHADOWSILK_STRAND_01",
+      "name": "Whispering Woods Shadowsilk Strand",
+      "description": "A strand of exceptionally fine and strong silk spun by the Shadow Weavers of the Whispering Woods. It naturally absorbs light and muffles sound.",
+      "rarity": "rare",
+      "magical_affinity": ["SHADOW_DARKNESS", "STEALTH_SILENCE"],
+      "leyline_resonance": 2.2,
+      "corruption_resistance": 1.1,
+      "crafting_properties": {
+        "hardness": 1,
+        "tensile_strength_magical": 7,
+        "sound_dampening_property": 6,
+        "light_absorption_property": 8
+      },
+      "gathering_difficulty": 5,
+      "primary_locations": ["whispering_woods_deep_thickets", "shadow_weaver_spider_lairs"],
+      "required_tool": "Silvered Collection Spindle",
+      "base_value": 90,
+      "base_yield": 4
+    },
+    {
+      "id": "MM_FROSTWYRM_SCALE_CHIP_01",
+      "name": "Frostwyrm Scale Chip",
+      "description": "A small, incredibly hard chip from the scale of a Frostwyrm of the Frostbound Tundra. Radiates an intense, magical cold.",
+      "rarity": "epic",
+      "magical_affinity": ["ICE_COLD", "AIR_STORM"],
+      "leyline_resonance": 3.8,
+      "corruption_resistance": 1.3,
+      "crafting_properties": {
+        "hardness": 9,
+        "thermal_absorption_cold": 10,
+        "brittleness_at_high_temp": 7,
+        "infusion_potency_ice": 8
+      },
+      "gathering_difficulty": 8,
+      "primary_locations": ["frostbound_tundra_ancient_glaciers", "slain_frostwyrm_remains"],
+      "required_tool": "Cryo-Insulated Pickaxe",
+      "base_value": 650,
+      "base_yield": 1
+    },
+    {
+      "id": "MM_SUNSTONE_HEART_01",
+      "name": "Heart of the Sunstone",
+      "description": "The purest, most potent core of a Ferverl Sunstone, found only in the deepest, most sacred quarries of Thal-Zirad. It blazes with contained solar fire.",
+      "rarity": "legendary",
+      "magical_affinity": ["FIRE_SUN", "DIVINITY_PURITY"],
+      "leyline_resonance": 4.2,
+      "corruption_resistance": 1.9,
+      "crafting_properties": {
+        "hardness": 7,
+        "energy_output_light_heat": 9,
+        "mana_regeneration_aura_fire": 6,
+        "anti_undead_property_strong": 8
+      },
+      "gathering_difficulty": 9,
+      "primary_locations": ["thal_zirad_sun_temple_vaults", "heart_of_sacred_sunstone_quarry"],
+      "required_tool": "Ritualistic Solar Pick (Blessed Gold)",
+      "base_value": 1200,
+      "base_yield": 1
+    },
+    {
+      "id": "MM_DREAMSHARD_CRYSTAL_01",
+      "name": "Dreamshard Crystal",
+      "description": "A softly glowing crystal found in areas where the veil between worlds is thin, often in ancient Elven ruins. It seems to shift and swirl with captured dream essence.",
+      "rarity": "epic",
+      "magical_affinity": ["SPIRIT_ASTRAL", "ILLUSION_MIND"],
+      "leyline_resonance": 3.3,
+      "corruption_resistance": 1.6,
+      "crafting_properties": {
+        "hardness": 4,
+        "psychic_resonance": 8,
+        "focus_for_mind_affecting_spells": 7
+      },
+      "gathering_difficulty": 7,
+      "primary_locations": ["lethandrel_ruins_thin_reality_zones", "whispering_woods_fae_circles"],
+      "required_tool": "Meditative Collection Pouch (Silver-lined)",
+      "base_value": 550,
+      "base_yield": 1
+    },
+    {
+      "id": "MM_RIVERGEM_FLOWING_01",
+      "name": "Flowing Rivergem",
+      "description": "A smooth, water-worn gemstone found in the Rivemark Delta, imbued with the persistent energy of flowing water and minor adaptive qualities.",
+      "rarity": "uncommon",
+      "magical_affinity": ["WATER", "ADAPTATION_MINOR"],
+      "leyline_resonance": 2.5,
+      "corruption_resistance": 1.0,
+      "crafting_properties": {
+        "hardness": 5,
+        "fluidity_infusion": 6,
+        "resistance_to_stagnation_magic": 4
+      },
+      "gathering_difficulty": 3,
+      "primary_locations": ["rivemark_delta_sandbars", "shimmering_marshes_riverbeds"],
+      "required_tool": "Fine Mesh Sieve",
+      "base_value": 60,
+      "base_yield": 3
+    },
+    {
+      "id": "MM_ORCISH_BLOODROCK_01",
+      "name": "Orcish Bloodrock Shard",
+      "description": "A shard of volcanic rock from Rivemark's borderlands, stained and infused with generations of Orcish war-rituals and spilled blood. It pulses with a primal, aggressive energy.",
+      "rarity": "rare",
+      "magical_affinity": ["FIRE_PRIMAL", "FURY_STRENGTH"],
+      "leyline_resonance": 2.0,
+      "corruption_resistance": 0.7,
+      "crafting_properties": {
+        "hardness": 7,
+        "infusion_potency_strength_rage": 7,
+        "brittleness_if_not_handled_by_orc": 5
+      },
+      "gathering_difficulty": 5,
+      "primary_locations": ["rivemark_orcish_sacred_battlegrounds", "stonewake_caldera_orc_shrines"],
+      "required_tool": "Orcish Grok-Spiked Hammer",
+      "base_value": 150,
+      "base_yield": 2
+    }
+  ],
+  "enchantments": [
+    {
+      "id": "ENCH_FLAME_WEAPON_T1_01",
+      "name": "Lesser Flaming Weapon",
+      "description": "Imbues a weapon with minor fire energy, causing it to deal additional fire damage on hit.",
+      "tier": 1,
+      "magic_school": "evocation",
+      "compatible_item_types": ["weapon_melee", "weapon_ranged_ammo"],
+      "min_mana_cost": 50,
+      "min_arcane_mastery": 1,
+      "required_materials": {
+        "MM_EMBERFLOW_PETAL_01": 2,
+        "MM_LEYSTONE_SHARD_01": 1
+      },
+      "effects": {
+        "bonus_fire_damage_on_hit": "1d4",
+        "chance_to_ignite_flammable_target_percent": 10
+      },
+      "duration_type": "charges",
+      "max_charges": 50,
+      "base_success_chance": 0.75,
+      "complexity": 2
+    },
+    {
+      "id": "ENCH_ARMOR_WARD_T2_01",
+      "name": "Warding Glyph of Minor Protection",
+      "description": "Scribes a glyph onto armor that grants a minor bonus to physical damage resistance.",
+      "tier": 2,
+      "magic_school": "abjuration",
+      "compatible_item_types": ["armor_chest", "armor_shield"],
+      "min_mana_cost": 120,
+      "min_arcane_mastery": 2,
+      "required_materials": {
+        "MM_LEYSTONE_SHARD_01": 3,
+        "SILVER_JEWELRY_BAR_925_PURE": 5
+      },
+      "effects": {
+        "physical_damage_resistance_increase_percent": 5,
+        "spell_resistance_minor_buff_points": 2
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.65,
+      "complexity": 3
+    },
+    {
+      "id": "ENCH_TOOL_EFFICIENCY_T1_01",
+      "name": "Artisan's Swift Hand",
+      "description": "Enchants a crafting tool to slightly increase the speed and precision of its user.",
+      "tier": 1,
+      "magic_school": "transmutation",
+      "compatible_item_types": ["tool_crafting"],
+      "min_mana_cost": 70,
+      "min_arcane_mastery": 1,
+      "required_materials": {
+        "MM_LEYSTONE_SHARD_01": 2,
+        "COPPER_INGOT": 1
+      },
+      "effects": {
+        "crafting_speed_bonus_percent": 5,
+        "chance_to_improve_quality_minor_percent": 2
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.80,
+      "complexity": 2
+    },
+    {
+      "id": "ENCH_ILLUSION_VEIL_T3_01",
+      "name": "Veil of Moonlit Shadows",
+      "description": "Imbues a cloak or light armor with illusory magic, making the wearer harder to detect in dim light or shadows.",
+      "tier": 3,
+      "magic_school": "illusion",
+      "compatible_item_types": ["armor_light_chest", "clothing_cloak"],
+      "min_mana_cost": 200,
+      "min_arcane_mastery": 3,
+      "required_materials": {
+        "MM_MOONPEARL_IRIDESCENT_01": 1,
+        "MM_SHADOWSILK_STRAND_01": 5,
+        "LETHANDREL_MOON_DEW": 1
+      },
+      "effects": {
+        "stealth_bonus_in_shadows_dim_light_points": 10,
+        "visual_distortion_subtle_aura": true
+      },
+      "duration_type": "temporary",
+      "max_charges": 1800, 
+      "base_success_chance": 0.60,
+      "complexity": 5
+    },
+    {
+      "id": "ENCH_LIFEBOND_STAFF_T4_01",
+      "name": "Staff of Nature's Vitality",
+      "description": "A powerful enchantment for staves crafted from living wood, allowing the wielder to channel healing energies and promoting natural growth.",
+      "tier": 4,
+      "magic_school": "transmutation_life",
+      "compatible_item_types": ["weapon_staff_wood_magical"],
+      "min_mana_cost": 350,
+      "min_arcane_mastery": 4,
+      "required_materials": {
+        "MM_SPIRITWOOD_HEARTWOOD_01": 1,
+        "MM_LEYSTONE_SHARD_01": 5,
+        "GOLD_JEWELRY_INGOT_18K": 10
+      },
+      "effects": {
+        "healing_spell_potency_increase_percent": 15,
+        "aoe_minor_regeneration_aura_meters": 3,
+        "promotes_plant_growth_nearby": true
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.50,
+      "complexity": 7
+    },
+    {
+      "id": "ENCH_CRIMSON_EDGE_T5_01",
+      "name": "Edge of Dissonant Fury (Risky)",
+      "description": "A forbidden enchantment that attempts to bind chaotic Crimsonite energy to a weapon, granting immense, unstable power at great personal risk to the wielder and the item itself.",
+      "tier": 5,
+      "magic_school": "dissonance_forbidden",
+      "compatible_item_types": ["weapon_melee_metal_masterwork"],
+      "min_mana_cost": 500,
+      "min_arcane_mastery": 5,
+      "required_materials": {
+        "MM_CRIMSONITE_DUST_STABILIZED_01": 3,
+        "REFINED_CRIMSONITE_INGOT": 1,
+        "FERVERL_BLOOD_ASH": 2
+      },
+      "effects": {
+        "bonus_chaos_damage_on_hit": "3d10",
+        "chance_to_inflict_random_debuff_on_target_percent": 25,
+        "chance_for_wielder_corruption_on_crit_percent": 10,
+        "weapon_durability_degradation_rate_increase_percent": 50
+      },
+      "duration_type": "permanent_unstable",
+      "max_charges": null,
+      "base_success_chance": 0.25,
+      "complexity": 10
+    },
+    {
+      "id": "ENCH_ICE_BLADE_T2_01",
+      "name": "Blade of Biting Frost",
+      "description": "The weapon is enchanted with chilling energy, dealing bonus frost damage and potentially slowing foes.",
+      "tier": 2,
+      "magic_school": "evocation",
+      "compatible_item_types": ["weapon_melee_metal"],
+      "min_mana_cost": 90,
+      "min_arcane_mastery": 2,
+      "required_materials": {
+        "MM_FROSTWYRM_SCALE_CHIP_01": 1,
+        "MM_LEYSTONE_SHARD_01": 2,
+        "SILVER_JEWELRY_BAR_925_PURE": 3
+      },
+      "effects": {
+        "bonus_frost_damage_on_hit": "1d6",
+        "chance_to_apply_slow_debuff_percent": 15,
+        "slow_debuff_intensity_percent": 20,
+        "slow_debuff_duration_seconds": 5
+      },
+      "duration_type": "charges",
+      "max_charges": 75,
+      "base_success_chance": 0.70,
+      "complexity": 3
+    },
+    {
+      "id": "ENCH_LIGHT_EVERBURNING_T1_01",
+      "name": "Everburning Light",
+      "description": "Causes an item, typically a torch or piece of jewelry, to emit a constant, soft light without consuming fuel.",
+      "tier": 1,
+      "magic_school": "conjuration",
+      "compatible_item_types": ["tool_utility", "jewelry_amulet", "clothing_headwear"],
+      "min_mana_cost": 40,
+      "min_arcane_mastery": 1,
+      "required_materials": {
+        "MM_LEYSTONE_SHARD_01": 1,
+        "SUNPETAL_LEAF": 3 
+      },
+      "effects": {
+        "light_intensity_lumens": 50,
+        "light_radius_meters": 5
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.85,
+      "complexity": 1
+    },
+    {
+      "id": "ENCH_ARMOR_THORNS_T3_01",
+      "name": "Armor of Retribution",
+      "description": "Enchants a piece of armor to retaliate against attackers, dealing minor piercing damage back to them when struck in melee.",
+      "tier": 3,
+      "magic_school": "abjuration",
+      "compatible_item_types": ["armor_chest_heavy", "armor_shield_metal"],
+      "min_mana_cost": 180,
+      "min_arcane_mastery": 3,
+      "required_materials": {
+        "MM_ORCISH_BLOODROCK_01": 2,
+        "STEEL_INGOT": 1,
+        "BOAR_HIDE_TOUGH": 1 
+      },
+      "effects": {
+        "retaliation_piercing_damage_on_melee_hit": "1d4",
+        "retaliation_chance_if_block_shield_percent": 50
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.60,
+      "complexity": 4
+    },
+    {
+      "id": "ENCH_JEWELRY_INTUITION_T2_01",
+      "name": "Amulet of Keen Intuition",
+      "description": "An amulet enchanted to sharpen the wearer's senses and intuition, offering a slight bonus to perception-based skills.",
+      "tier": 2,
+      "magic_school": "divination",
+      "compatible_item_types": ["jewelry_amulet", "jewelry_ring"],
+      "min_mana_cost": 110,
+      "min_arcane_mastery": 2,
+      "required_materials": {
+        "MM_MOONPEARL_IRIDESCENT_01": 1,
+        "MM_DREAMSHARD_CRYSTAL_01": 1,
+        "ELECTRUM_LEAF": 2
+      },
+      "effects": {
+        "perception_skill_bonus_points": 1,
+        "chance_to_detect_hidden_objects_minor_percent": 5
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.70,
+      "complexity": 3
+    },
+    {
+      "id": "ENCH_BOOTS_SILENCE_T2_01",
+      "name": "Boots of Silent Striding",
+      "description": "Enchants footwear to muffle the sounds of movement, aiding in stealth.",
+      "tier": 2,
+      "magic_school": "illusion",
+      "compatible_item_types": ["clothing_boots_leather", "armor_light_boots"],
+      "min_mana_cost": 90,
+      "min_arcane_mastery": 2,
+      "required_materials": {
+        "MM_SHADOWSILK_STRAND_01": 3,
+        "OWL_FEATHER_DOWN": 5 
+      },
+      "effects": {
+        "movement_sound_reduction_percent": 25,
+        "stealth_skill_bonus_points_while_sneaking": 2
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.75,
+      "complexity": 3
+    },
+    {
+      "id": "ENCH_WEAPON_VAMPIRIC_TOUCH_T4_01",
+      "name": "Weapon of Vampiric Touch (Lesser)",
+      "description": "A dark enchantment that allows a weapon to drain a small amount of life force from a struck target and transfer it to the wielder.",
+      "tier": 4,
+      "magic_school": "necromancy_forbidden_minor",
+      "compatible_item_types": ["weapon_melee_bladed"],
+      "min_mana_cost": 300,
+      "min_arcane_mastery": 4,
+      "required_materials": {
+        "MM_CRIMSONITE_DUST_STABILIZED_01": 1,
+        "ECTOPLASMIC_RESIDUE": 3, 
+        "OBSIDIAN_SHARD_POLISHED": 1
+      },
+      "effects": {
+        "life_drain_on_hit_percent_of_damage_dealt": 5,
+        "healing_to_wielder_percent_of_life_drained": 50,
+        "minor_corruption_buildup_on_wielder_per_hit_points": 1
+      },
+      "duration_type": "permanent_tainted",
+      "max_charges": null,
+      "base_success_chance": 0.45,
+      "complexity": 7
+    },
+    {
+      "id": "ENCH_SHIELD_SPELLREFLECTION_T5_01",
+      "name": "Shield of Spell Deflection (Greater)",
+      "description": "A legendary enchantment for shields, granting a significant chance to reflect hostile spells back at their caster.",
+      "tier": 5,
+      "magic_school": "abjuration_mastery",
+      "compatible_item_types": ["armor_shield_masterwork_magical"],
+      "min_mana_cost": 600,
+      "min_arcane_mastery": 5,
+      "required_materials": {
+        "MM_SPIRITWOOD_HEARTWOOD_01": 1, 
+        "GEM_QUALITY_DIAMOND_OCTAHEDRON": 1, 
+        "PLATINUM_WIRE_PURE": 5,
+        "ACCORD_STANDARD_NULLIFIER_ROD": 1 
+      },
+      "effects": {
+        "chance_to_reflect_single_target_spell_percent": 20,
+        "reflected_spell_potency_percent_of_original": 75,
+        "spell_absorption_on_failed_reflection_points": 10
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.30,
+      "complexity": 9
+    },
+    {
+      "id": "ENCH_GLOVES_STRENGTH_T2_01",
+      "name": "Gloves of Ogre Strength",
+      "description": "Enchants gloves or gauntlets to temporarily increase the wearer's physical strength.",
+      "tier": 2,
+      "magic_school": "transmutation",
+      "compatible_item_types": ["clothing_gloves_leather", "armor_heavy_gauntlets"],
+      "min_mana_cost": 130,
+      "min_arcane_mastery": 2,
+      "required_materials": {
+        "MM_ORCISH_BLOODROCK_01": 1,
+        "BEASTFOLK_BONE_STUDDED_GRIP_COMPONENT": 1, 
+        "TROLL_BLOOD_REGENERATIVE": 1 
+      },
+      "effects": {
+        "strength_attribute_bonus_points": 2,
+        "carry_capacity_increase_kg": 20
+      },
+      "duration_type": "temporary",
+      "max_charges": 600, 
+      "base_success_chance": 0.65,
+      "complexity": 4
+    },
+    {
+      "id": "ENCH_FOCUS_MANAREGEN_T3_01",
+      "name": "Focus of Mana Weaving",
+      "description": "Enchants a mage's focus item (orb, wand, crystal) to passively regenerate a small amount of mana over time.",
+      "tier": 3,
+      "magic_school": "enchantment_meta",
+      "compatible_item_types": ["tool_focus_mage"],
+      "min_mana_cost": 220,
+      "min_arcane_mastery": 3,
+      "required_materials": {
+        "MM_LEYSTONE_SHARD_01": 4,
+        "MM_DREAMSHARD_CRYSTAL_01": 1,
+        "MANA_CHARGED_CRYSTAL_DUST": 1
+      },
+      "effects": {
+        "mana_regeneration_per_minute_points": 5,
+        "spell_mana_cost_reduction_minor_percent": 2
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.55,
+      "complexity": 5
+    },
+    {
+      "id": "ENCH_WEAPON_SUNFIRE_T4_01",
+      "name": "Blade of Solar Retribution",
+      "description": "Imbues a weapon with the purifying light of the sun, dealing extra radiant damage, especially effective against undead and shadow creatures.",
+      "tier": 4,
+      "magic_school": "evocation_divinity",
+      "compatible_item_types": ["weapon_melee_sword_masterwork", "weapon_hammer_blessed"],
+      "min_mana_cost": 380,
+      "min_arcane_mastery": 4,
+      "required_materials": {
+        "MM_SUNSTONE_HEART_01": 1,
+        "GOLD_JEWELRY_INGOT_18K": 15,
+        "FERVERL_SUN_SAND_POLISH": 3
+      },
+      "effects": {
+        "bonus_radiant_damage_on_hit": "2d8",
+        "bonus_damage_vs_undead_shadow_multiplier": 1.5,
+        "chance_to_blind_target_on_crit_percent": 10
+      },
+      "duration_type": "permanent",
+      "max_charges": null,
+      "base_success_chance": 0.40,
+      "complexity": 8
+    }
+  ]
+}
