@@ -17,6 +17,35 @@ from pydantic import BaseModel, Field
 
 from app.db.base import Base
 
+
+class WorldModel:
+    """
+    Main world model container holding all world regions and settings.
+    This class provides methods for world generation and management.
+    """
+    
+    def __init__(self):
+        """Initialize the world model."""
+        self.regions = []
+        self.settings = {}
+        self.version = "1.0.0"
+    
+    def add_region(self, region):
+        """Add a region to the world."""
+        self.regions.append(region)
+        return region
+    
+    def get_region(self, region_id):
+        """Get a region by ID."""
+        for region in self.regions:
+            if getattr(region, 'id', None) == region_id:
+                return region
+        return None
+    
+    def __str__(self):
+        """String representation of the world model."""
+        return f"WorldModel(regions={len(self.regions)})"
+
 # Enums for type safety
 class BiomeType(str, Enum):
     VERDANT_FRONTIER = "verdant_frontier"
@@ -32,6 +61,7 @@ class POIType(str, Enum):
     VILLAGE = "village"
     RUIN = "ruin"
     CAVE = "cave"
+    DANGEROUS_CAVE = "dangerous_cave"
     SHRINE = "shrine"
     TOWER = "tower"
     BRIDGE = "bridge"
@@ -43,6 +73,11 @@ class POIType(str, Enum):
     SPRING = "spring"
     BATTLEFIELD = "battlefield"
     RELIC_SITE = "relic_site"
+    FARM = "farm"
+    OASIS = "oasis"
+    NOMAD_CAMP = "nomad_camp"
+    DRUID_ENCLAVE = "druid_enclave"
+    CRATER = "crater"
 
 class POIState(str, Enum):
     UNDISCOVERED = "undiscovered"

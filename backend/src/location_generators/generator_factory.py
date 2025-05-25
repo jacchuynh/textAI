@@ -7,12 +7,12 @@ content generation across different location types.
 """
 
 import logging
-from typing import Dict, Type, Optional
+from typing import Dict, Type, Optional, List
 from abc import ABC
 
 from .base_generator import BaseLocationGenerator
 from .village_generator import VillageGenerator
-from world_model import POIType
+from world_generation.world_model import POIType
 
 logger = logging.getLogger(__name__)
 
