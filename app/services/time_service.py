@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.models.time_models import (
     GameDateTime, TimeBlock, Season, GameTimeSettings, ScheduledGameEvent
 )
+from app.models.season_models import SeasonChangeEventData, SeasonChangeEvent
 from app.db.crud import game_time_state_crud, scheduled_game_event_crud
 from app.events.event_bus import event_bus, GameEvent, EventType
 
@@ -142,6 +143,10 @@ class TimeService:
         new_time_block = self.get_current_time_block()
         new_season = self.get_current_season()
         
+        # Check for seasonal change and publish event FIRST (before other events)
+        if current_season != new_season:
+            self._publish_seasonal_change_event(current_season, new_season, new_datetime)
+        
         # Check and trigger scheduled events
         self._check_and_trigger_scheduled_events(new_datetime)
         
@@ -156,12 +161,9 @@ class TimeService:
             new_season
         )
         
-        # Publish specific events if time block or season changed
+        # Publish specific events if time block changed
         if current_time_block != new_time_block:
             self._publish_time_block_changed_event(current_time_block, new_time_block)
-        
-        if current_season != new_season:
-            self._publish_season_changed_event(current_season, new_season)
         
         return new_datetime
     
@@ -238,15 +240,30 @@ class TimeService:
         event_bus.publish(event)
         logger.info(f"Published TIME_BLOCK_CHANGED event: {old_time_block.value} -> {new_time_block.value}")
     
-    def _publish_season_changed_event(self, old_season: Season, new_season: Season) -> None:
+    def _publish_seasonal_change_event(self, old_season: Season, new_season: Season, new_datetime: GameDateTime) -> None:
         """
-        Publish a SEASON_CHANGED event.
+        Publish a comprehensive seasonal change event.
         
         Args:
             old_season: Previous season
             new_season: New season
+            new_datetime: The datetime when the season changed
         """
-        event = GameEvent(
+        # Create detailed seasonal change event data
+        event_data = SeasonChangeEventData(
+            previous_season=old_season,
+            current_season=new_season,
+            year=new_datetime.year,
+            month=new_datetime.month,
+            day=new_datetime.day
+        )
+        
+        # Create and publish the comprehensive seasonal change event
+        seasonal_event = SeasonChangeEvent(data=event_data, game_id=self.game_id)
+        event_bus.publish(seasonal_event)
+        
+        # Also publish the legacy season changed event for backward compatibility
+        legacy_event = GameEvent(
             event_type=EventType.SEASON_CHANGED,
             context={
                 "game_id": self.game_id,
@@ -254,9 +271,10 @@ class TimeService:
                 "new_season": new_season.value
             }
         )
+        event_bus.publish(legacy_event)
         
-        event_bus.publish(event)
-        logger.info(f"Published SEASON_CHANGED event: {old_season.value} -> {new_season.value}")
+        logger.info(f"Published seasonal change events: {old_season.value} -> {new_season.value} in year {new_datetime.year}")
+        logger.info(f"Seasonal transition: {event_data.get_transition_narrative()}")
     
     def schedule_event(
         self,
@@ -497,6 +515,84 @@ class TimeService:
         """Advance time until a specific datetime."""
         minutes_to_advance = self.calculate_time_until_datetime(target_dt)
         return self.advance_time(minutes_to_advance)
+    
+    def _get_season_for_datetime(self, dt: GameDateTime) -> Season:
+        """
+        Get the season for a specific datetime.
+        
+        Args:
+            dt: The datetime to check
+            
+        Returns:
+            The season for the given datetime
+        """
+        return dt.get_season(self.settings)
+    
+    def get_season_progress(self, dt: Optional[GameDateTime] = None) -> Dict[str, Any]:
+        """
+        Get information about the current season's progress.
+        
+        Args:
+            dt: The datetime to check (uses current time if not provided)
+            
+        Returns:
+            Dictionary with season progress information
+        """
+        if dt is None:
+            dt = self.get_current_datetime()
+        
+        current_season = self._get_season_for_datetime(dt)
+        
+        # Calculate how far through the season we are
+        season_start_month, season_start_day = self.settings.season_definitions[current_season]
+        
+        # Find the next season
+        seasons = list(Season)
+        current_index = seasons.index(current_season)
+        next_season = seasons[(current_index + 1) % len(seasons)]
+        next_season_start_month, next_season_start_day = self.settings.season_definitions[next_season]
+        
+        # Handle year wrapping for winter -> spring transition
+        if next_season_start_month < season_start_month:
+            if dt.month >= season_start_month:
+                # We're in the current year, next season is next year
+                next_year = dt.year + 1
+            else:
+                # We're early in the year, next season is this year
+                next_year = dt.year
+        else:
+            next_year = dt.year
+        
+        # Create datetime objects for comparison
+        current_season_start = GameDateTime(
+            year=dt.year if dt.month >= season_start_month else dt.year - 1,
+            month=season_start_month,
+            day=season_start_day,
+            hour=0,
+            minute=0
+        )
+        
+        next_season_start = GameDateTime(
+            year=next_year,
+            month=next_season_start_month,
+            day=next_season_start_day,
+            hour=0,
+            minute=0
+        )
+        
+        # Calculate progress
+        total_season_minutes = next_season_start.to_minutes(self.settings) - current_season_start.to_minutes(self.settings)
+        elapsed_minutes = dt.to_minutes(self.settings) - current_season_start.to_minutes(self.settings)
+        
+        progress = elapsed_minutes / total_season_minutes if total_season_minutes > 0 else 0.0
+        progress = max(0.0, min(1.0, progress))  # Clamp between 0 and 1
+        
+        return {
+            "current_season": current_season,
+            "next_season": next_season,
+            "progress": progress,
+            "days_remaining": max(0, int((total_season_minutes - elapsed_minutes) / (self.settings.hours_per_day * self.settings.minutes_per_hour)))
+        }
     
     def format_datetime(self, dt: Optional[GameDateTime] = None) -> str:
         """
