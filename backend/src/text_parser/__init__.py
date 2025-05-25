@@ -1,18 +1,6 @@
 """
 Text Parser Module
 
-This module provides natural language parsing capabilities for the AI Game Master,
-enabling it to understand and interpret player commands in a flexible way.
+This package contains modules for parsing player text commands
+into structured game actions.
 """
-
-from .parser_engine import ParserEngine, parse_input, ParsedCommand
-from .vocabulary_manager import VocabularyManager
-from .object_resolver import ObjectResolver
-
-__all__ = [
-    'ParserEngine', 
-    'parse_input', 
-    'ParsedCommand', 
-    'VocabularyManager',
-    'ObjectResolver'
-]
