@@ -1,29 +1,15 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import * as schema from '@shared/schema';
 
-// Create a PostgreSQL connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+// Use the environment DATABASE_URL or create a default one
+const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/postgres';
 
-// Create a Drizzle ORM instance
-export const db = drizzle(pool, { schema });
+// Create a client for standard queries
+const client = postgres(connectionString);
 
-// Helpful function to initialize the database - will be used by other files
-export async function initializeDatabase() {
-  try {
-    // Test database connection
-    const result = await pool.query('SELECT NOW()');
-    console.log('Database connected:', result.rows[0].now);
-    
-    // Database is ready
-    return true;
-  } catch (err) {
-    console.error('Database connection error:', err);
-    return false;
-  }
-}
+// Create db instance with all schema imports
+export const db = drizzle(client, { schema });
 
-// Export the pool for direct SQL queries if needed
-export { pool };
+// Export a standalone function to run queries directly
+export const query = client;

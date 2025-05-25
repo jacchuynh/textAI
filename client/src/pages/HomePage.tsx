@@ -1,113 +1,57 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'wouter';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function HomePage() {
-  const { data: players, isLoading, error } = useQuery({
-    queryKey: ['/api/players'],
-    retry: false
-  });
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-4">Loading...</h1>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-4">Error loading game data</h1>
-        <p className="text-red-500">
-          {error instanceof Error ? error.message : 'An unknown error occurred'}
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-4xl font-bold mb-8 text-center">Magic World RPG</h1>
-      
-      <div className="max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>Your Characters</CardTitle>
-              <CardDescription>
-                Select a character to continue your adventure
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {players && players.length > 0 ? (
-                <ul className="space-y-2">
-                  {players.map((player: any) => (
-                    <li key={player.id}>
-                      <Link href={`/player/${player.id}`}>
-                        <Button variant="outline" className="w-full justify-start">
-                          <div className="flex justify-between w-full">
-                            <span>{player.name}</span>
-                            <span className="text-sm text-muted-foreground">
-                              Level {player.level} • {player.locationArea.replace('_', ' ')}
-                            </span>
-                          </div>
-                        </Button>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted-foreground">No characters found</p>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Link href="/create-character">
-                <Button className="w-full">Create New Character</Button>
-              </Link>
-            </CardFooter>
-          </Card>
-
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>About Magic World</CardTitle>
-              <CardDescription>
-                Embark on a journey in a world of magic and adventure
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
+      <div className="container max-w-4xl">
+        <Card className="border-2 border-purple-500 bg-black/60 backdrop-blur-sm">
+          <CardHeader className="text-center">
+            <CardTitle className="text-4xl font-bold tracking-tight text-purple-300 md:text-6xl">
+              Fantasy RPG World
+            </CardTitle>
+            <CardDescription className="text-xl text-gray-300">
+              An AI-driven text-based role-playing adventure
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-6 text-gray-200">
+            <div className="rounded-lg bg-gray-800/60 p-4">
+              <h3 className="mb-2 text-xl font-semibold text-purple-300">Explore a Magical World</h3>
               <p>
-                Magic World is an immersive text-based RPG where you can:
+                Immerse yourself in a rich fantasy world with dynamic environments, intricate magic systems, and
+                detailed world mechanics that react to your choices.
               </p>
-              <ul className="list-disc pl-5 space-y-2">
-                <li>Explore a rich fantasy world with diverse regions</li>
-                <li>Master powerful spells from various magical domains</li>
-                <li>Embark on quests and uncover the world's secrets</li>
-                <li>Craft items and collect magical materials</li>
-                <li>Interact with NPCs through natural language</li>
-              </ul>
-              <p className="italic text-sm text-muted-foreground mt-4">
-                "In a world where magic flows like rivers and ancient secrets 
-                wait to be discovered, your destiny is yours to forge."
+            </div>
+            
+            <div className="rounded-lg bg-gray-800/60 p-4">
+              <h3 className="mb-2 text-xl font-semibold text-purple-300">Master the Arcane Arts</h3>
+              <p>
+                Discover and learn powerful spells, craft magical items, and harness the energy of leylines
+                flowing through the world's terrain.
               </p>
-            </CardContent>
-            <CardFooter>
-              <Link href="/about">
-                <Button variant="outline" className="w-full">Learn More</Button>
-              </Link>
-            </CardFooter>
-          </Card>
-        </div>
+            </div>
+            
+            <div className="rounded-lg bg-gray-800/60 p-4">
+              <h3 className="mb-2 text-xl font-semibold text-purple-300">Forge Your Destiny</h3>
+              <p>
+                Embark on epic quests, interact with NPCs, and make choices that impact the world around you.
+                Will you be a heroic adventurer, a wise mage, or chart your own unique path?
+              </p>
+            </div>
+          </CardContent>
+          
+          <CardFooter className="flex flex-col gap-4 sm:flex-row">
+            <Button asChild className="w-full bg-purple-700 hover:bg-purple-600">
+              <Link href="/create-character">Start New Game</Link>
+            </Button>
+            <Button variant="outline" className="w-full border-purple-700 text-purple-300 hover:bg-purple-900/30">
+              <Link href="/about">Learn More</Link>
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

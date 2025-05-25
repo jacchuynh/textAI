@@ -1,91 +1,80 @@
 import React from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocation } from 'wouter';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
-
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import axios from 'axios';
 
+// Form schema using zod validation
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: 'Character name must be at least 2 characters.',
-  }),
-  userId: z.string().min(1, {
-    message: 'User ID is required',
-  })
+  userId: z.string().min(1, 'User ID is required'),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name cannot exceed 50 characters'),
+  locationRegion: z.string().min(1, 'Region is required'),
+  locationArea: z.string().min(1, 'Area is required')
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 export default function CreateCharacter() {
-  const [_, setLocation] = useLocation();
-  const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  // Default form values
+  const defaultValues: FormValues = {
+    userId: `user_${Math.random().toString(36).substring(2, 9)}`, // Generate a random user ID
+    name: '',
+    locationRegion: 'Silvermist Valley',
+    locationArea: 'Mossy_Hollow'
+  };
+
+  // Initialize form with react-hook-form and zod validation
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: '',
-      userId: 'user_' + Math.random().toString(36).substring(2, 9), // Generate a random user ID
-    },
+    defaultValues
   });
 
-  const createPlayerMutation = useMutation({
-    mutationFn: async (values: z.infer<typeof formSchema>) => {
-      const response = await axios.post('/api/players', values);
-      return response.data;
-    },
-    onSuccess: (data) => {
+  // Handle form submission
+  const onSubmit = async (data: FormValues) => {
+    try {
+      const response = await axios.post('/api/player', data);
+      
+      if (response.status === 201) {
+        toast({
+          title: 'Character created!',
+          description: `Welcome to the world, ${data.name}!`,
+          variant: 'default'
+        });
+        
+        // Navigate to the player view with the userId
+        navigate(`/play/${data.userId}`);
+      }
+    } catch (error) {
+      console.error('Error creating character:', error);
       toast({
-        title: 'Character Created!',
-        description: `${data.name} has begun their magical journey.`,
+        title: 'Error',
+        description: 'Failed to create character. Please try again.',
+        variant: 'destructive'
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/players'] });
-      setLocation(`/player/${data.id}`);
-    },
-    onError: (error) => {
-      toast({
-        title: 'Creation Failed',
-        description: error instanceof Error ? error.message : 'Could not create character',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    createPlayerMutation.mutate(values);
-  }
+    }
+  };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-4xl font-bold mb-8 text-center">Create Your Character</h1>
-      <div className="max-w-md mx-auto">
-        <Card>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
+      <div className="container max-w-md">
+        <Card className="border-2 border-purple-500 bg-black/60 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>New Character</CardTitle>
-            <CardDescription>
-              Choose a name for your character and begin your magical adventure
+            <CardTitle className="text-2xl font-bold text-purple-300">Create Your Character</CardTitle>
+            <CardDescription className="text-gray-300">
+              Begin your journey in the magical world
             </CardDescription>
           </CardHeader>
+          
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -94,36 +83,96 @@ export default function CreateCharacter() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Character Name</FormLabel>
+                      <FormLabel className="text-gray-200">Character Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter character name" {...field} />
+                        <Input 
+                          placeholder="Enter your character's name" 
+                          {...field} 
+                          className="border-gray-700 bg-gray-800 text-gray-100"
+                        />
                       </FormControl>
-                      <FormDescription>
-                        Choose a name that fits the fantasy world.
+                      <FormDescription className="text-gray-400">
+                        This is how you'll be known in the world.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 
-                <div className="flex justify-end space-x-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setLocation('/')}
-                    type="button"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={createPlayerMutation.isPending}
-                  >
-                    {createPlayerMutation.isPending ? 'Creating...' : 'Create Character'}
-                  </Button>
-                </div>
+                <FormField
+                  control={form.control}
+                  name="locationRegion"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-200">Starting Region</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="border-gray-700 bg-gray-800 text-gray-100">
+                            <SelectValue placeholder="Select a region" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="border-gray-700 bg-gray-800 text-gray-100">
+                          <SelectItem value="Silvermist Valley">Silvermist Valley</SelectItem>
+                          <SelectItem value="Emberhold Mountains">Emberhold Mountains</SelectItem>
+                          <SelectItem value="Azuremere Coast">Azuremere Coast</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription className="text-gray-400">
+                        The region where your adventure begins.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="locationArea"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-200">Starting Area</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="border-gray-700 bg-gray-800 text-gray-100">
+                            <SelectValue placeholder="Select an area" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="border-gray-700 bg-gray-800 text-gray-100">
+                          <SelectItem value="Mossy_Hollow">Mossy Hollow Village</SelectItem>
+                          <SelectItem value="Whispering_Woods">Whispering Woods</SelectItem>
+                          <SelectItem value="Crystal_Lake">Crystal Lake</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription className="text-gray-400">
+                        Your starting location within the region.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-purple-700 hover:bg-purple-600"
+                  disabled={form.formState.isSubmitting}
+                >
+                  {form.formState.isSubmitting ? 'Creating...' : 'Begin Adventure'}
+                </Button>
               </form>
             </Form>
           </CardContent>
+          
+          <CardFooter>
+            <p className="text-sm text-gray-400">
+              By creating a character, you'll embark on a journey through a world of magic and adventure.
+            </p>
+          </CardFooter>
         </Card>
       </div>
     </div>

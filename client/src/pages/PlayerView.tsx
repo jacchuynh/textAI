@@ -1,321 +1,342 @@
-import React, { useState } from 'react';
-import { useParams, useLocation } from 'wouter';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, Link } from 'wouter';
 import axios from 'axios';
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import { Player } from '@shared/schema';
+import { 
+  ScrollArea, 
+  ScrollBar 
+} from '@/components/ui/scroll-area';
+import {
+  CircleUser,
+  Map,
+  Sword,
+  BookOpen,
+  Scroll,
+  Briefcase,
+  ArrowLeft
+} from 'lucide-react';
 
 export default function PlayerView() {
-  const { id } = useParams<{ id: string }>();
-  const [_, setLocation] = useLocation();
+  const { userId } = useParams();
+  const [player, setPlayer] = useState<Player | null>(null);
+  const [loading, setLoading] = useState(true);
   const [command, setCommand] = useState('');
-  const [gameLog, setGameLog] = useState<Array<{type: string, content: string}>>([
-    { type: 'system', content: 'Welcome to Magic World! Type a command to begin your adventure.' }
+  const [gameLog, setGameLog] = useState<Array<{type: 'system' | 'player' | 'response', content: string}>>([
+    { type: 'system', content: 'Welcome to the magical world! Type your commands below to interact with the environment.' }
   ]);
-  const { toast } = useToast();
-  
+  const gameLogEndRef = useRef<HTMLDivElement>(null);
+
   // Fetch player data
-  const { data: player, isLoading, error } = useQuery({
-    queryKey: [`/api/players/${id}`],
-    retry: false
-  });
+  useEffect(() => {
+    if (!userId) return;
 
-  // Parse player command
-  const parseCommandMutation = useMutation({
-    mutationFn: async (command: string) => {
-      const response = await axios.post('/api/parse-command', { 
-        command,
-        playerId: id
-      });
-      return response.data;
+    const fetchPlayer = async () => {
+      try {
+        const response = await axios.get(`/api/player/${userId}`);
+        setPlayer(response.data);
+        
+        // Add location info to game log
+        setGameLog(prev => [
+          ...prev,
+          { 
+            type: 'system', 
+            content: `You are in ${response.data.locationArea.replace('_', ' ')} within the ${response.data.locationRegion}.` 
+          }
+        ]);
+      } catch (error) {
+        console.error('Error fetching player data:', error);
+        setGameLog(prev => [
+          ...prev,
+          { type: 'system', content: 'Error loading player data. Please try again later.' }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlayer();
+  }, [userId]);
+
+  // Auto-scroll to bottom of game log
+  useEffect(() => {
+    if (gameLogEndRef.current) {
+      gameLogEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  });
+  }, [gameLog]);
 
-  // Execute parsed action
-  const executeActionMutation = useMutation({
-    mutationFn: async (action: any) => {
-      const response = await axios.post('/api/execute-action', {
-        action,
-        playerId: id
-      });
-      return response.data;
-    },
-    onSuccess: (data) => {
-      // Add game response to log
-      setGameLog(prev => [...prev, { type: 'response', content: data.message }]);
-    },
-    onError: (error) => {
-      // Add error to log
-      setGameLog(prev => [...prev, { 
-        type: 'error', 
-        content: 'Error executing action: ' + (error instanceof Error ? error.message : 'Unknown error') 
-      }]);
-    }
-  });
-
+  // Handle command submission
   const handleCommandSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!command.trim()) return;
-    
-    // Add player command to log
-    setGameLog(prev => [...prev, { type: 'command', content: command }]);
+    if (!command.trim() || !userId) return;
+
+    // Add player command to game log
+    setGameLog(prev => [...prev, { type: 'player', content: command }]);
     
     try {
-      // Parse the command
-      const parsedCommand = await parseCommandMutation.mutateAsync(command);
+      // Send command to server
+      const response = await axios.post('/api/command', { userId, command });
       
-      // Execute the parsed action
-      await executeActionMutation.mutateAsync(parsedCommand.parsedAction);
-      
-      // Clear command input
-      setCommand('');
+      // Add response to game log
+      setGameLog(prev => [...prev, { type: 'response', content: response.data.result }]);
     } catch (error) {
-      // Add error to log
-      setGameLog(prev => [...prev, { 
-        type: 'error', 
-        content: 'Error processing command: ' + (error instanceof Error ? error.message : 'Unknown error') 
-      }]);
+      console.error('Error processing command:', error);
+      setGameLog(prev => [
+        ...prev, 
+        { type: 'system', content: 'Error processing command. Please try again.' }
+      ]);
     }
+    
+    // Clear command input
+    setCommand('');
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-4">Loading character data...</h1>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-900 to-black">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-purple-300">Loading adventure...</h2>
+          <p className="text-gray-400">Preparing the magical world</p>
+        </div>
       </div>
     );
   }
 
-  if (error || !player) {
+  if (!player) {
     return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-4">Error loading character</h1>
-        <p className="text-red-500">
-          {error instanceof Error ? error.message : 'Could not load character data'}
-        </p>
-        <Button onClick={() => setLocation('/')}>Return to Home</Button>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-900 to-black">
+        <Card className="w-full max-w-md border-red-500 bg-black/60 p-6 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-red-400">Character Not Found</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-gray-300">
+              We couldn't find your character. Please create a new character or try again later.
+            </p>
+            <Button asChild className="w-full bg-purple-700 hover:bg-purple-600">
+              <Link href="/create-character">Create New Character</Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full border-purple-700 text-purple-300">
+              <Link href="/">Return to Home</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Character panel */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>{player.name}</span>
-                <Badge>Level {player.level}</Badge>
-              </CardTitle>
-              <CardDescription>
-                {player.locationRegion} • {player.locationArea.replace('_', ' ')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Health</p>
-                    <p className="text-lg font-semibold">
-                      {player.healthCurrent}/{player.healthMax}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Gold</p>
-                    <p className="text-lg font-semibold">{player.gold}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Mana</p>
-                    <p className="text-lg font-semibold">
-                      {player.magicProfile?.manaCurrent}/{player.magicProfile?.manaMax}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Experience</p>
-                    <p className="text-lg font-semibold">{player.experience}</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Tabs defaultValue="inventory">
-            <TabsList className="grid grid-cols-3">
-              <TabsTrigger value="inventory">Inventory</TabsTrigger>
-              <TabsTrigger value="spells">Spells</TabsTrigger>
-              <TabsTrigger value="quests">Quests</TabsTrigger>
-            </TabsList>
-            <TabsContent value="inventory">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Inventory</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[200px]">
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-semibold mb-2">Items</h4>
-                        {player.playerItems?.length > 0 ? (
-                          <ul className="space-y-1">
-                            {player.playerItems.map((playerItem: any) => (
-                              <li key={playerItem.id} className="text-sm flex justify-between">
-                                <span>{playerItem.item.name}</span>
-                                <span>x{playerItem.quantity}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">No items</p>
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-2">Materials</h4>
-                        {player.playerMaterials?.length > 0 ? (
-                          <ul className="space-y-1">
-                            {player.playerMaterials.map((playerMaterial: any) => (
-                              <li key={playerMaterial.id} className="text-sm flex justify-between">
-                                <span>{playerMaterial.material.name}</span>
-                                <span>x{playerMaterial.quantity}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">No materials</p>
-                        )}
-                      </div>
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="spells">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Spells</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[200px]">
-                    {player.playerSpells?.length > 0 ? (
-                      <ul className="space-y-2">
-                        {player.playerSpells.map((playerSpell: any) => (
-                          <li key={playerSpell.id}>
-                            <div className="font-semibold">{playerSpell.spell.name}</div>
-                            <div className="text-sm text-muted-foreground">{playerSpell.spell.description}</div>
-                            <div className="text-xs mt-1">
-                              <Badge variant="outline" className="mr-1">
-                                {playerSpell.spell.domains[0]}
-                              </Badge>
-                              <span className="text-muted-foreground">Mana: {playerSpell.spell.manaCost}</span>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-muted-foreground">No spells learned yet</p>
-                    )}
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="quests">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quests</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[200px]">
-                    {player.playerQuests?.length > 0 ? (
-                      <ul className="space-y-3">
-                        {player.playerQuests.map((playerQuest: any) => (
-                          <li key={playerQuest.id}>
-                            <div className="flex justify-between items-center">
-                              <span className="font-semibold">{playerQuest.quest.name}</span>
-                              <Badge variant={playerQuest.status === 'completed' ? 'default' : 'secondary'}>
-                                {playerQuest.status}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">{playerQuest.quest.description}</p>
-                            {playerQuest.quest.stages && (
-                              <ul className="mt-2 space-y-1">
-                                {playerQuest.quest.stages.map((stage: any) => {
-                                  const stageProgress = playerQuest.stages?.find(
-                                    (s: any) => s.stageId === stage.id
-                                  );
-                                  return (
-                                    <li key={stage.id} className="text-sm flex items-center gap-2">
-                                      {stageProgress?.completed ? '✓' : '○'}
-                                      <span>{stage.description}</span>
-                                    </li>
-                                  );
-                                })}
-                              </ul>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-muted-foreground">No active quests</p>
-                    )}
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-gray-900 to-black">
+      {/* Header */}
+      <header className="border-b border-gray-800 bg-black/40 p-4 backdrop-blur-sm">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button asChild variant="ghost" className="h-8 w-8 rounded-full p-0 text-gray-400">
+              <Link href="/"><ArrowLeft size={16} /></Link>
+            </Button>
+            <h1 className="text-xl font-bold text-purple-300">{player.name}</h1>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-gray-400">
+            <div>Level: {player.level}</div>
+            <div>HP: {player.healthCurrent}/{player.healthMax}</div>
+            <div>MP: {player.magicProfile?.manaCurrent || 0}/{player.magicProfile?.manaMax || 0}</div>
+            <div>Gold: {player.gold}</div>
+          </div>
         </div>
+      </header>
 
-        {/* Game panel */}
-        <div className="lg:col-span-2">
-          <Card className="h-full flex flex-col">
-            <CardHeader>
-              <CardTitle>Game World</CardTitle>
-              <CardDescription>
-                Type commands to interact with the world
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow flex flex-col">
-              <ScrollArea className="flex-grow mb-4 border rounded-md p-4">
-                <div className="space-y-3">
+      <div className="container mx-auto flex flex-1 flex-col gap-4 p-4 lg:flex-row">
+        {/* Game Content Area */}
+        <div className="flex-1 overflow-hidden rounded-lg border border-gray-800 bg-black/60 backdrop-blur-sm">
+          <Tabs defaultValue="game" className="h-full">
+            <TabsList className="grid w-full grid-cols-6 bg-gray-900/60">
+              <TabsTrigger value="game" className="flex items-center gap-1">
+                <BookOpen size={16} /> Game
+              </TabsTrigger>
+              <TabsTrigger value="map" className="flex items-center gap-1">
+                <Map size={16} /> Map
+              </TabsTrigger>
+              <TabsTrigger value="inventory" className="flex items-center gap-1">
+                <Briefcase size={16} /> Items
+              </TabsTrigger>
+              <TabsTrigger value="spells" className="flex items-center gap-1">
+                <Scroll size={16} /> Spells
+              </TabsTrigger>
+              <TabsTrigger value="quests" className="flex items-center gap-1">
+                <Sword size={16} /> Quests
+              </TabsTrigger>
+              <TabsTrigger value="character" className="flex items-center gap-1">
+                <CircleUser size={16} /> Character
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="game" className="h-[calc(100%-40px)] flex flex-col">
+              <ScrollArea className="flex-1 p-4">
+                <div className="space-y-4">
                   {gameLog.map((entry, index) => (
-                    <div key={index} className={`
-                      ${entry.type === 'command' ? 'text-blue-500 font-medium' : ''}
-                      ${entry.type === 'response' ? 'text-foreground' : ''}
-                      ${entry.type === 'system' ? 'text-amber-500 italic' : ''}
-                      ${entry.type === 'error' ? 'text-red-500' : ''}
-                    `}>
-                      {entry.type === 'command' ? '> ' : ''}{entry.content}
+                    <div 
+                      key={index} 
+                      className={`rounded-lg p-2 ${
+                        entry.type === 'system' 
+                          ? 'bg-gray-800/30 italic text-gray-400' 
+                          : entry.type === 'player' 
+                            ? 'bg-purple-900/30 text-purple-300' 
+                            : 'bg-gray-800/50 text-gray-200'
+                      }`}
+                    >
+                      {entry.type === 'player' && <span className="mr-2 font-bold">You:</span>}
+                      {entry.content}
                     </div>
                   ))}
-                  {(parseCommandMutation.isPending || executeActionMutation.isPending) && (
-                    <div className="text-muted-foreground italic">Processing...</div>
-                  )}
+                  <div ref={gameLogEndRef} />
                 </div>
+                <ScrollBar />
               </ScrollArea>
-              <form onSubmit={handleCommandSubmit} className="flex gap-2">
+
+              <form onSubmit={handleCommandSubmit} className="flex gap-2 border-t border-gray-800 p-4">
                 <Input
                   value={command}
                   onChange={(e) => setCommand(e.target.value)}
-                  placeholder="Enter a command (e.g., 'look around', 'talk to elder', 'cast arcane bolt')"
-                  className="flex-grow"
-                  disabled={parseCommandMutation.isPending || executeActionMutation.isPending}
+                  placeholder="Enter your command..."
+                  className="border-gray-700 bg-gray-800 text-gray-100"
                 />
-                <Button 
-                  type="submit"
-                  disabled={parseCommandMutation.isPending || executeActionMutation.isPending}
-                >
+                <Button type="submit" className="bg-purple-700 hover:bg-purple-600">
                   Send
                 </Button>
               </form>
-            </CardContent>
-          </Card>
+            </TabsContent>
+
+            <TabsContent value="map" className="h-[calc(100%-40px)] p-4">
+              <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-4">
+                <h3 className="mb-2 text-xl font-semibold text-purple-300">Location</h3>
+                <p className="text-gray-300">
+                  You are in <span className="font-semibold text-amber-300">{player.locationArea.replace('_', ' ')}</span> within the 
+                  <span className="font-semibold text-green-300"> {player.locationRegion}</span>.
+                </p>
+                <div className="mt-4 h-64 rounded border border-gray-700 bg-gray-800/50 p-2">
+                  <p className="text-center text-gray-400 italic">Map visualization would appear here</p>
+                </div>
+                <div className="mt-4">
+                  <h4 className="mb-1 font-semibold text-gray-300">Nearby areas:</h4>
+                  <ul className="list-inside list-disc text-gray-400">
+                    <li>Whispering Woods (East)</li>
+                    <li>Crystal Lake (North)</li>
+                    <li>Ancient Ruins (West)</li>
+                  </ul>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="inventory" className="h-[calc(100%-40px)] p-4">
+              <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-4">
+                <h3 className="mb-2 text-xl font-semibold text-purple-300">Inventory</h3>
+                <p className="mb-4 text-gray-400">Your carried items and equipment</p>
+                
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-400">Fetching inventory data...</p>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="spells" className="h-[calc(100%-40px)] p-4">
+              <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-4">
+                <h3 className="mb-2 text-xl font-semibold text-purple-300">Spellbook</h3>
+                <p className="mb-4 text-gray-400">Your known spells and magical abilities</p>
+                
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-400">Fetching spell data...</p>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="quests" className="h-[calc(100%-40px)] p-4">
+              <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-4">
+                <h3 className="mb-2 text-xl font-semibold text-purple-300">Quest Journal</h3>
+                <p className="mb-4 text-gray-400">Your active and completed quests</p>
+                
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-400">Fetching quest data...</p>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="character" className="h-[calc(100%-40px)] p-4">
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-4">
+                  <h3 className="mb-2 text-xl font-semibold text-purple-300">Character Stats</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded bg-gray-800/40 p-2">
+                      <span className="text-sm text-gray-400">Name:</span>
+                      <div className="font-medium text-gray-200">{player.name}</div>
+                    </div>
+                    <div className="rounded bg-gray-800/40 p-2">
+                      <span className="text-sm text-gray-400">Level:</span>
+                      <div className="font-medium text-gray-200">{player.level}</div>
+                    </div>
+                    <div className="rounded bg-gray-800/40 p-2">
+                      <span className="text-sm text-gray-400">Experience:</span>
+                      <div className="font-medium text-gray-200">{player.experience}</div>
+                    </div>
+                    <div className="rounded bg-gray-800/40 p-2">
+                      <span className="text-sm text-gray-400">Gold:</span>
+                      <div className="font-medium text-gray-200">{player.gold}</div>
+                    </div>
+                    <div className="rounded bg-gray-800/40 p-2">
+                      <span className="text-sm text-gray-400">Health:</span>
+                      <div className="font-medium text-gray-200">{player.healthCurrent}/{player.healthMax}</div>
+                    </div>
+                    <div className="rounded bg-gray-800/40 p-2">
+                      <span className="text-sm text-gray-400">Mana:</span>
+                      <div className="font-medium text-gray-200">
+                        {player.magicProfile?.manaCurrent || 0}/{player.magicProfile?.manaMax || 0}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-4">
+                  <h3 className="mb-2 text-xl font-semibold text-purple-300">Magic Profile</h3>
+                  {player.magicProfile ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded bg-gray-800/40 p-2">
+                        <span className="text-sm text-gray-400">Affinity:</span>
+                        <div className="font-medium text-gray-200">{player.magicProfile.magicAffinity}</div>
+                      </div>
+                      <div className="rounded bg-gray-800/40 p-2">
+                        <span className="text-sm text-gray-400">Magic Level:</span>
+                        <div className="font-medium text-gray-200">{player.magicProfile.magicLevel}</div>
+                      </div>
+                      <div className="rounded bg-gray-800/40 p-2">
+                        <span className="text-sm text-gray-400">Known Aspects:</span>
+                        <div className="font-medium text-gray-200">
+                          {player.magicProfile.knownAspects.join(', ')}
+                        </div>
+                      </div>
+                      <div className="rounded bg-gray-800/40 p-2">
+                        <span className="text-sm text-gray-400">Ritual Capacity:</span>
+                        <div className="font-medium text-gray-200">{player.magicProfile.ritualCapacity}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-400">No magic profile available</p>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-4 lg:col-span-2">
+                  <h3 className="mb-2 text-xl font-semibold text-purple-300">Character Notes</h3>
+                  <Textarea 
+                    placeholder="Add personal notes about your character and journey here..."
+                    className="min-h-[120px] border-gray-700 bg-gray-800 text-gray-100"
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

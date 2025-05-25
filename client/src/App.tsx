@@ -1,34 +1,26 @@
+import React from 'react';
 import { Route, Switch } from 'wouter';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
+import { ThemeProvider } from '@/components/theme-provider';
 
+// Pages
 import HomePage from './pages/HomePage';
 import CreateCharacter from './pages/CreateCharacter';
 import PlayerView from './pages/PlayerView';
-
-// Create a new query client instance
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 5 * 60 * 1000,
-    },
-  },
-});
+import NotFound from './pages/NotFound';
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-background">
+    <ThemeProvider defaultTheme="dark">
+      <div className="min-h-screen bg-background text-foreground">
         <Switch>
           <Route path="/" component={HomePage} />
           <Route path="/create-character" component={CreateCharacter} />
-          <Route path="/player/:id" component={PlayerView} />
-          <Route>404 - Not Found</Route>
+          <Route path="/play/:userId" component={PlayerView} />
+          <Route component={NotFound} />
         </Switch>
       </div>
       <Toaster />
-    </QueryClientProvider>
+    </ThemeProvider>
   );
 }
