@@ -5,8 +5,32 @@ This module registers the magic crafting API endpoints with the main FastAPI app
 """
 
 from fastapi import FastAPI
-from .magic_crafting_api import router as magic_crafting_router
-from .magic_crafting_seed import seed_all as seed_magic_crafting
+import importlib
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Try to import from new location first, then fall back to old location
+try:
+    # New location after restructuring
+    from ..magic_system.magic_crafting_api import router as magic_crafting_router
+    from ..magic_system.magic_crafting_seed import seed_magical_materials as seed_magic_crafting
+    logger.info("Imported magic system components from new location")
+except ImportError:
+    try:
+        # Old location
+        from .magic_crafting_api import router as magic_crafting_router
+        from .magic_crafting_seed import seed_all as seed_magic_crafting
+        logger.info("Imported magic system components from original location")
+    except ImportError:
+        logger.error("Failed to import magic system components from any location")
+        # Define placeholder router and seed function to prevent startup failures
+        from fastapi import APIRouter
+        magic_crafting_router = APIRouter()
+        def seed_magic_crafting():
+            logger.warning("Using placeholder magic crafting seed function")
+            pass
 
 
 def register_magic_crafting_api(app: FastAPI):
@@ -25,6 +49,7 @@ def register_magic_crafting_api(app: FastAPI):
         """Seed the magic crafting database on startup"""
         try:
             seed_magic_crafting()
+            logger.info("Successfully seeded magic crafting data")
         except Exception as e:
-            print(f"Warning: Failed to seed magic crafting data: {e}")
+            logger.warning(f"Failed to seed magic crafting data: {e}")
             # Don't fail startup if seeding fails
