@@ -1,9 +1,13 @@
 """
-Magic System - Core systems for magical mechanics in the world
+Magic System Package
 
-This package provides modules for handling magical elements in the game world,
-including leylines, spell crafting, and magical materials.
+This package contains all the components of the game's magic system.
 """
 
-# Version
-__version__ = "0.1.0"
+# Import core classes for easier access
+from .magic_system import (
+    MagicSource, MagicTier, EffectType, TargetType, DamageType, ManaFluxLevel,
+    Spell, Ritual, MagicUser, LocationMagicProfile, ItemMagicProfile
+)
+
+from .magical_material_service import MagicalMaterialService
