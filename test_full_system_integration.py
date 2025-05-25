@@ -450,3 +450,382 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+#!/usr/bin/env python3
+"""
+Full System Integration Test
+
+This script tests the integration of all major systems:
+- World Generation (Procedural World System)
+- Economy System
+- Magic System
+- Combat System
+- AI GM Brain
+- Text Parser
+- Narrative Engine
+"""
+
+import sys
+import asyncio
+import logging
+from datetime import datetime
+from typing import Dict, Any
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+
+logger = logging.getLogger("FullSystemIntegration")
+
+def print_section(title: str):
+    """Print a formatted section header."""
+    print(f"\n{'=' * 60}")
+    print(f" {title}")
+    print(f"{'=' * 60}")
+
+def print_subsection(title: str):
+    """Print a formatted subsection header."""
+    print(f"\n{'-' * 40}")
+    print(f" {title}")
+    print(f"{'-' * 40}")
+
+def test_world_generation_system():
+    """Test the procedural world generation system."""
+    print_section("Testing World Generation System")
+    
+    try:
+        # Import world generation components
+        from world_model import WorldModel
+        from poi_placement_service import POIPlacementService
+        from location_generators.village_generator import VillageGenerator
+        from world_persistence_manager import WorldPersistenceManager
+        
+        print("✓ World generation imports successful")
+        
+        # Test world model
+        world = WorldModel()
+        print(f"✓ World model created: {world}")
+        
+        # Test POI placement
+        poi_service = POIPlacementService()
+        print(f"✓ POI placement service created: {poi_service}")
+        
+        # Test village generator
+        village_gen = VillageGenerator()
+        print(f"✓ Village generator created: {village_gen}")
+        
+        # Test persistence manager
+        persistence = WorldPersistenceManager()
+        print(f"✓ Persistence manager created: {persistence}")
+        
+        print("✓ World Generation System - ALL TESTS PASSED")
+        return True
+        
+    except Exception as e:
+        print(f"✗ World Generation System failed: {e}")
+        return False
+
+def test_economy_system():
+    """Test the economy system."""
+    print_section("Testing Economy System")
+    
+    try:
+        # Import economy system
+        from backend.src.game_engine.economy_system import economy_system
+        
+        print("✓ Economy system import successful")
+        
+        # Test market initialization
+        economy_system._initialize_default_data()
+        print("✓ Economy system initialized")
+        
+        # Test market entry
+        result = economy_system.enter_market("test_player", "Ashkar Vale")
+        print(f"✓ Market entry successful: {result['name']}")
+        
+        print("✓ Economy System - ALL TESTS PASSED")
+        return True
+        
+    except Exception as e:
+        print(f"✗ Economy System failed: {e}")
+        return False
+
+def test_magic_system():
+    """Test the magic system."""
+    print_section("Testing Magic System")
+    
+    try:
+        # Import magic system
+        from backend.src.game_engine.magic_system import MagicSystem
+        
+        print("✓ Magic system import successful")
+        
+        # Test magic system creation
+        magic_system = MagicSystem()
+        print("✓ Magic system created")
+        
+        # Test magic user initialization
+        test_domains = {
+            "BODY": type('Domain', (), {'value': 3}),
+            "MIND": type('Domain', (), {'value': 4}),
+            "SPIRIT": type('Domain', (), {'value': 3})
+        }
+        
+        # Convert to the expected format
+        domain_dict = {getattr(k, 'name', k): getattr(v, 'value', v) for k, v in test_domains.items()}
+        
+        magic_profile = magic_system.initialize_magic_user(domain_dict)
+        print(f"✓ Magic user profile created: {magic_profile}")
+        
+        print("✓ Magic System - ALL TESTS PASSED")
+        return True
+        
+    except Exception as e:
+        print(f"✗ Magic System failed: {e}")
+        return False
+
+def test_combat_system():
+    """Test the combat system."""
+    print_section("Testing Combat System")
+    
+    try:
+        # Import combat system
+        from backend.src.game_engine.enhanced_combat.combat_system_core import Combatant, CombatMove, MoveType
+        from backend.src.game_engine.enhanced_combat.monster_database import load_monster_database, get_random_monster
+        from backend.src.game_engine.enhanced_combat.monster_archetypes import ThreatTier
+        
+        print("✓ Combat system imports successful")
+        
+        # Test monster database loading
+        load_monster_database()
+        print("✓ Monster database loaded")
+        
+        # Test monster generation
+        monster, moves = get_random_monster(
+            region="verdant",
+            tier=ThreatTier.STANDARD,
+            level=3
+        )
+        print(f"✓ Monster generated: {monster.name}")
+        
+        print("✓ Combat System - ALL TESTS PASSED")
+        return True
+        
+    except Exception as e:
+        print(f"✗ Combat System failed: {e}")
+        return False
+
+async def test_ai_gm_brain():
+    """Test the AI GM Brain system."""
+    print_section("Testing AI GM Brain System")
+    
+    try:
+        # Import AI GM Brain
+        from backend.src.ai_gm.ai_gm_brain_phase6_complete import AIGMBrainPhase6Complete
+        from backend.src.ai_gm.ai_gm_config import IntegratedAIGMConfig
+        
+        print("✓ AI GM Brain imports successful")
+        
+        # Test AI GM Brain creation
+        config = IntegratedAIGMConfig.get_config()
+        ai_gm = AIGMBrainPhase6Complete(config)
+        print("✓ AI GM Brain created")
+        
+        # Test basic statistics
+        stats = ai_gm.get_phase6_comprehensive_statistics()
+        print(f"✓ AI GM Brain statistics: Phase {stats['phase']}")
+        
+        print("✓ AI GM Brain System - ALL TESTS PASSED")
+        return True
+        
+    except Exception as e:
+        print(f"✗ AI GM Brain System failed: {e}")
+        return False
+
+def test_text_parser():
+    """Test the text parser system."""
+    print_section("Testing Text Parser System")
+    
+    try:
+        # Import text parser
+        from backend.src.text_parser.parser_engine import ParserEngine
+        from backend.src.text_parser.vocabulary_manager import VocabularyManager
+        
+        print("✓ Text parser imports successful")
+        
+        # Test vocabulary manager
+        vocab_manager = VocabularyManager()
+        print("✓ Vocabulary manager created")
+        
+        # Test parser engine
+        parser = ParserEngine(vocab_manager)
+        print("✓ Parser engine created")
+        
+        print("✓ Text Parser System - ALL TESTS PASSED")
+        return True
+        
+    except Exception as e:
+        print(f"✗ Text Parser System failed: {e}")
+        return False
+
+def test_narrative_engine():
+    """Test the narrative engine system."""
+    print_section("Testing Narrative Engine System")
+    
+    try:
+        # Import narrative engine
+        from backend.src.narrative_engine.narrative_generator import NarrativeGenerator
+        from backend.src.narrative_engine.world_state import world_state_manager
+        
+        print("✓ Narrative engine imports successful")
+        
+        # Test narrative generator
+        narrator = NarrativeGenerator()
+        print("✓ Narrative generator created")
+        
+        # Test world state manager
+        current_state = world_state_manager.get_current_state()
+        print(f"✓ World state manager: {current_state}")
+        
+        print("✓ Narrative Engine System - ALL TESTS PASSED")
+        return True
+        
+    except Exception as e:
+        print(f"✗ Narrative Engine System failed: {e}")
+        return False
+
+def test_event_bus():
+    """Test the event bus system."""
+    print_section("Testing Event Bus System")
+    
+    try:
+        # Import event bus
+        from backend.src.events.event_bus import event_bus, GameEvent, EventType
+        
+        print("✓ Event bus imports successful")
+        
+        # Test event creation
+        test_event = GameEvent(
+            event_type=EventType.PLAYER_ACTION,
+            data={"action": "test_integration", "result": "success"},
+            source="test_full_system_integration"
+        )
+        print(f"✓ Test event created: {test_event.event_id}")
+        
+        # Test event publishing
+        event_bus.publish(test_event)
+        print("✓ Event published successfully")
+        
+        print("✓ Event Bus System - ALL TESTS PASSED")
+        return True
+        
+    except Exception as e:
+        print(f"✗ Event Bus System failed: {e}")
+        return False
+
+async def test_full_integration():
+    """Test integration between all systems."""
+    print_section("Testing Full System Integration")
+    
+    try:
+        # This would test actual integration between systems
+        # For now, we'll test that all systems can coexist
+        
+        print("Testing system coexistence...")
+        
+        # Import key components from each system
+        from world_model import WorldModel
+        from backend.src.game_engine.economy_system import economy_system
+        from backend.src.game_engine.magic_system import MagicSystem
+        from backend.src.ai_gm.ai_gm_brain_phase6_complete import AIGMBrainPhase6Complete
+        from backend.src.events.event_bus import event_bus
+        
+        print("✓ All systems can be imported together")
+        
+        # Test basic initialization
+        world = WorldModel()
+        magic_system = MagicSystem()
+        ai_gm = AIGMBrainPhase6Complete()
+        
+        print("✓ All systems can be initialized together")
+        
+        # Test event publishing with multiple systems
+        from backend.src.events.event_bus import GameEvent, EventType
+        
+        integration_event = GameEvent(
+            event_type=EventType.SYSTEM_INTEGRATION_TEST,
+            data={
+                "world_model": "initialized",
+                "magic_system": "initialized",
+                "ai_gm": "initialized",
+                "timestamp": datetime.utcnow().isoformat()
+            },
+            source="full_system_integration_test"
+        )
+        
+        event_bus.publish(integration_event)
+        print("✓ Integration event published successfully")
+        
+        print("✓ Full System Integration - ALL TESTS PASSED")
+        return True
+        
+    except Exception as e:
+        print(f"✗ Full System Integration failed: {e}")
+        return False
+
+async def main():
+    """Run all integration tests."""
+    print_section("FULL SYSTEM INTEGRATION TEST SUITE")
+    print(f"Starting tests at: {datetime.utcnow()}")
+    
+    # Track test results
+    test_results = {}
+    
+    # Run individual system tests
+    test_results["World Generation"] = test_world_generation_system()
+    test_results["Economy"] = test_economy_system()
+    test_results["Magic"] = test_magic_system()
+    test_results["Combat"] = test_combat_system()
+    test_results["AI GM Brain"] = await test_ai_gm_brain()
+    test_results["Text Parser"] = test_text_parser()
+    test_results["Narrative Engine"] = test_narrative_engine()
+    test_results["Event Bus"] = test_event_bus()
+    
+    # Run full integration test
+    test_results["Full Integration"] = await test_full_integration()
+    
+    # Print summary
+    print_section("TEST RESULTS SUMMARY")
+    
+    passed = 0
+    failed = 0
+    
+    for test_name, result in test_results.items():
+        status = "✓ PASSED" if result else "✗ FAILED"
+        print(f"{test_name:20} | {status}")
+        if result:
+            passed += 1
+        else:
+            failed += 1
+    
+    print(f"\nTotal Tests: {len(test_results)}")
+    print(f"Passed: {passed}")
+    print(f"Failed: {failed}")
+    
+    if failed == 0:
+        print("\n🎉 ALL SYSTEMS INTEGRATION TESTS PASSED! 🎉")
+        print("Your RPG backend is ready for action!")
+    else:
+        print(f"\n⚠️  {failed} system(s) need attention before full integration.")
+    
+    print(f"\nTests completed at: {datetime.utcnow()}")
+
+if __name__ == "__main__":
+    # Add the backend src to path for imports
+    sys.path.append("backend/src")
+    sys.path.append(".")
+    
+    # Run the tests
+    asyncio.run(main())
