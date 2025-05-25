@@ -1,373 +1,157 @@
 """
 Magic System Core Module
 
-This module defines the core components and functionality of the magic system.
-It serves as the foundation for all magic-related features in the game.
+This module implements the core magic system mechanics, including spells, magic effects,
+domains, and other fundamental magical concepts.
 """
 
-from enum import Enum, auto
-from typing import Dict, List, Set, Optional, Any, Tuple, Union
+from typing import Dict, List, Any, Optional, Tuple, Set, Union, TypeVar, Generic
 import random
 import math
 import uuid
+from enum import Enum, auto
 from datetime import datetime, timedelta
 
-# --- Enumerations ---
 
 class Domain(Enum):
-    """Magic domains representing different types of magical specialization."""
-    ARCANE = auto()
-    ELEMENTAL = auto()
-    NATURAL = auto()
-    DIVINE = auto()
-    SHADOW = auto()
-    BLOOD = auto()
-    MIND = auto()
-    SPIRIT = auto()
-    CHAOS = auto()
-    ORDER = auto()
-    VOID = auto()
-    TEMPORAL = auto()
-    
-    @classmethod
-    def get_opposing_domains(cls) -> Dict['Domain', 'Domain']:
-        """Return pairs of opposing domains."""
-        return {
-            cls.ARCANE: cls.NATURAL,
-            cls.NATURAL: cls.ARCANE,
-            cls.DIVINE: cls.SHADOW,
-            cls.SHADOW: cls.DIVINE,
-            cls.ORDER: cls.CHAOS,
-            cls.CHAOS: cls.ORDER,
-            cls.MIND: cls.SPIRIT,
-            cls.SPIRIT: cls.MIND,
-            cls.BLOOD: cls.VOID,
-            cls.VOID: cls.BLOOD,
-            cls.ELEMENTAL: cls.TEMPORAL,
-            cls.TEMPORAL: cls.ELEMENTAL
-        }
-    
-    @classmethod
-    def get_domain_synergies(cls) -> Dict[Tuple['Domain', 'Domain'], float]:
-        """Return synergy levels between domains (0.0-2.0)."""
-        return {
-            (cls.ARCANE, cls.TEMPORAL): 1.8,
-            (cls.ARCANE, cls.ELEMENTAL): 1.5,
-            (cls.ARCANE, cls.MIND): 1.5,
-            (cls.NATURAL, cls.ELEMENTAL): 1.8,
-            (cls.NATURAL, cls.SPIRIT): 1.5,
-            (cls.DIVINE, cls.ORDER): 1.8,
-            (cls.DIVINE, cls.SPIRIT): 1.5,
-            (cls.SHADOW, cls.VOID): 1.8,
-            (cls.SHADOW, cls.CHAOS): 1.5,
-            (cls.MIND, cls.ORDER): 1.5,
-            (cls.BLOOD, cls.SHADOW): 1.5,
-            (cls.BLOOD, cls.CHAOS): 1.3,
-            (cls.CHAOS, cls.VOID): 1.5,
-            (cls.ORDER, cls.TEMPORAL): 1.5,
-            (cls.ELEMENTAL, cls.NATURAL): 1.8,
-            (cls.SPIRIT, cls.NATURAL): 1.5,
-            (cls.VOID, cls.SHADOW): 1.8,
-            (cls.TEMPORAL, cls.ARCANE): 1.8
-        }
+    """Magical domains or schools of magic."""
+    ARCANE = auto()      # Raw magical energy
+    DIVINE = auto()      # Holy/religious magic
+    ELEMENTAL = auto()   # Control over elements
+    NATURAL = auto()     # Nature and life magic
+    SHADOW = auto()      # Darkness and illusion
+    MIND = auto()        # Mental manipulation
+    BLOOD = auto()       # Life force manipulation
+    VOID = auto()        # Space and void magic
+    NECROMANTIC = auto() # Death magic
+    TEMPORAL = auto()    # Time manipulation
+    SPIRIT = auto()      # Spirit and soul magic
+    WILD = auto()        # Chaotic, unpredictable magic
+    RUNIC = auto()       # Symbol-based magic
+    ASTRAL = auto()      # Astral plane magic
+    ENCHANTMENT = auto() # Object enhancement
+    LIGHT = auto()       # Light-based magic
+    DARKNESS = auto()    # Darkness-based magic
+    FIRE = auto()        # Fire-specific elemental
+    WATER = auto()       # Water-specific elemental
+    EARTH = auto()       # Earth-specific elemental
+    AIR = auto()         # Air-specific elemental
+    ICE = auto()         # Ice-specific elemental
+    LIGHTNING = auto()   # Lightning-specific elemental
+    SUMMONING = auto()   # Creature summoning
+    ABJURATION = auto()  # Protective magic
+    TRANSMUTATION = auto() # Transformation magic
+    ILLUSION = auto()    # Sensory manipulation
+    DIVINATION = auto()  # Knowledge/future sight
+    CONJURATION = auto() # Creating/calling objects
+    HEALING = auto()     # Restoration magic
 
 
 class DamageType(Enum):
-    """Types of magical damage that can be dealt."""
+    """Types of damage that can be dealt by magical effects."""
+    PHYSICAL = auto()
     FIRE = auto()
+    ICE = auto()
+    LIGHTNING = auto()
     WATER = auto()
     EARTH = auto()
     AIR = auto()
     ARCANE = auto()
-    LIGHT = auto()
-    DARKNESS = auto()
-    LIFE = auto()
-    DEATH = auto()
-    POISON = auto()
-    ICE = auto()
-    LIGHTNING = auto()
+    DIVINE = auto()
     NECROTIC = auto()
-    PHYSICAL = auto()  # For non-magical damage
-    
-    @classmethod
-    def get_domain_affinities(cls) -> Dict[Domain, List['DamageType']]:
-        """Return damage types associated with each domain."""
-        return {
-            Domain.ARCANE: [cls.ARCANE],
-            Domain.ELEMENTAL: [cls.FIRE, cls.WATER, cls.EARTH, cls.AIR, cls.ICE, cls.LIGHTNING],
-            Domain.NATURAL: [cls.LIFE, cls.POISON, cls.EARTH, cls.WATER],
-            Domain.DIVINE: [cls.LIGHT, cls.LIFE],
-            Domain.SHADOW: [cls.DARKNESS, cls.DEATH],
-            Domain.BLOOD: [cls.NECROTIC, cls.DEATH, cls.LIFE],
-            Domain.MIND: [cls.ARCANE, cls.LIGHT],
-            Domain.SPIRIT: [cls.LIGHT, cls.DARKNESS],
-            Domain.CHAOS: [cls.FIRE, cls.LIGHTNING, cls.DARKNESS],
-            Domain.ORDER: [cls.LIGHT, cls.ARCANE],
-            Domain.VOID: [cls.DEATH, cls.ARCANE, cls.DARKNESS],
-            Domain.TEMPORAL: [cls.ARCANE, cls.LIFE, cls.DEATH]
-        }
-    
-    @classmethod
-    def get_opposing_types(cls) -> Dict['DamageType', 'DamageType']:
-        """Return pairs of opposing damage types."""
-        return {
-            cls.FIRE: cls.WATER,
-            cls.WATER: cls.FIRE,
-            cls.EARTH: cls.AIR,
-            cls.AIR: cls.EARTH,
-            cls.ARCANE: cls.PHYSICAL,
-            cls.PHYSICAL: cls.ARCANE,
-            cls.LIGHT: cls.DARKNESS,
-            cls.DARKNESS: cls.LIGHT,
-            cls.LIFE: cls.DEATH,
-            cls.DEATH: cls.LIFE,
-            cls.POISON: cls.LIFE,
-            cls.ICE: cls.FIRE,
-            cls.LIGHTNING: cls.EARTH
-        }
+    POISON = auto()
+    PSYCHIC = auto()
+    RADIANT = auto()
+    SHADOW = auto()
+    VOID = auto()
+    TRUE = auto()  # Bypasses resistances
 
 
 class EffectType(Enum):
-    """Types of magical effects that can be applied."""
+    """Types of effects that magical abilities can produce."""
     DAMAGE = auto()
     HEALING = auto()
     BUFF = auto()
     DEBUFF = auto()
-    CONTROL = auto()
+    CROWD_CONTROL = auto()
     SUMMON = auto()
-    TELEPORT = auto()
-    TRANSFORM = auto()
+    TRANSFORMATION = auto()
+    TELEPORTATION = auto()
+    PROTECTION = auto()
+    DETECTION = auto()
+    CREATION = auto()
+    DESTRUCTION = auto()
     ILLUSION = auto()
-    ENCHANT = auto()
+    DIVINATION = auto()
+    ENCHANTMENT = auto()
+    ABSORPTION = auto()
+    REFLECTION = auto()
+    BANISHMENT = auto()
+    RESURRECTION = auto()
+    BINDING = auto()
     DISPEL = auto()
-    SHIELD = auto()
-    
-    @classmethod
-    def get_domain_affinities(cls) -> Dict[Domain, List['EffectType']]:
-        """Return effect types associated with each domain."""
-        return {
-            Domain.ARCANE: [cls.DAMAGE, cls.TELEPORT, cls.ENCHANT, cls.ILLUSION, cls.DISPEL],
-            Domain.ELEMENTAL: [cls.DAMAGE, cls.CONTROL, cls.TRANSFORM],
-            Domain.NATURAL: [cls.HEALING, cls.BUFF, cls.TRANSFORM],
-            Domain.DIVINE: [cls.HEALING, cls.BUFF, cls.SHIELD, cls.DISPEL],
-            Domain.SHADOW: [cls.DAMAGE, cls.DEBUFF, cls.ILLUSION],
-            Domain.BLOOD: [cls.DAMAGE, cls.HEALING, cls.DEBUFF],
-            Domain.MIND: [cls.CONTROL, cls.ILLUSION, cls.DEBUFF],
-            Domain.SPIRIT: [cls.BUFF, cls.DEBUFF, cls.SUMMON],
-            Domain.CHAOS: [cls.DAMAGE, cls.TRANSFORM, cls.ILLUSION],
-            Domain.ORDER: [cls.CONTROL, cls.SHIELD, cls.DISPEL],
-            Domain.VOID: [cls.TELEPORT, cls.DISPEL, cls.DAMAGE],
-            Domain.TEMPORAL: [cls.CONTROL, cls.BUFF, cls.DEBUFF]
-        }
+    CURSE = auto()
+    BLESSING = auto()
+    UTILITY = auto()
 
 
 class MagicTier(Enum):
-    """Tiers of magical power, from weakest to strongest."""
-    CANTRIP = auto()
-    LESSER = auto()
-    MODERATE = auto()
-    GREATER = auto()
-    MASTER = auto()
-    LEGENDARY = auto()
-    
-    @classmethod
-    def get_mana_cost_range(cls, tier: 'MagicTier') -> Tuple[int, int]:
-        """Return the mana cost range for a given tier."""
-        costs = {
-            cls.CANTRIP: (1, 5),
-            cls.LESSER: (5, 15),
-            cls.MODERATE: (15, 30),
-            cls.GREATER: (30, 50),
-            cls.MASTER: (50, 100),
-            cls.LEGENDARY: (100, 200)
-        }
-        return costs.get(tier, (0, 0))
-    
-    @classmethod
-    def get_level_requirement(cls, tier: 'MagicTier') -> int:
-        """Return the minimum magic level required to use a given tier."""
-        requirements = {
-            cls.CANTRIP: 1,
-            cls.LESSER: 3,
-            cls.MODERATE: 7,
-            cls.GREATER: 12,
-            cls.MASTER: 18,
-            cls.LEGENDARY: 25
-        }
-        return requirements.get(tier, 0)
+    """Tiers of magical power."""
+    CANTRIP = 1        # Minor magical effects
+    LESSER = 2         # Basic spells and abilities
+    MODERATE = 3       # Standard magical abilities
+    GREATER = 4        # Powerful magical abilities
+    MASTER = 5         # Master-level magic
+    LEGENDARY = 6      # World-altering magic
 
 
 class ManaFluxLevel(Enum):
-    """Levels of mana flux in an area, affecting magical potency."""
+    """Levels of ambient mana flux in an area."""
     VERY_LOW = auto()
     LOW = auto()
     MEDIUM = auto()
     HIGH = auto()
     VERY_HIGH = auto()
-    
-    @classmethod
-    def get_mana_regen_modifier(cls, level: 'ManaFluxLevel') -> float:
-        """Return the mana regeneration modifier for a given flux level."""
-        modifiers = {
-            cls.VERY_LOW: 0.5,
-            cls.LOW: 0.75,
-            cls.MEDIUM: 1.0,
-            cls.HIGH: 1.5,
-            cls.VERY_HIGH: 2.0
-        }
-        return modifiers.get(level, 1.0)
-    
-    @classmethod
-    def get_spell_power_modifier(cls, level: 'ManaFluxLevel') -> float:
-        """Return the spell power modifier for a given flux level."""
-        modifiers = {
-            cls.VERY_LOW: 0.8,
-            cls.LOW: 0.9,
-            cls.MEDIUM: 1.0,
-            cls.HIGH: 1.2,
-            cls.VERY_HIGH: 1.5
-        }
-        return modifiers.get(level, 1.0)
 
 
-# --- Core Classes ---
-
-class MagicUser:
+class MagicEffect:
     """
-    Represents an entity capable of using magic.
-    This can be a player character, NPC, or monster.
+    Represents a magical effect produced by a spell or ability.
     """
     def __init__(
         self,
-        id: str,
-        name: str,
-        level: int = 1,
-        mana_max: int = 100,
-        mana_current: int = 100,
-        primary_domains: List[Domain] = None,
-        secondary_domains: List[Domain] = None,
-        known_spells: Set[str] = None,
-        magic_skills: Dict[str, int] = None
+        effect_type: EffectType,
+        potency: float,
+        duration: float = 0.0,  # Duration in seconds, 0 for instantaneous
+        damage_type: Optional[DamageType] = None,
+        stat_modified: Optional[str] = None,
+        area_of_effect: float = 0.0,  # Radius in meters
+        target_tags: List[str] = None
     ):
-        self.id = id
-        self.name = name
-        self.level = level
-        self.mana_max = mana_max
-        self.mana_current = mana_current
-        self.primary_domains = primary_domains or []
-        self.secondary_domains = secondary_domains or []
-        self.known_spells = known_spells or set()
-        self.magic_skills = magic_skills or {
-            "spellcasting": 1,
-            "concentration": 1,
-            "magical_knowledge": 1,
-            "mana_control": 1
+        self.effect_type = effect_type
+        self.potency = potency
+        self.duration = duration
+        self.damage_type = damage_type
+        self.stat_modified = stat_modified
+        self.area_of_effect = area_of_effect
+        self.target_tags = target_tags or []
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "effect_type": self.effect_type.name,
+            "potency": self.potency,
+            "duration": self.duration,
+            "damage_type": self.damage_type.name if self.damage_type else None,
+            "stat_modified": self.stat_modified,
+            "area_of_effect": self.area_of_effect,
+            "target_tags": self.target_tags
         }
-        self.active_effects = []
-        self.mana_regen_rate = self._calculate_mana_regen_rate()
-        self.last_cast_time = datetime.now()
-    
-    def _calculate_mana_regen_rate(self) -> float:
-        """Calculate the mana regeneration rate based on level and skills."""
-        base_rate = 1.0  # Mana per second
-        level_bonus = self.level * 0.2
-        skill_bonus = self.magic_skills.get("mana_control", 1) * 0.3
-        return base_rate + level_bonus + skill_bonus
-    
-    def regenerate_mana(self, seconds_elapsed: float = 1.0, location_modifier: float = 1.0) -> int:
-        """
-        Regenerate mana based on time elapsed and location.
-        Returns the amount of mana regenerated.
-        """
-        if self.mana_current >= self.mana_max:
-            return 0
-        
-        regen_amount = int(self.mana_regen_rate * seconds_elapsed * location_modifier)
-        old_mana = self.mana_current
-        self.mana_current = min(self.mana_current + regen_amount, self.mana_max)
-        return self.mana_current - old_mana
-    
-    def spend_mana(self, amount: int) -> bool:
-        """
-        Attempt to spend mana. Returns True if successful, False if insufficient.
-        """
-        if amount > self.mana_current:
-            return False
-        
-        self.mana_current -= amount
-        return True
-    
-    def learn_spell(self, spell_id: str) -> bool:
-        """
-        Learn a new spell. Returns True if successful, False if already known.
-        """
-        if spell_id in self.known_spells:
-            return False
-        
-        self.known_spells.add(spell_id)
-        return True
-    
-    def can_cast_spell(self, spell: 'Spell') -> bool:
-        """
-        Check if the user can cast a given spell based on mana, level, and domains.
-        """
-        # Check if spell is known
-        if spell.id not in self.known_spells:
-            return False
-        
-        # Check mana cost
-        if spell.mana_cost > self.mana_current:
-            return False
-        
-        # Check level requirement
-        if spell.level_req > self.level:
-            return False
-        
-        # Check domain compatibility
-        has_primary_domain = any(domain in self.primary_domains for domain in spell.domains)
-        has_secondary_domain = any(domain in self.secondary_domains for domain in spell.domains)
-        
-        if not (has_primary_domain or has_secondary_domain):
-            return False
-        
-        return True
-    
-    def calculate_spell_power(self, spell: 'Spell') -> float:
-        """
-        Calculate the power of a spell when cast by this user.
-        Takes into account level, domains, and skills.
-        """
-        # Base power
-        power = 1.0
-        
-        # Level bonus
-        power += (self.level / 10)
-        
-        # Domain affinity bonus
-        primary_domain_match = sum(1 for domain in spell.domains if domain in self.primary_domains)
-        secondary_domain_match = sum(1 for domain in spell.domains if domain in self.secondary_domains)
-        
-        power += primary_domain_match * 0.3
-        power += secondary_domain_match * 0.1
-        
-        # Skill bonus
-        spellcasting_bonus = self.magic_skills.get("spellcasting", 1) * 0.05
-        knowledge_bonus = self.magic_skills.get("magical_knowledge", 1) * 0.03
-        
-        power += spellcasting_bonus + knowledge_bonus
-        
-        # Domain synergy bonus
-        for i, domain1 in enumerate(spell.domains):
-            for domain2 in spell.domains[i+1:]:
-                synergy = Domain.get_domain_synergies().get((domain1, domain2), 1.0)
-                power *= synergy
-        
-        return power
 
 
 class Spell:
     """
-    Represents a magical spell that can be cast by a MagicUser.
+    Represents a magical spell or ability.
     """
     def __init__(
         self,
@@ -375,26 +159,26 @@ class Spell:
         name: str,
         description: str,
         domains: List[Domain],
-        damage_types: List[DamageType],
-        effect_types: List[EffectType],
-        mana_cost: int,
-        casting_time: float,  # in seconds
-        cooldown: float,  # in seconds
-        base_power: float,
-        level_req: int,
-        tier: MagicTier,
-        targeting_type: str,  # "self", "single", "area", "all"
-        range_max: float,  # in meters
-        duration: float = 0.0,  # in seconds, 0 for instant
+        damage_types: List[DamageType] = None,
+        effect_types: List[EffectType] = None,
+        mana_cost: int = 0,
+        casting_time: float = 1.0,  # Time in seconds
+        cooldown: float = 0.0,      # Time in seconds
+        base_power: float = 1.0,
+        level_req: int = 1,
+        tier: MagicTier = MagicTier.LESSER,
+        targeting_type: str = "single",  # single, area, self, etc.
+        range_max: float = 5.0,     # Maximum range in meters
+        duration: float = 0.0,      # Duration in seconds, 0 for instantaneous
         components: List[str] = None,  # verbal, somatic, material, etc.
-        tags: List[str] = None  # fire, water, healing, etc.
+        tags: List[str] = None
     ):
         self.id = id
         self.name = name
         self.description = description
         self.domains = domains
-        self.damage_types = damage_types
-        self.effect_types = effect_types
+        self.damage_types = damage_types or []
+        self.effect_types = effect_types or []
         self.mana_cost = mana_cost
         self.casting_time = casting_time
         self.cooldown = cooldown
@@ -406,122 +190,139 @@ class Spell:
         self.duration = duration
         self.components = components or []
         self.tags = tags or []
-        self.last_used = {}  # Dict[user_id, datetime]
+        self.last_cast_time = 0  # Game time of last casting
     
-    def is_on_cooldown(self, user_id: str) -> bool:
-        """Check if the spell is on cooldown for a given user."""
-        if user_id not in self.last_used:
-            return False
-        
-        elapsed = datetime.now() - self.last_used[user_id]
-        return elapsed.total_seconds() < self.cooldown
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "domains": [domain.name for domain in self.domains],
+            "damage_types": [dt.name for dt in self.damage_types],
+            "effect_types": [et.name for et in self.effect_types],
+            "mana_cost": self.mana_cost,
+            "casting_time": self.casting_time,
+            "cooldown": self.cooldown,
+            "base_power": self.base_power,
+            "level_req": self.level_req,
+            "tier": self.tier.name,
+            "targeting_type": self.targeting_type,
+            "range_max": self.range_max,
+            "duration": self.duration,
+            "components": self.components,
+            "tags": self.tags
+        }
     
-    def get_remaining_cooldown(self, user_id: str) -> float:
-        """Get the remaining cooldown time in seconds."""
-        if user_id not in self.last_used:
-            return 0.0
-        
-        elapsed = datetime.now() - self.last_used[user_id]
-        remaining = self.cooldown - elapsed.total_seconds()
-        return max(0.0, remaining)
+    def is_on_cooldown(self, current_time: float) -> bool:
+        """Check if the spell is on cooldown."""
+        return (current_time - self.last_cast_time) < self.cooldown
     
-    def mark_used(self, user_id: str) -> None:
-        """Mark the spell as used by a user, starting the cooldown."""
-        self.last_used[user_id] = datetime.now()
-    
-    def get_scaled_mana_cost(self, spell_power: float) -> int:
-        """Calculate the scaled mana cost based on spell power."""
-        return int(self.mana_cost * (0.8 + (spell_power * 0.2)))
-    
-    def get_scaled_effect_power(self, spell_power: float) -> float:
-        """Calculate the scaled effect power based on spell power."""
-        return self.base_power * spell_power
+    def cast(self, current_time: float) -> None:
+        """Cast the spell, updating its last cast time."""
+        self.last_cast_time = current_time
 
 
-class MagicEffect:
+class MagicUser:
     """
-    Represents a magical effect applied to an entity or location.
+    Represents a character with magical abilities.
     """
     def __init__(
         self,
         id: str,
         name: str,
-        description: str,
-        effect_type: EffectType,
-        potency: float,
-        duration: float,  # in seconds
-        damage_type: Optional[DamageType] = None,
-        source_id: Optional[str] = None,
-        target_id: str = None,
-        is_permanent: bool = False,
-        ticks_per_second: float = 0.0,  # for effects that apply over time
-        tags: List[str] = None
+        level: int = 1,
+        mana_max: int = 100,
+        mana_current: int = 100,
+        mana_regen_rate: float = 1.0,  # Mana per minute
+        primary_domains: List[Domain] = None,
+        secondary_domains: List[Domain] = None,
+        known_spells: Set[str] = None,
+        magic_skills: Dict[str, int] = None,
+        magic_traits: List[str] = None
     ):
         self.id = id
         self.name = name
-        self.description = description
-        self.effect_type = effect_type
-        self.potency = potency
-        self.duration = duration
-        self.damage_type = damage_type
-        self.source_id = source_id
-        self.target_id = target_id
-        self.is_permanent = is_permanent
-        self.ticks_per_second = ticks_per_second
-        self.tags = tags or []
-        self.start_time = datetime.now()
-        self.last_tick_time = self.start_time
-        self.is_active = True
+        self.level = level
+        self.mana_max = mana_max
+        self.mana_current = mana_current
+        self.mana_regen_rate = mana_regen_rate
+        self.primary_domains = primary_domains or []
+        self.secondary_domains = secondary_domains or []
+        self.known_spells = known_spells or set()
+        self.magic_skills = magic_skills or {
+            "spellcasting": 1,
+            "concentration": 1,
+            "magical_knowledge": 1,
+            "mana_control": 1
+        }
+        self.magic_traits = magic_traits or []
     
-    def is_expired(self) -> bool:
-        """Check if the effect has expired."""
-        if self.is_permanent:
-            return False
-        
-        elapsed = datetime.now() - self.start_time
-        return elapsed.total_seconds() >= self.duration
-    
-    def get_remaining_duration(self) -> float:
-        """Get the remaining duration in seconds."""
-        if self.is_permanent:
-            return float('inf')
-        
-        elapsed = datetime.now() - self.start_time
-        remaining = self.duration - elapsed.total_seconds()
-        return max(0.0, remaining)
-    
-    def should_tick(self) -> bool:
-        """Check if the effect should tick."""
-        if self.ticks_per_second <= 0.0:
-            return False
-        
-        if not self.is_active or self.is_expired():
-            return False
-        
-        elapsed = datetime.now() - self.last_tick_time
-        return elapsed.total_seconds() >= (1.0 / self.ticks_per_second)
-    
-    def apply_tick(self) -> Dict[str, Any]:
-        """
-        Apply a tick of the effect. Returns data about the tick.
-        Subclasses should override this to implement specific behavior.
-        """
-        self.last_tick_time = datetime.now()
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation."""
         return {
-            "effect_id": self.id,
-            "target_id": self.target_id,
-            "potency": self.potency,
-            "time": self.last_tick_time
+            "id": self.id,
+            "name": self.name,
+            "level": self.level,
+            "mana_max": self.mana_max,
+            "mana_current": self.mana_current,
+            "mana_regen_rate": self.mana_regen_rate,
+            "primary_domains": [domain.name for domain in self.primary_domains],
+            "secondary_domains": [domain.name for domain in self.secondary_domains],
+            "known_spells": list(self.known_spells),
+            "magic_skills": self.magic_skills,
+            "magic_traits": self.magic_traits
         }
     
-    def end_effect(self) -> None:
-        """End the effect prematurely."""
-        self.is_active = False
+    def can_cast_spell(self, spell: Spell, current_time: float) -> bool:
+        """Check if the character can cast a spell."""
+        # Check level requirement
+        if self.level < spell.level_req:
+            return False
+        
+        # Check mana cost
+        if self.mana_current < spell.mana_cost:
+            return False
+        
+        # Check cooldown
+        if spell.is_on_cooldown(current_time):
+            return False
+        
+        # Check if spell is known
+        if spell.id not in self.known_spells:
+            return False
+        
+        return True
+    
+    def spend_mana(self, amount: int) -> bool:
+        """
+        Spend mana if available.
+        
+        Args:
+            amount: The amount of mana to spend
+            
+        Returns:
+            True if successful, False if not enough mana
+        """
+        if self.mana_current >= amount:
+            self.mana_current -= amount
+            return True
+        return False
+    
+    def regenerate_mana(self, minutes_passed: float) -> None:
+        """
+        Regenerate mana based on time passed.
+        
+        Args:
+            minutes_passed: Minutes of game time that have passed
+        """
+        regen_amount = int(self.mana_regen_rate * minutes_passed)
+        self.mana_current = min(self.mana_max, self.mana_current + regen_amount)
 
 
 class Enchantment:
     """
-    Represents a magical enchantment applied to an item.
+    Represents a magical enchantment that can be applied to items.
     """
     def __init__(
         self,
@@ -530,11 +331,11 @@ class Enchantment:
         description: str,
         tier: MagicTier,
         domains: List[Domain],
-        effects: List[str],  # descriptions of the enchantment effects
-        item_types: List[str],  # types of items that can receive this enchantment
+        effects: List[str],
+        item_types: List[str],
         power_level: float,
-        duration_days: Optional[int] = None,  # None means permanent
-        charges: Optional[int] = None,  # None means unlimited
+        duration_days: Optional[int] = None,  # None for permanent
+        charges: Optional[int] = None,  # None for unlimited
         required_materials: Dict[str, int] = None,
         tags: List[str] = None
     ):
@@ -550,50 +351,49 @@ class Enchantment:
         self.charges = charges
         self.required_materials = required_materials or {}
         self.tags = tags or []
-        self.creation_time = datetime.now()
-        self.current_charges = charges
+        self.creation_date = datetime.now()
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "tier": self.tier.name,
+            "domains": [domain.name for domain in self.domains],
+            "effects": self.effects,
+            "item_types": self.item_types,
+            "power_level": self.power_level,
+            "duration_days": self.duration_days,
+            "charges": self.charges,
+            "required_materials": self.required_materials,
+            "tags": self.tags,
+            "creation_date": self.creation_date.isoformat()
+        }
     
     def is_expired(self) -> bool:
         """Check if the enchantment has expired."""
         if self.duration_days is None:
             return False
         
-        elapsed = datetime.now() - self.creation_time
-        return elapsed.days >= self.duration_days
-    
-    def has_charges_left(self) -> bool:
-        """Check if the enchantment has charges left."""
-        if self.charges is None:
-            return True
-        
-        return self.current_charges > 0
+        days_elapsed = (datetime.now() - self.creation_date).days
+        return days_elapsed > self.duration_days
     
     def use_charge(self) -> bool:
         """
-        Use a charge of the enchantment.
-        Returns True if successful, False if no charges left.
+        Use one charge of the enchantment if available.
+        
+        Returns:
+            True if successful, False if out of charges
         """
         if self.charges is None:
             return True
         
-        if self.current_charges <= 0:
-            return False
+        if self.charges > 0:
+            self.charges -= 1
+            return True
         
-        self.current_charges -= 1
-        return True
-    
-    def get_remaining_days(self) -> Optional[int]:
-        """Get the remaining days of the enchantment."""
-        if self.duration_days is None:
-            return None
-        
-        elapsed = datetime.now() - self.creation_time
-        remaining = self.duration_days - elapsed.days
-        return max(0, remaining)
-    
-    def get_effect_power(self) -> float:
-        """Calculate the power of the enchantment effects."""
-        return self.power_level * MagicTier.get_level_requirement(self.tier) / 10.0
+        return False
 
 
 class ItemMagicProfile:
@@ -611,7 +411,7 @@ class ItemMagicProfile:
         mana_storage_capacity: int = 0,
         stored_mana: int = 0,
         resonance_domains: List[Domain] = None,
-        crafting_tier: Optional[MagicTier] = None,
+        crafting_tier: MagicTier = MagicTier.LESSER,
         creation_date: Optional[datetime] = None
     ):
         self.item_id = item_id
@@ -625,45 +425,57 @@ class ItemMagicProfile:
         self.resonance_domains = resonance_domains or []
         self.crafting_tier = crafting_tier
         self.creation_date = creation_date or datetime.now()
-        self.last_used = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "item_id": self.item_id,
+            "is_magical": self.is_magical,
+            "is_enchanted": self.is_enchanted,
+            "is_artifact": self.is_artifact,
+            "enchantment_id": self.enchantment_id,
+            "inherent_magical_properties": self.inherent_magical_properties,
+            "mana_storage_capacity": self.mana_storage_capacity,
+            "stored_mana": self.stored_mana,
+            "resonance_domains": [domain.name for domain in self.resonance_domains],
+            "crafting_tier": self.crafting_tier.name,
+            "creation_date": self.creation_date.isoformat()
+        }
     
     def store_mana(self, amount: int) -> int:
         """
-        Store mana in the item. Returns the amount actually stored.
+        Store mana in the item, up to its capacity.
+        
+        Args:
+            amount: The amount of mana to store
+            
+        Returns:
+            The actual amount stored
         """
-        if self.mana_storage_capacity == 0:
+        if not self.is_magical:
             return 0
         
         available_capacity = self.mana_storage_capacity - self.stored_mana
-        amount_to_store = min(amount, available_capacity)
-        
-        self.stored_mana += amount_to_store
-        return amount_to_store
+        actual_storage = min(available_capacity, amount)
+        self.stored_mana += actual_storage
+        return actual_storage
     
     def extract_mana(self, amount: int) -> int:
         """
-        Extract mana from the item. Returns the amount actually extracted.
+        Extract mana from the item.
+        
+        Args:
+            amount: The amount of mana to extract
+            
+        Returns:
+            The actual amount extracted
         """
-        amount_to_extract = min(amount, self.stored_mana)
+        if not self.is_magical:
+            return 0
         
-        self.stored_mana -= amount_to_extract
-        return amount_to_extract
-    
-    def mark_used(self) -> None:
-        """Mark the item as used, updating the last_used timestamp."""
-        self.last_used = datetime.now()
-    
-    def days_since_creation(self) -> int:
-        """Get the number of days since the item was created."""
-        elapsed = datetime.now() - self.creation_date
-        return elapsed.days
-    
-    def is_compatible_with_domain(self, domain: Domain) -> bool:
-        """Check if the item is compatible with a specific domain."""
-        if not self.resonance_domains:
-            return True  # Items without specific resonance are neutral
-        
-        return domain in self.resonance_domains
+        actual_extraction = min(self.stored_mana, amount)
+        self.stored_mana -= actual_extraction
+        return actual_extraction
 
 
 class LocationMagicProfile:
@@ -673,373 +485,673 @@ class LocationMagicProfile:
     def __init__(
         self,
         location_id: str,
+        dominant_magic_aspects: List[Domain] = None,
         leyline_strength: float = 0.0,  # 0.0 to 1.0
         mana_flux_level: ManaFluxLevel = ManaFluxLevel.MEDIUM,
-        dominant_magic_aspects: List[Domain] = None,
-        allows_ritual_sites: bool = True,
-        magical_pois: List[Dict[str, Any]] = None,
         magical_resources: List[Dict[str, Any]] = None,
-        historical_events: List[Dict[str, Any]] = None,
-        environmental_effects: List[Dict[str, Any]] = None,
-        seasonal_changes: Dict[str, Dict[str, Any]] = None,
-        temporal_fluctuations: Dict[str, float] = None
+        magical_pois: List[Dict[str, Any]] = None,
+        ambient_effects: List[str] = None,
+        allows_ritual_sites: bool = True,
+        unstable_magic: bool = False,
+        magic_hazards: List[str] = None
     ):
         self.location_id = location_id
+        self.dominant_magic_aspects = dominant_magic_aspects or []
         self.leyline_strength = leyline_strength
         self.mana_flux_level = mana_flux_level
-        self.dominant_magic_aspects = dominant_magic_aspects or []
-        self.allows_ritual_sites = allows_ritual_sites
-        self.magical_pois = magical_pois or []
         self.magical_resources = magical_resources or []
-        self.historical_events = historical_events or []
-        self.environmental_effects = environmental_effects or []
-        self.seasonal_changes = seasonal_changes or {}
-        self.temporal_fluctuations = temporal_fluctuations or {
-            "dawn": 1.2,
-            "noon": 1.0,
-            "dusk": 1.3,
-            "midnight": 1.5
+        self.magical_pois = magical_pois or []
+        self.ambient_effects = ambient_effects or []
+        self.allows_ritual_sites = allows_ritual_sites
+        self.unstable_magic = unstable_magic
+        self.magic_hazards = magic_hazards or []
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "location_id": self.location_id,
+            "dominant_magic_aspects": [aspect.name for aspect in self.dominant_magic_aspects],
+            "leyline_strength": self.leyline_strength,
+            "mana_flux_level": self.mana_flux_level.name,
+            "magical_resources": self.magical_resources,
+            "magical_pois": self.magical_pois,
+            "ambient_effects": self.ambient_effects,
+            "allows_ritual_sites": self.allows_ritual_sites,
+            "unstable_magic": self.unstable_magic,
+            "magic_hazards": self.magic_hazards
         }
-        self.active_rituals = []
     
-    def get_mana_regen_modifier(self) -> float:
-        """Calculate the mana regeneration modifier for this location."""
-        base_modifier = ManaFluxLevel.get_mana_regen_modifier(self.mana_flux_level)
-        leyline_bonus = self.leyline_strength * 0.5
-        
-        # Time of day would be determined by the game's time system
-        # This is a placeholder
-        time_of_day = "noon"  # Would come from game state
-        time_modifier = self.temporal_fluctuations.get(time_of_day, 1.0)
-        
-        return base_modifier + leyline_bonus * time_modifier
-    
-    def get_spell_power_modifier(self, spell_domains: List[Domain]) -> float:
+    def get_casting_modifier(self, spell: Spell) -> float:
         """
-        Calculate the spell power modifier based on location affinity with spell domains.
+        Calculate a modifier for spell casting based on location magic properties.
+        
+        Args:
+            spell: The spell being cast
+            
+        Returns:
+            A multiplier for the spell's effect (higher = stronger)
         """
-        base_modifier = ManaFluxLevel.get_spell_power_modifier(self.mana_flux_level)
+        # Base modifier
+        modifier = 1.0
         
-        # Domain affinity bonus
-        domain_match_count = sum(1 for domain in spell_domains if domain in self.dominant_magic_aspects)
-        domain_bonus = domain_match_count * 0.15
+        # Adjust based on leyline strength
+        modifier += self.leyline_strength * 0.5
         
-        # Leyline bonus
-        leyline_bonus = self.leyline_strength * 0.3
+        # Adjust based on mana flux
+        flux_adjustments = {
+            ManaFluxLevel.VERY_LOW: 0.7,
+            ManaFluxLevel.LOW: 0.85,
+            ManaFluxLevel.MEDIUM: 1.0,
+            ManaFluxLevel.HIGH: 1.15,
+            ManaFluxLevel.VERY_HIGH: 1.3
+        }
+        modifier *= flux_adjustments.get(self.mana_flux_level, 1.0)
         
-        return base_modifier + domain_bonus + leyline_bonus
-    
-    def get_available_magical_resources(self) -> List[Dict[str, Any]]:
-        """Get the magical resources available in this location."""
-        # In a real implementation, this might filter based on character skills
-        return self.magical_resources
-    
-    def add_ritual_site(self, site_data: Dict[str, Any]) -> bool:
-        """
-        Add a ritual site to the location.
-        Returns True if successful, False if rituals are not allowed.
-        """
-        if not self.allows_ritual_sites:
-            return False
+        # Adjust based on domain resonance
+        domain_resonance = 0.0
+        for spell_domain in spell.domains:
+            if spell_domain in self.dominant_magic_aspects:
+                domain_resonance += 0.15
         
-        self.magical_pois.append({
-            "id": str(uuid.uuid4()),
-            "name": site_data.get("name", "Ritual Site"),
-            "type": "ritual_site",
-            "description": site_data.get("description", "A place of power."),
-            "coordinates": site_data.get("coordinates", (0, 0)),
-            "power_level": site_data.get("power_level", 1.0),
-            "domains": site_data.get("domains", [])
-        })
-        return True
-    
-    def get_environmental_effect(self, domain: Optional[Domain] = None) -> Optional[Dict[str, Any]]:
-        """
-        Get a random environmental effect for this location, optionally filtered by domain.
-        Returns None if no suitable effect is found.
-        """
-        if not self.environmental_effects:
-            return None
+        modifier += domain_resonance
         
-        suitable_effects = self.environmental_effects
-        if domain:
-            suitable_effects = [effect for effect in suitable_effects 
-                               if domain.name.lower() in effect.get("tags", [])]
+        # Adjust for unstable magic
+        if self.unstable_magic:
+            # 50% chance to boost, 50% chance to reduce
+            if random.random() < 0.5:
+                modifier *= random.uniform(1.1, 1.5)
+            else:
+                modifier *= random.uniform(0.5, 0.9)
         
-        if not suitable_effects:
-            return None
-        
-        return random.choice(suitable_effects)
-    
-    def get_current_seasonal_effects(self, season: str) -> Dict[str, Any]:
-        """Get the seasonal effects for the current season."""
-        return self.seasonal_changes.get(season, {})
+        return modifier
 
 
 class MagicSystem:
     """
-    Main class for managing magic functionality throughout the game.
+    Core magic system that manages spells, enchantments, and magical interactions.
     """
     def __init__(self):
-        self.spells = {}  # Dict[spell_id, Spell]
-        self.enchantments = {}  # Dict[enchantment_id, Enchantment]
-        self.magic_users = {}  # Dict[user_id, MagicUser]
-        self.location_profiles = {}  # Dict[location_id, LocationMagicProfile]
-        self.item_profiles = {}  # Dict[item_id, ItemMagicProfile]
-        self.active_effects = {}  # Dict[effect_id, MagicEffect]
+        # Registries for magical entities
+        self.spells = {}  # id -> Spell
+        self.enchantments = {}  # id -> Enchantment
+        self.item_magic_profiles = {}  # item_id -> ItemMagicProfile
+        self.location_magic_profiles = {}  # location_id -> LocationMagicProfile
+        self.magic_users = {}  # id -> MagicUser
         
-        # Counters for generation of IDs
-        self._spell_counter = 0
-        self._enchantment_counter = 0
-        self._effect_counter = 0
+        # Domain compatibility/synergy matrix
+        self.domain_synergies = self._initialize_domain_synergies()
+        
+        # Magical phenomena tracking
+        self.active_leylines = []  # List of leyline paths (lists of location IDs)
+        self.magical_hotspots = []  # List of location IDs with high magical energy
     
-    def register_magic_user(self, magic_user: MagicUser) -> None:
-        """Register a magic user with the system."""
-        self.magic_users[magic_user.id] = magic_user
+    def _initialize_domain_synergies(self) -> Dict[Domain, Dict[Domain, float]]:
+        """Initialize the domain synergy matrix."""
+        synergies = {domain: {} for domain in Domain}
+        
+        # Some example synergies (could be expanded with a full matrix)
+        # Values: -1.0 (conflicting) to 1.0 (highly synergistic), 0.0 = neutral
+        
+        # Elemental synergies
+        synergies[Domain.FIRE][Domain.AIR] = 0.5
+        synergies[Domain.FIRE][Domain.WATER] = -0.8
+        synergies[Domain.FIRE][Domain.EARTH] = 0.1
+        synergies[Domain.FIRE][Domain.ICE] = -0.9
+        
+        synergies[Domain.WATER][Domain.FIRE] = -0.8
+        synergies[Domain.WATER][Domain.AIR] = 0.2
+        synergies[Domain.WATER][Domain.EARTH] = 0.5
+        synergies[Domain.WATER][Domain.ICE] = 0.8
+        
+        synergies[Domain.EARTH][Domain.FIRE] = 0.1
+        synergies[Domain.EARTH][Domain.WATER] = 0.5
+        synergies[Domain.EARTH][Domain.AIR] = -0.4
+        synergies[Domain.EARTH][Domain.LIGHTNING] = -0.3
+        
+        synergies[Domain.AIR][Domain.FIRE] = 0.5
+        synergies[Domain.AIR][Domain.WATER] = 0.2
+        synergies[Domain.AIR][Domain.EARTH] = -0.4
+        synergies[Domain.AIR][Domain.LIGHTNING] = 0.9
+        
+        # Light/Dark oppositions
+        synergies[Domain.LIGHT][Domain.DARKNESS] = -0.9
+        synergies[Domain.DARKNESS][Domain.LIGHT] = -0.9
+        
+        # Arcane synergies
+        synergies[Domain.ARCANE][Domain.ELEMENTAL] = 0.3
+        synergies[Domain.ARCANE][Domain.ENCHANTMENT] = 0.7
+        synergies[Domain.ARCANE][Domain.DIVINE] = -0.2
+        synergies[Domain.ARCANE][Domain.VOID] = 0.5
+        
+        # Divine synergies
+        synergies[Domain.DIVINE][Domain.LIGHT] = 0.8
+        synergies[Domain.DIVINE][Domain.HEALING] = 0.9
+        synergies[Domain.DIVINE][Domain.NECROMANTIC] = -0.7
+        synergies[Domain.DIVINE][Domain.BLOOD] = -0.4
+        
+        # Nature synergies
+        synergies[Domain.NATURAL][Domain.ELEMENTAL] = 0.6
+        synergies[Domain.NATURAL][Domain.EARTH] = 0.8
+        synergies[Domain.NATURAL][Domain.WATER] = 0.7
+        synergies[Domain.NATURAL][Domain.HEALING] = 0.5
+        
+        # Fill in reverse direction and any missing values
+        for domain1 in Domain:
+            for domain2 in Domain:
+                # If synergy is not defined, set to 0.0 (neutral)
+                if domain2 not in synergies[domain1]:
+                    synergies[domain1][domain2] = 0.0
+                
+                # If reverse direction not defined, copy from forward direction
+                if domain1 != domain2 and domain1 not in synergies[domain2]:
+                    synergies[domain2][domain1] = synergies[domain1][domain2]
+        
+        return synergies
     
     def register_spell(self, spell: Spell) -> None:
-        """Register a spell with the system."""
+        """Register a spell with the magic system."""
         self.spells[spell.id] = spell
     
     def register_enchantment(self, enchantment: Enchantment) -> None:
-        """Register an enchantment with the system."""
+        """Register an enchantment with the magic system."""
         self.enchantments[enchantment.id] = enchantment
     
-    def register_location_profile(self, profile: LocationMagicProfile) -> None:
-        """Register a location's magic profile."""
-        self.location_profiles[profile.location_id] = profile
-    
     def register_item_profile(self, profile: ItemMagicProfile) -> None:
-        """Register an item's magic profile."""
-        self.item_profiles[profile.item_id] = profile
+        """Register an item's magic profile with the magic system."""
+        self.item_magic_profiles[profile.item_id] = profile
     
-    def cast_spell(self, user_id: str, spell_id: str, target_id: str, location_id: Optional[str] = None) -> Dict[str, Any]:
+    def register_location_profile(self, profile: LocationMagicProfile) -> None:
+        """Register a location's magic profile with the magic system."""
+        self.location_magic_profiles[profile.location_id] = profile
+    
+    def register_magic_user(self, user: MagicUser) -> None:
+        """Register a magic user with the magic system."""
+        self.magic_users[user.id] = user
+    
+    def calculate_spell_power(
+        self,
+        caster: MagicUser,
+        spell: Spell,
+        location: Optional[LocationMagicProfile] = None,
+        equipped_items: List[str] = None
+    ) -> float:
+        """
+        Calculate the power of a spell based on various factors.
+        
+        Args:
+            caster: The magic user casting the spell
+            spell: The spell being cast
+            location: Optional location magic profile
+            equipped_items: Optional list of equipped item IDs
+            
+        Returns:
+            The calculated spell power
+        """
+        # Base power from spell
+        power = spell.base_power
+        
+        # Adjust based on caster level
+        power *= 1.0 + (caster.level * 0.1)
+        
+        # Adjust based on caster skill
+        spellcasting_skill = caster.magic_skills.get("spellcasting", 1)
+        power *= 1.0 + (spellcasting_skill * 0.05)
+        
+        # Adjust based on domain affinity
+        domain_factor = 1.0
+        for domain in spell.domains:
+            if domain in caster.primary_domains:
+                domain_factor += 0.2  # 20% bonus per primary domain match
+            elif domain in caster.secondary_domains:
+                domain_factor += 0.1  # 10% bonus per secondary domain match
+        
+        power *= domain_factor
+        
+        # Adjust based on location
+        if location:
+            location_modifier = location.get_casting_modifier(spell)
+            power *= location_modifier
+        
+        # Adjust based on equipped items
+        if equipped_items:
+            item_bonus = 0.0
+            for item_id in equipped_items:
+                if item_id in self.item_magic_profiles:
+                    item_profile = self.item_magic_profiles[item_id]
+                    
+                    # Check for domain resonance
+                    for domain in spell.domains:
+                        if domain in item_profile.resonance_domains:
+                            item_bonus += 0.05  # 5% bonus per resonant domain
+                    
+                    # Bonus for magical items
+                    if item_profile.is_magical:
+                        item_bonus += 0.05
+                    
+                    # Bonus for enchanted items
+                    if item_profile.is_enchanted and item_profile.enchantment_id:
+                        enchantment = self.enchantments.get(item_profile.enchantment_id)
+                        if enchantment:
+                            # Check for domain synergy
+                            for spell_domain in spell.domains:
+                                for enchantment_domain in enchantment.domains:
+                                    synergy = self.get_domain_synergy(spell_domain, enchantment_domain)
+                                    item_bonus += synergy * 0.1
+            
+            power *= (1.0 + item_bonus)
+        
+        return power
+    
+    def get_domain_synergy(self, domain1: Domain, domain2: Domain) -> float:
+        """
+        Get the synergy value between two domains.
+        
+        Args:
+            domain1: First domain
+            domain2: Second domain
+            
+        Returns:
+            Synergy value from -1.0 (opposing) to 1.0 (synergistic)
+        """
+        return self.domain_synergies.get(domain1, {}).get(domain2, 0.0)
+    
+    def cast_spell(
+        self,
+        caster_id: str,
+        spell_id: str,
+        target_id: Optional[str] = None,
+        location_id: Optional[str] = None,
+        current_time: float = 0.0,
+        equipped_items: List[str] = None
+    ) -> Dict[str, Any]:
         """
         Attempt to cast a spell.
-        Returns a dict with the result of the casting attempt.
+        
+        Args:
+            caster_id: ID of the magic user casting the spell
+            spell_id: ID of the spell to cast
+            target_id: Optional ID of the target
+            location_id: Optional ID of the location
+            current_time: Current game time
+            equipped_items: Optional list of equipped item IDs
+            
+        Returns:
+            Dictionary with the result of the casting attempt
         """
-        # Check if user and spell exist
-        if user_id not in self.magic_users:
-            return {"success": False, "message": "Magic user not found"}
+        # Get caster
+        caster = self.magic_users.get(caster_id)
+        if not caster:
+            return {
+                "success": False,
+                "message": f"Unknown caster: {caster_id}"
+            }
         
-        if spell_id not in self.spells:
-            return {"success": False, "message": "Spell not found"}
+        # Get spell
+        spell = self.spells.get(spell_id)
+        if not spell:
+            return {
+                "success": False,
+                "message": f"Unknown spell: {spell_id}"
+            }
         
-        user = self.magic_users[user_id]
-        spell = self.spells[spell_id]
+        # Check if caster can cast spell
+        if not caster.can_cast_spell(spell, current_time):
+            # Check why the spell can't be cast
+            if spell.id not in caster.known_spells:
+                return {
+                    "success": False,
+                    "message": f"Caster does not know this spell"
+                }
+            
+            if caster.level < spell.level_req:
+                return {
+                    "success": False,
+                    "message": f"Caster level too low. Requires level {spell.level_req}."
+                }
+            
+            if caster.mana_current < spell.mana_cost:
+                return {
+                    "success": False,
+                    "message": f"Not enough mana. Requires {spell.mana_cost}, have {caster.mana_current}."
+                }
+            
+            if spell.is_on_cooldown(current_time):
+                cooldown_remaining = spell.cooldown - (current_time - spell.last_cast_time)
+                return {
+                    "success": False,
+                    "message": f"Spell is on cooldown for {cooldown_remaining:.1f} more seconds."
+                }
+            
+            return {
+                "success": False,
+                "message": "Cannot cast spell for unknown reason."
+            }
         
-        # Check if spell can be cast
-        if not user.can_cast_spell(spell):
-            return {"success": False, "message": "Cannot cast spell"}
-        
-        # Check cooldown
-        if spell.is_on_cooldown(user_id):
-            remaining = spell.get_remaining_cooldown(user_id)
-            return {"success": False, "message": f"Spell on cooldown for {remaining:.1f} seconds"}
+        # Get location profile if available
+        location = None
+        if location_id and location_id in self.location_magic_profiles:
+            location = self.location_magic_profiles[location_id]
         
         # Calculate spell power
-        spell_power = user.calculate_spell_power(spell)
+        spell_power = self.calculate_spell_power(caster, spell, location, equipped_items)
         
-        # Apply location modifiers if available
-        location_modifier = 1.0
-        if location_id and location_id in self.location_profiles:
-            location = self.location_profiles[location_id]
-            location_modifier = location.get_spell_power_modifier(spell.domains)
-            spell_power *= location_modifier
+        # Spend mana
+        caster.spend_mana(spell.mana_cost)
         
-        # Calculate final mana cost
-        mana_cost = spell.get_scaled_mana_cost(spell_power)
+        # Update spell cooldown
+        spell.cast(current_time)
         
-        # Attempt to spend mana
-        if not user.spend_mana(mana_cost):
-            return {"success": False, "message": "Insufficient mana"}
+        # Generate effects
+        effects = []
+        for effect_type in spell.effect_types:
+            for damage_type in spell.damage_types:
+                # Create effect with randomized potency around the spell power
+                potency_variation = random.uniform(0.9, 1.1)
+                effect = MagicEffect(
+                    effect_type=effect_type,
+                    potency=spell_power * potency_variation,
+                    damage_type=damage_type if effect_type == EffectType.DAMAGE else None,
+                    duration=spell.duration
+                )
+                effects.append(effect.to_dict())
         
-        # Mark spell as used
-        spell.mark_used(user_id)
-        
-        # Generate effect
-        effect_id = f"effect_{self._effect_counter}"
-        self._effect_counter += 1
-        
-        effect_power = spell.get_scaled_effect_power(spell_power)
-        
-        # Create appropriate effect based on spell type
-        effect = self._create_effect_from_spell(effect_id, spell, effect_power, user_id, target_id)
-        
-        if effect:
-            self.active_effects[effect_id] = effect
-        
-        # Return result
+        # Result
         return {
             "success": True,
-            "spell_id": spell_id,
-            "caster_id": user_id,
-            "target_id": target_id,
-            "mana_spent": mana_cost,
+            "message": f"Successfully cast {spell.name}",
             "spell_power": spell_power,
-            "location_modifier": location_modifier,
-            "effect_id": effect_id if effect else None,
-            "effect_power": effect_power,
-            "message": f"Successfully cast {spell.name}"
+            "mana_spent": spell.mana_cost,
+            "effects": effects,
+            "target_id": target_id
         }
     
-    def _create_effect_from_spell(
-        self, effect_id: str, spell: Spell, power: float, source_id: str, target_id: str
-    ) -> Optional[MagicEffect]:
-        """Create an appropriate MagicEffect based on the spell type."""
-        # This is a simplified implementation
-        # A real game would have more complex logic based on spell type
-        
-        if EffectType.DAMAGE in spell.effect_types and spell.damage_types:
-            return MagicEffect(
-                id=effect_id,
-                name=f"{spell.name} Effect",
-                description=f"Damage effect from {spell.name}",
-                effect_type=EffectType.DAMAGE,
-                potency=power,
-                duration=spell.duration,
-                damage_type=spell.damage_types[0],
-                source_id=source_id,
-                target_id=target_id,
-                ticks_per_second=1.0 if spell.duration > 0 else 0.0
-            )
-        
-        elif EffectType.HEALING in spell.effect_types:
-            return MagicEffect(
-                id=effect_id,
-                name=f"{spell.name} Effect",
-                description=f"Healing effect from {spell.name}",
-                effect_type=EffectType.HEALING,
-                potency=power,
-                duration=spell.duration,
-                source_id=source_id,
-                target_id=target_id,
-                ticks_per_second=1.0 if spell.duration > 0 else 0.0
-            )
-        
-        elif EffectType.BUFF in spell.effect_types:
-            return MagicEffect(
-                id=effect_id,
-                name=f"{spell.name} Effect",
-                description=f"Buff effect from {spell.name}",
-                effect_type=EffectType.BUFF,
-                potency=power,
-                duration=spell.duration,
-                source_id=source_id,
-                target_id=target_id
-            )
-        
-        elif EffectType.DEBUFF in spell.effect_types:
-            return MagicEffect(
-                id=effect_id,
-                name=f"{spell.name} Effect",
-                description=f"Debuff effect from {spell.name}",
-                effect_type=EffectType.DEBUFF,
-                potency=power,
-                duration=spell.duration,
-                source_id=source_id,
-                target_id=target_id
-            )
-        
-        return None
-    
-    def process_active_effects(self) -> List[Dict[str, Any]]:
+    def calculate_combined_spell_effect(
+        self,
+        effects: List[Dict[str, Any]],
+        target_resistances: Dict[DamageType, float] = None,
+        target_weaknesses: Dict[DamageType, float] = None
+    ) -> Dict[str, Any]:
         """
-        Process all active effects, applying ticks and removing expired effects.
-        Returns a list of effect application results.
-        """
-        results = []
-        expired_effects = []
+        Calculate the combined effect of multiple spell effects on a target.
         
-        for effect_id, effect in self.active_effects.items():
-            if effect.is_expired():
-                expired_effects.append(effect_id)
+        Args:
+            effects: List of spell effect dictionaries
+            target_resistances: Optional dictionary of damage type -> resistance value (0.0 to 1.0)
+            target_weaknesses: Optional dictionary of damage type -> weakness value (0.0 to 1.0)
+            
+        Returns:
+            Dictionary with combined effect details
+        """
+        target_resistances = target_resistances or {}
+        target_weaknesses = target_weaknesses or {}
+        
+        # Track total by effect type
+        total_by_effect = {}
+        damage_by_type = {}
+        
+        # Process each effect
+        for effect_dict in effects:
+            effect_type_str = effect_dict.get("effect_type")
+            damage_type_str = effect_dict.get("damage_type")
+            potency = effect_dict.get("potency", 0.0)
+            
+            # Skip invalid effects
+            if not effect_type_str:
                 continue
             
-            if effect.should_tick():
-                tick_result = effect.apply_tick()
-                results.append(tick_result)
+            # Convert strings to enums
+            try:
+                effect_type = EffectType[effect_type_str]
+                damage_type = DamageType[damage_type_str] if damage_type_str else None
+            except (KeyError, ValueError):
+                continue  # Skip invalid enum values
+            
+            # For damage effects, apply resistances and weaknesses
+            if effect_type == EffectType.DAMAGE and damage_type:
+                # Apply resistance
+                resistance = target_resistances.get(damage_type, 0.0)
+                potency *= (1.0 - resistance)
+                
+                # Apply weakness
+                weakness = target_weaknesses.get(damage_type, 0.0)
+                potency *= (1.0 + weakness)
+                
+                # Add to damage by type
+                if damage_type not in damage_by_type:
+                    damage_by_type[damage_type] = 0.0
+                damage_by_type[damage_type] += potency
+            
+            # Add to total by effect type
+            if effect_type not in total_by_effect:
+                total_by_effect[effect_type] = 0.0
+            total_by_effect[effect_type] += potency
         
-        # Remove expired effects
-        for effect_id in expired_effects:
-            del self.active_effects[effect_id]
+        # Convert enums to strings for the result
+        result = {
+            "total_by_effect": {et.name: val for et, val in total_by_effect.items()},
+            "damage_by_type": {dt.name: val for dt, val in damage_by_type.items()},
+            "total_damage": sum(damage_by_type.values()),
+            "total_healing": total_by_effect.get(EffectType.HEALING, 0.0),
+            "has_crowd_control": EffectType.CROWD_CONTROL in total_by_effect,
+            "has_buffs": EffectType.BUFF in total_by_effect,
+            "has_debuffs": EffectType.DEBUFF in total_by_effect
+        }
         
-        return results
+        return result
     
-    def process_location_effects(self, location_id: str) -> List[Dict[str, Any]]:
+    def detect_magical_resonance(
+        self,
+        location_id: str,
+        item_id: str
+    ) -> Dict[str, Any]:
         """
-        Process magical effects for a specific location.
-        Returns a list of environmental effects that should be applied.
-        """
-        if location_id not in self.location_profiles:
-            return []
+        Detect magical resonance between a location and an item.
         
-        location = self.location_profiles[location_id]
+        Args:
+            location_id: ID of the location
+            item_id: ID of the item
+            
+        Returns:
+            Dictionary with resonance details
+        """
+        # Get location profile
+        location = self.location_magic_profiles.get(location_id)
+        if not location:
+            return {
+                "success": False,
+                "message": f"Unknown location: {location_id}"
+            }
+        
+        # Get item profile
+        item = self.item_magic_profiles.get(item_id)
+        if not item:
+            return {
+                "success": False,
+                "message": f"Unknown item: {item_id}"
+            }
+        
+        # Check for domain resonance
+        resonant_domains = []
+        for item_domain in item.resonance_domains:
+            if item_domain in location.dominant_magic_aspects:
+                resonant_domains.append(item_domain.name)
+        
+        # Calculate resonance strength based on matching domains and leyline strength
+        resonance_strength = len(resonant_domains) * 0.2 + location.leyline_strength * 0.3
+        resonance_strength = min(1.0, resonance_strength)  # Cap at 1.0
+        
+        # Determine resonance effects
         effects = []
+        if resonance_strength > 0.8:
+            effects.append("Strong magical amplification")
+            effects.append("Possible artifact activation")
+        elif resonance_strength > 0.5:
+            effects.append("Moderate magical amplification")
+            effects.append("Enhanced spell casting")
+        elif resonance_strength > 0.2:
+            effects.append("Mild magical amplification")
+        else:
+            effects.append("Minimal resonance detected")
         
-        # Generate random environmental effects based on location profile
-        # This is simplified; a real game would have more complex logic
-        if random.random() < (0.1 + location.leyline_strength * 0.2):
-            env_effect = location.get_environmental_effect()
-            if env_effect:
-                effects.append(env_effect)
-        
-        return effects
+        return {
+            "success": True,
+            "resonant_domains": resonant_domains,
+            "resonance_strength": resonance_strength,
+            "effects": effects,
+            "location_aspects": [aspect.name for aspect in location.dominant_magic_aspects],
+            "item_domains": [domain.name for domain in item.resonance_domains]
+        }
     
-    def create_basic_spell(self, name: str, domain: Domain, effect_type: EffectType, 
-                          damage_type: Optional[DamageType] = None) -> Spell:
-        """Utility method to create a basic spell."""
-        spell_id = f"spell_{self._spell_counter}"
-        self._spell_counter += 1
+    def register_leyline(self, location_ids: List[str]) -> None:
+        """
+        Register a leyline connecting multiple locations.
         
-        tier = MagicTier.LESSER
-        mana_cost_range = MagicTier.get_mana_cost_range(tier)
-        mana_cost = random.randint(*mana_cost_range)
-        
-        spell = Spell(
-            id=spell_id,
-            name=name,
-            description=f"A {domain.name.lower()} spell that causes {effect_type.name.lower()}",
-            domains=[domain],
-            damage_types=[damage_type] if damage_type else [],
-            effect_types=[effect_type],
-            mana_cost=mana_cost,
-            casting_time=1.0,
-            cooldown=5.0,
-            base_power=10.0,
-            level_req=MagicTier.get_level_requirement(tier),
-            tier=tier,
-            targeting_type="single",
-            range_max=10.0,
-            duration=0.0,  # instant effect
-            components=["verbal", "somatic"],
-            tags=[domain.name.lower(), effect_type.name.lower()]
-        )
-        
-        self.register_spell(spell)
-        return spell
+        Args:
+            location_ids: List of location IDs forming the leyline
+        """
+        if len(location_ids) >= 2:
+            self.active_leylines.append(location_ids)
+            
+            # Enhance leyline strength for all locations on the path
+            for loc_id in location_ids:
+                if loc_id in self.location_magic_profiles:
+                    profile = self.location_magic_profiles[loc_id]
+                    # Increase leyline strength, capped at 1.0
+                    profile.leyline_strength = min(1.0, profile.leyline_strength + 0.2)
     
-    def create_basic_enchantment(self, name: str, domain: Domain, item_type: str) -> Enchantment:
-        """Utility method to create a basic enchantment."""
-        enchantment_id = f"enchantment_{self._enchantment_counter}"
-        self._enchantment_counter += 1
+    def register_magical_hotspot(self, location_id: str) -> None:
+        """
+        Register a location as a magical hotspot.
         
-        tier = MagicTier.LESSER
+        Args:
+            location_id: ID of the location
+        """
+        if location_id not in self.magical_hotspots:
+            self.magical_hotspots.append(location_id)
+            
+            # Enhance magical properties of the location
+            if location_id in self.location_magic_profiles:
+                profile = self.location_magic_profiles[location_id]
+                # Increase mana flux level if not already at max
+                if profile.mana_flux_level != ManaFluxLevel.VERY_HIGH:
+                    flux_levels = list(ManaFluxLevel)
+                    current_index = flux_levels.index(profile.mana_flux_level)
+                    if current_index < len(flux_levels) - 1:
+                        profile.mana_flux_level = flux_levels[current_index + 1]
+    
+    def is_on_leyline(self, location_id: str) -> bool:
+        """
+        Check if a location is on a leyline.
         
-        enchantment = Enchantment(
-            id=enchantment_id,
-            name=name,
-            description=f"A {domain.name.lower()} enchantment for {item_type}",
-            tier=tier,
-            domains=[domain],
-            effects=[f"Enhances {domain.name.lower()} capabilities"],
-            item_types=[item_type],
-            power_level=5.0,
-            duration_days=None,  # permanent
-            charges=None,  # unlimited
-            required_materials={"magic_essence": 1},
-            tags=[domain.name.lower(), item_type]
-        )
+        Args:
+            location_id: ID of the location
+            
+        Returns:
+            True if the location is on a leyline, False otherwise
+        """
+        for leyline in self.active_leylines:
+            if location_id in leyline:
+                return True
+        return False
+    
+    def is_magical_hotspot(self, location_id: str) -> bool:
+        """
+        Check if a location is a magical hotspot.
         
-        self.register_enchantment(enchantment)
-        return enchantment
+        Args:
+            location_id: ID of the location
+            
+        Returns:
+            True if the location is a magical hotspot, False otherwise
+        """
+        return location_id in self.magical_hotspots
+    
+    def get_leylines_for_location(self, location_id: str) -> List[List[str]]:
+        """
+        Get all leylines that pass through a location.
+        
+        Args:
+            location_id: ID of the location
+            
+        Returns:
+            List of leylines (each a list of location IDs)
+        """
+        return [leyline for leyline in self.active_leylines if location_id in leyline]
+    
+    def get_connected_locations(self, location_id: str) -> List[str]:
+        """
+        Get all locations directly connected to a location via leylines.
+        
+        Args:
+            location_id: ID of the location
+            
+        Returns:
+            List of connected location IDs
+        """
+        connected = set()
+        for leyline in self.active_leylines:
+            if location_id in leyline:
+                # Find position in leyline
+                index = leyline.index(location_id)
+                # Add adjacent locations
+                if index > 0:
+                    connected.add(leyline[index - 1])
+                if index < len(leyline) - 1:
+                    connected.add(leyline[index + 1])
+        
+        return list(connected)
+    
+    def get_magical_disturbances(self, location_id: str) -> List[Dict[str, Any]]:
+        """
+        Get magical disturbances in a location.
+        
+        Args:
+            location_id: ID of the location
+            
+        Returns:
+            List of disturbance details
+        """
+        disturbances = []
+        location = self.location_magic_profiles.get(location_id)
+        
+        if not location:
+            return disturbances
+        
+        # Check for leyline intersections
+        intersection_count = 0
+        for leyline in self.active_leylines:
+            if location_id in leyline:
+                intersection_count += 1
+        
+        if intersection_count > 1:
+            disturbances.append({
+                "type": "LEYLINE_INTERSECTION",
+                "severity": min(1.0, 0.3 * intersection_count),
+                "description": f"Intersection of {intersection_count} leylines creating magical turbulence."
+            })
+        
+        # Check for mana flux
+        if location.mana_flux_level in [ManaFluxLevel.HIGH, ManaFluxLevel.VERY_HIGH]:
+            disturbances.append({
+                "type": "HIGH_MANA_FLUX",
+                "severity": 0.7 if location.mana_flux_level == ManaFluxLevel.VERY_HIGH else 0.4,
+                "description": f"High levels of ambient mana causing magical fluctuations."
+            })
+        
+        # Check for unstable magic
+        if location.unstable_magic:
+            disturbances.append({
+                "type": "UNSTABLE_MAGIC",
+                "severity": 0.8,
+                "description": "Unstable magical energies causing unpredictable effects."
+            })
+        
+        # Check for magical hazards
+        for hazard in location.magic_hazards:
+            disturbances.append({
+                "type": "MAGICAL_HAZARD",
+                "severity": 0.6,
+                "description": hazard
+            })
+        
+        return disturbances
