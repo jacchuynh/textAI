@@ -1773,6 +1773,130 @@ ALCHEMY_MATERIALS = [
             "purified_by": ["Ferverl Ash Salts"]
         }
     },
+    {
+        "name": "Rivercress Sprig",
+        "description": "A common aquatic herb found along riverbanks. Provides minor stamina recovery when steeped.",
+        "material_type": MaterialType.HERB,
+        "rarity": Rarity.COMMON,
+        "base_value": 0.8,
+        "weight": 0.01,
+        "is_craftable": False,
+        "source_tags": ["harvested_rivemark_riverbanks", "aquatic_herb"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "minor_stamina_recovery",
+            "potency": 0.15,
+            "preparation": "steep",
+            "taste_profile": "peppery"
+        }
+    },
+    {
+        "name": "Ember Wastes Bloom",
+        "description": "A hardy flower that blooms in the heat of desert oases. Provides minor fire resistance when prepared.",
+        "material_type": MaterialType.HERB,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 8,
+        "weight": 0.03,
+        "is_craftable": False,
+        "source_tags": ["harvested_ember_wastes_oases_heat_resistant", "ferverl_use"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "minor_fire_resistance",
+            "potency": 0.4,
+            "preparation": "dry_powder",
+            "duration_seconds": 180,
+            "synergy_with": ["Drake Scale Powder"]
+        }
+    },
+    {
+        "name": "Frostbound Lichen",
+        "description": "A cold-adapted lichen that grows on rocks in frozen regions. Provides minor cold resistance.",
+        "material_type": MaterialType.HERB,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 7,
+        "weight": 0.02,
+        "is_craftable": False,
+        "source_tags": ["harvested_frostbound_tundra_rocks", "cryo_adapted"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "minor_cold_resistance",
+            "potency": 0.4,
+            "preparation": "grind_infuse_cold",
+            "duration_seconds": 180,
+            "antagonistic_to": ["Ember Wastes Bloom"]
+        }
+    },
+    {
+        "name": "Verdant Vine Extract",
+        "description": "A rare extract from sentient vines, processed through elven ritual techniques. Enhances cellular regeneration.",
+        "material_type": MaterialType.HERB,
+        "rarity": Rarity.RARE,
+        "base_value": 25,
+        "weight": 0.01,
+        "is_craftable": True,
+        "source_tags": ["processed_lethandrel_sentient_vines_elven_ritual", "living_essence"],
+        "illicit_in_regions": ["Stonewake_uncontrolled"],
+        "properties": {
+            "alchemical_property": "enhanced_regeneration_cellular",
+            "potency": 0.7,
+            "preparation": "ritual_extraction_stabilize",
+            "duration_seconds": 30,
+            "side_effect_chance": "minor_plant_growth_on_user_0.01"
+        }
+    },
+    {
+        "name": "Crystal Highlands Wort",
+        "description": "An herb that grows in mineral-rich soil. Serves as a base for physical resistance potions.",
+        "material_type": MaterialType.HERB,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 10,
+        "weight": 0.04,
+        "is_craftable": False,
+        "source_tags": ["harvested_crystal_highlands_mineral_rich_soil", "earth_affinity"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "physical_damage_resistance_potion_base",
+            "potency": 0.3,
+            "preparation": "decoct",
+            "notes": "Absorbs properties of added minerals."
+        }
+    },
+    {
+        "name": "Corpse-Finder Moss",
+        "description": "A rare moss that grows near undead remains. Can be used to detect undead when burned as incense.",
+        "material_type": MaterialType.HERB,
+        "rarity": Rarity.RARE,
+        "base_value": 15,
+        "weight": 0.02,
+        "is_craftable": False,
+        "source_tags": ["grows_near_undead_remains_shimmering_marshes", "necromantic_trace"],
+        "illicit_in_regions": ["Skarport_public_market"],
+        "properties": {
+            "alchemical_property": "detect_undead_briefly",
+            "potency": 0.5,
+            "preparation": "burn_as_incense_inhale_fumes",
+            "duration_seconds": 120,
+            "toxicity_fumes": "low_headache"
+        }
+    },
+    {
+        "name": "Thal-Zirad Sun-Dried Petals",
+        "description": "Sacred flower petals dried in the desert sun and used in ritual offerings. Provides clarity of mind.",
+        "material_type": MaterialType.HERB,
+        "rarity": Rarity.RARE,
+        "base_value": 30,
+        "weight": 0.01,
+        "is_craftable": False,
+        "source_tags": ["thal_zirad_sacred_garden_offering_flower", "ritual_preparation"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "clarity_of_mind_divination_aid",
+            "potency": 0.6,
+            "preparation": "steep_in_blessed_water",
+            "duration_modifier": 1.2,
+            "requires_ritual_focus": True
+        }
+    },
     # Animal & Monster Parts
     {
         "name": "Giant Spider Venom Gland",
@@ -1811,6 +1935,112 @@ ALCHEMY_MATERIALS = [
             "material_resistance_fire": "high"
         }
     },
+    {
+        "name": "Wyvern Scale Powder",
+        "description": "Ground scales from ember wyverns. Provides strong fire resistance and can enhance fire-based potions.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.RARE,
+        "base_value": 75,
+        "weight": 0.03,
+        "is_craftable": True,
+        "source_tags": ["hunted_ember_wastes_wyvern_ground_scales", "elemental_creature_fire"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "fire_resistance_potion_strong",
+            "potency_modifier": 1.5,
+            "elemental_charge": "fire",
+            "preparation": "infuse_in_oil_base_potion",
+            "synergy_with": ["Ember Wastes Bloom"]
+        }
+    },
+    {
+        "name": "Spirit Fox Saliva",
+        "description": "Ethereal saliva collected through beastfolk rituals. Greatly enhances sensory perception when prepared.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.EPIC,
+        "base_value": 300,
+        "weight": 0.01,
+        "is_craftable": False,
+        "source_tags": ["beastfolk_ritual_collection_ashkar_vale_spirit_animal", "ethereal_essence"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "heightened_senses_elixir_major",
+            "potency": 0.9,
+            "preparation": "handle_with_silver_tools_infuse_moonlight",
+            "duration_seconds": 600,
+            "volatility": "medium",
+            "requires_stabilizer": True
+        }
+    },
+    {
+        "name": "Grotesque Hide Oil",
+        "description": "Rendered fat from marsh grotesques. Provides minor acid resistance when processed into potions.",
+        "material_type": MaterialType.ANIMAL_PART,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 9,
+        "weight": 0.1,
+        "is_craftable": True,
+        "source_tags": ["rendered_fat_shimmering_marshes_grotesque", "mutated_creature"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "acid_resistance_potion_minor",
+            "potency": 0.3,
+            "preparation": "render_filter",
+            "smell": "pungent_acrid",
+            "duration_seconds": 240
+        }
+    },
+    {
+        "name": "Griffin Feather (Down)",
+        "description": "Soft down feathers shed from griffin nests. Used to create levitation and lightness effects.",
+        "material_type": MaterialType.ANIMAL_PART,
+        "rarity": Rarity.RARE,
+        "base_value": 40,
+        "weight": 0.005,
+        "is_craftable": False,
+        "source_tags": ["collected_crystal_highlands_griffin_nest_shed_feather", "sky_affinity"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "levitation_potion_component_lightness",
+            "potency": 0.5,
+            "preparation": "weave_into_potion_filter_chant",
+            "notes": "Aids in reducing potion weight and improving ascent."
+        }
+    },
+    {
+        "name": "Basilisk Eye (Petrified)",
+        "description": "The petrified eye of a slain basilisk. Provides powerful defensive properties when carefully processed.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.EPIC,
+        "base_value": 250,
+        "weight": 0.2,
+        "is_craftable": False,
+        "source_tags": ["slain_basilisk_ember_wastes_rare_drop", "petrification_magic_source"],
+        "illicit_in_regions": ["Skarport_restricted_trade"],
+        "properties": {
+            "alchemical_property": "stoneflesh_potion_ingredient_major_defense",
+            "potency": 0.8,
+            "preparation": "grind_carefully_under_ward_infuse_lead_solution",
+            "side_effect_chance": "slight_stiffness_0.1"
+        }
+    },
+    {
+        "name": "Troll Blood (Regenerative)",
+        "description": "Blood from tundra trolls that retains regenerative properties. Must be preserved quickly or it becomes useless.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.RARE,
+        "base_value": 60,
+        "weight": 0.15,
+        "is_craftable": False,
+        "source_tags": ["harvested_frostbound_tundra_troll_requires_rapid_preservation", "vital_essence"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "regeneration_potion_potent_base",
+            "potency": 0.6,
+            "preparation": "stabilize_with_iron_salts_keep_cold",
+            "notes": "Highly unstable if not preserved quickly."
+        }
+    },
     # Minerals & Crystals
     {
         "name": "Purified Alchemical Salt",
@@ -1828,6 +2058,255 @@ ALCHEMY_MATERIALS = [
             "preparation": "dissolve_or_add_directly",
             "shelf_life_extension_days": 30,
             "neutralizes_acidity": "low"
+        }
+    },
+    {
+        "name": "Purified Leyline Water",
+        "description": "Water purified through elven ritual techniques and infused with leyline energy. Standard for elven alchemy.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 10,
+        "weight": 0.1,
+        "is_craftable": True,
+        "source_tags": ["lethandrel_ritual_purification_leylines", "base_solvent_elven_alchemy"],
+        "illicit_in_regions": [],
+        "properties": {
+            "solvent_power": "high",
+            "purity_level": 0.95,
+            "mana_infusion_base": True,
+            "stability": "good",
+            "notes": "Standard for Elven potions."
+        }
+    },
+    {
+        "name": "Ferverl Blood-Ash",
+        "description": "Ash created through ferverl blood rituals, imbued with mana. A powerful but potentially corrupting catalyst.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.RARE,
+        "base_value": 60,
+        "weight": 0.02,
+        "is_craftable": False,
+        "source_tags": ["ferverl_ritual_byproduct_ashkar_vale_emberflow_mana_imbued_ash"],
+        "illicit_in_regions": ["Skarport_Accord_controlled"],
+        "properties": {
+            "alchemical_property": "mutation_inducer_controlled_catalyst",
+            "potency_modifier": 1.3,
+            "preparation": "handle_with_obsidian_tools",
+            "corruption_taint": "low_residual_if_blessed",
+            "synergy_with": ["Spirit Fox Saliva"]
+        }
+    },
+    {
+        "name": "Ground Moonstone",
+        "description": "Pulverized moonstone gem charged under moonlight. Enhances illusion potions and amplifies subtle energies.",
+        "material_type": MaterialType.GEM,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 18,
+        "weight": 0.03,
+        "is_craftable": True,
+        "source_tags": ["crystal_highlands_moonstone_gem_pulverized", "lunar_reflective_properties"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "illusion_potion_enhancer_duration",
+            "potency": 0.4,
+            "preparation": "grind_fine_charge_under_moonlight",
+            "notes": "Amplifies subtle energies."
+        }
+    },
+    {
+        "name": "Sulfur Powder",
+        "description": "Ground sulfur from volcanic vents. Used in fumigation and as a component for weak acids and smokesticks.",
+        "material_type": MaterialType.MINERAL,
+        "rarity": Rarity.COMMON,
+        "base_value": 2,
+        "weight": 0.04,
+        "is_craftable": False,
+        "source_tags": ["volcanic_vents_stonewake_caldera_ember_wastes_geothermal", "combustible_element"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "fumigation_ingredient_minor_poison_component",
+            "potency": 0.2,
+            "preparation": "grind_sift",
+            "flammability": "high",
+            "use_in": ["Smokesticks", "Weak Acid Vials"]
+        }
+    },
+    {
+        "name": "Quicksilver Globules",
+        "description": "Liquid mercury obtained from rare cinnabar ore. A powerful transmutation agent but highly toxic.",
+        "material_type": MaterialType.METAL,
+        "rarity": Rarity.RARE,
+        "base_value": 70,
+        "weight": 0.25,
+        "is_craftable": False,
+        "source_tags": ["rare_cinnabar_ore_refinement_dwarven_process", "liquid_metal_volatile"],
+        "illicit_in_regions": ["Lethandrel_restricted"],
+        "properties": {
+            "alchemical_property": "transmutation_agent_base_catalyst_for_change",
+            "potency": 0.7,
+            "preparation": "store_in_sealed_glass_handle_with_care",
+            "toxicity": "high_fumes_and_contact",
+            "stability": "low"
+        }
+    },
+    {
+        "name": "Rock Salt Chunks",
+        "description": "Common salt mined from desert flats. Used as a preservative and minor stabilizer in simple preparations.",
+        "material_type": MaterialType.MINERAL,
+        "rarity": Rarity.COMMON,
+        "base_value": 0.5,
+        "weight": 0.08,
+        "is_craftable": False,
+        "source_tags": ["mined_ember_wastes_salt_flats", "preservative_mundane_reagent"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "stabilizer_minor_preservative",
+            "potency": 0.1,
+            "preparation": "crush_dissolve",
+            "notes": "Common in food preservation, limited alchemical use."
+        }
+    },
+    {
+        "name": "Ectoplasmic Residue",
+        "description": "Ethereal remains collected from haunted ruins. Used to create potions of incorporeality and etherealness.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.RARE,
+        "base_value": 50,
+        "weight": 0.01,
+        "is_craftable": False,
+        "source_tags": ["haunted_ruins_verdant_frontier_ethereal_remains", "spirit_essence"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "etherealness_potion_component_incorporeality",
+            "potency": 0.6,
+            "preparation": "collect_in_silvered_vial_stabilize_with_salt",
+            "duration_seconds": 30,
+            "instability": "medium"
+        }
+    },
+    {
+        "name": "Mana-Charged Crystal Dust",
+        "description": "Dust from shattered mana crystals containing pure mana energy. Can supercharge potions or cause dangerous overloads.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.EPIC,
+        "base_value": 150,
+        "weight": 0.02,
+        "is_craftable": True,
+        "source_tags": ["shattered_mana_crystal_crucible_spire_lethandrel_leyroot_grove", "pure_mana_form"],
+        "illicit_in_regions": [],
+        "properties": {
+            "alchemical_property": "direct_mana_infusion_potion_powerful",
+            "potency": 1.0,
+            "preparation": "handle_with_insulated_gloves_infuse_directly",
+            "notes": "Can supercharge potions or cause overload."
+        }
+    },
+    # Solvents & Bases
+    {
+        "name": "Filtered River Water",
+        "description": "Basic river water filtered through cloth and sand. Suitable only for the simplest alchemical preparations.",
+        "material_type": MaterialType.CRAFTED,
+        "rarity": Rarity.COMMON,
+        "base_value": 0.2,
+        "weight": 0.1,
+        "is_craftable": True,
+        "source_tags": ["collected_rivemark_river_filtered_cloth_sand", "basic_solvent"],
+        "illicit_in_regions": [],
+        "properties": {
+            "solvent_power": "low",
+            "purity_level": 0.6,
+            "mana_infusion_base": False,
+            "stability": "low_spoils_quickly",
+            "notes": "Suitable for very simple brews."
+        }
+    },
+    {
+        "name": "Dwarven Spring Water",
+        "description": "Mineral-rich water from deep Stonewake springs. Imparts earthy flavors and is good for fortitude potions.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 5,
+        "weight": 0.1,
+        "is_craftable": False,
+        "source_tags": ["stonewake_deep_springs_mineral_rich", "dwarven_brewing_base"],
+        "illicit_in_regions": [],
+        "properties": {
+            "solvent_power": "medium",
+            "purity_level": 0.8,
+            "mana_infusion_base": "trace",
+            "stability": "medium",
+            "notes": "Imparts a slight earthy taste, good for fortitude potions."
+        }
+    },
+    {
+        "name": "Orcish Grog Base",
+        "description": "Fermented grain and herb mixture following traditional orcish recipes. Volatile but potent alcoholic base.",
+        "material_type": MaterialType.CRAFTED,
+        "rarity": Rarity.UNCOMMON,
+        "base_value": 4,
+        "weight": 0.1,
+        "is_craftable": True,
+        "source_tags": ["fermented_grain_herbs_rivemark_orcish_recipe", "potent_alcoholic_base"],
+        "illicit_in_regions": [],
+        "properties": {
+            "solvent_power": "medium_volatile",
+            "purity_level": 0.5,
+            "mana_infusion_base": False,
+            "stability": "good_if_sealed",
+            "notes": "Can make potions very strong, or very unpredictable. Flammable."
+        }
+    },
+    {
+        "name": "Refined Animal Fat",
+        "description": "Purified animal fat suitable for creating oil-based salves and ointments for topical applications.",
+        "material_type": MaterialType.CRAFTED,
+        "rarity": Rarity.COMMON,
+        "base_value": 3,
+        "weight": 0.08,
+        "is_craftable": True,
+        "source_tags": ["rendered_animal_fat_purified_multiple_sources", "oil_base_salves"],
+        "illicit_in_regions": [],
+        "properties": {
+            "solvent_power": "oil_soluble_only",
+            "purity_level": 0.7,
+            "application": "topical_salves_ointments",
+            "stability": "medium"
+        }
+    },
+    {
+        "name": "Lethandrel Moon-Dew",
+        "description": "Dew collected during lunar cycles from sacred groves. The purest elven solvent, excellent for delicate magical properties.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.RARE,
+        "base_value": 40,
+        "weight": 0.05,
+        "is_craftable": False,
+        "source_tags": ["collected_lethandrel_ritual_grove_lunar_cycle", "pure_elven_solvent"],
+        "illicit_in_regions": [],
+        "properties": {
+            "solvent_power": "very_high_ethereal",
+            "purity_level": 0.99,
+            "mana_infusion_base": True,
+            "stability": "high_if_kept_dark",
+            "notes": "Preserves delicate magical properties, enhances illusion/mind effects."
+        }
+    },
+    {
+        "name": "Ashkar Vale Spirit-Water",
+        "description": "Spring water blessed by beastfolk shamans. Absorbs ambient energies and is favored for nature-aspected potions.",
+        "material_type": MaterialType.MAGICAL,
+        "rarity": Rarity.RARE,
+        "base_value": 35,
+        "weight": 0.1,
+        "is_craftable": False,
+        "source_tags": ["ashkar_vale_emberflow_springs_blessed_by_shamans", "beastfolk_ritual_base"],
+        "illicit_in_regions": [],
+        "properties": {
+            "solvent_power": "medium_wild",
+            "purity_level": 0.75,
+            "mana_infusion_base": "shamanic_wild",
+            "stability": "medium_absorbs_ambient_energies",
+            "notes": "Favored for nature or spirit-aspected potions."
         }
     }
 ]
