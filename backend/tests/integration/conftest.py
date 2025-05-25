@@ -1,296 +1,281 @@
 """
-Integration Test Fixtures
+Fixtures for integration tests.
 
-This module provides fixtures for integration tests.
+This module provides fixtures that can be used across all integration tests.
 """
 
-import os
-import sys
 import pytest
-from typing import Dict, List, Any, Optional
+import random
+from typing import Dict, List, Any, Tuple
 
-# Add the backend directory to the path so we can import modules
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+# Import core modules
+from game_engine.magic_system import (
+    MagicSystem, MagicUser, Spell, MagicEffect, Domain, 
+    DamageType, EffectType, MagicTier, LocationMagicProfile, 
+    Enchantment, ItemMagicProfile, ManaFluxLevel
+)
 
-# Import core components when available
-try:
-    from game_engine.magic_system import (
-        MagicSystem, MagicUser, LocationMagicProfile, Domain, 
-        MagicTier, DamageType, Spell
-    )
-    MAGIC_SYSTEM_AVAILABLE = True
-except ImportError:
-    MAGIC_SYSTEM_AVAILABLE = False
+# Import integration modules
+from game_engine.magic_combat_integration import (
+    MagicalCombatManager, Combatant, CombatMove, MonsterMagicIntegration,
+    CombatantType, MoveType
+)
+from magic_system.magic_world_integration import (
+    MagicWorldIntegration, World, Location, POI, POIType,
+    Terrain, Climate, MagicalMaterialWorldIntegration
+)
+from magic_system.magic_crafting_integration import (
+    MagicCraftingIntegration, ItemEnchanter, MagicalItemCrafter, MagicalPotionBrewer,
+    CraftingMaterial, EnchantmentRecipe, MagicalItemType
+)
 
-try:
-    from magic_system.magic_world_integration import (
-        MagicWorldIntegration, World, Location, POI, POIType
-    )
-    MAGIC_WORLD_AVAILABLE = True
-except ImportError:
-    MAGIC_WORLD_AVAILABLE = False
-
-try:
-    from game_engine.magic_combat_integration import (
-        MagicalCombatManager, Combatant, CombatMove, MonsterMagicIntegration
-    )
-    MAGIC_COMBAT_AVAILABLE = True
-except ImportError:
-    MAGIC_COMBAT_AVAILABLE = False
-
-try:
-    from magic_system.magic_crafting_integration import (
-        MagicCraftingIntegration, ItemEnchanter, MagicalItemCrafter, MagicalPotionBrewer
-    )
-    MAGIC_CRAFTING_AVAILABLE = True
-except ImportError:
-    MAGIC_CRAFTING_AVAILABLE = False
+# Set random seed for reproducible tests
+random.seed(42)
 
 
 @pytest.fixture
 def magic_system():
-    """Fixture for the magic system."""
-    if not MAGIC_SYSTEM_AVAILABLE:
-        pytest.skip("Magic system not available")
+    """Create a magic system for testing."""
     return MagicSystem()
 
 
 @pytest.fixture
-def test_character_domains():
-    """Fixture for test character domains."""
-    if not MAGIC_SYSTEM_AVAILABLE:
-        pytest.skip("Magic system not available")
-    return {
-        Domain.BODY: 3,
-        Domain.MIND: 4,
-        Domain.CRAFT: 3,
-        Domain.AWARENESS: 3,
-        Domain.SOCIAL: 2,
-        Domain.AUTHORITY: 2,
-        Domain.SPIRIT: 4,
-        Domain.FIRE: 3,
-        Domain.WATER: 2,
-        Domain.EARTH: 2,
-        Domain.AIR: 1,
-        Domain.LIGHT: 1,
-        Domain.DARKNESS: 0
-    }
+def magic_world_integration(magic_system):
+    """Create a magic world integration for testing."""
+    return MagicWorldIntegration(magic_system)
 
 
 @pytest.fixture
-def magic_user(magic_system, test_character_domains):
-    """Fixture for a magic user."""
-    if not MAGIC_SYSTEM_AVAILABLE:
-        pytest.skip("Magic system not available")
-    magic_user = magic_system.initialize_magic_user(test_character_domains)
-    # Learn a few spells for testing
-    magic_user.learn_spell("spell_fire_bolt")
-    magic_user.learn_spell("spell_arcane_shield")
-    if "spell_communion_with_nature" in magic_system._rituals:
-        magic_user.learn_ritual("ritual_commune_with_nature")
-    return magic_user
+def magic_crafting_integration(magic_system):
+    """Create a magic crafting integration for testing."""
+    return MagicCraftingIntegration(magic_system)
 
 
 @pytest.fixture
-def test_location_description():
-    """Fixture for a test location description."""
-    return """
-    A mystical forest clearing with ancient standing stones. The air shimmers with magical energy,
-    and a strong leyline runs through the center of the area. The stones are covered in arcane
-    runes that glow faintly in the moonlight. The forest around the clearing is ancient and seems
-    to whisper with ancient wisdom.
-    """
-
-
-@pytest.fixture
-def location_magic_profile(magic_system, test_location_description):
-    """Fixture for a location magic profile."""
-    if not MAGIC_SYSTEM_AVAILABLE:
-        pytest.skip("Magic system not available")
-    return magic_system.initialize_location_magic(test_location_description)
+def combat_manager(magic_system):
+    """Create a magical combat manager for testing."""
+    return MagicalCombatManager(magic_system)
 
 
 @pytest.fixture
 def test_world():
-    """Fixture for a test world."""
-    if not MAGIC_WORLD_AVAILABLE:
-        pytest.skip("Magic world integration not available")
+    """Create a test world with multiple locations."""
+    locations = {}
     
-    # Create some POIs
-    forest_shrine = POI(
-        id="poi_1",
-        name="Ancient Forest Shrine",
-        poi_type=POIType.SHRINE,
-        description="A shrine dedicated to the forest spirits.",
-        coordinates=(1, 1)
-    )
-    
-    mountain_cave = POI(
-        id="poi_2",
-        name="Crystal Cave",
-        poi_type=POIType.CAVE,
-        description="A cave filled with glowing crystals.",
-        coordinates=(2, 2)
-    )
-    
-    # Create some locations
-    forest_location = Location(
-        id="loc_1",
-        name="Mystic Forest",
-        description="An ancient forest filled with magical energy.",
+    # Create several locations with different terrains and biomes
+    locations["forest_1"] = Location(
+        id="forest_1",
+        name="Deep Forest",
+        description="A dense forest with ancient trees.",
         coordinates=(1, 1),
-        terrain="forest",
-        pois=[forest_shrine],
+        terrain=Terrain.FLAT,
+        pois=[],
         biome="forest"
     )
     
-    mountain_location = Location(
-        id="loc_2",
-        name="Crystal Mountains",
-        description="Towering mountains with veins of magical crystals.",
-        coordinates=(2, 2),
-        terrain="mountain",
-        pois=[mountain_cave],
+    locations["mountain_1"] = Location(
+        id="mountain_1",
+        name="High Peak",
+        description="A tall mountain with snow-capped peaks.",
+        coordinates=(5, 5),
+        terrain=Terrain.MOUNTAINS,
+        pois=[],
         biome="mountain"
     )
     
-    # Create a world
-    locations = {
-        "loc_1": forest_location,
-        "loc_2": mountain_location
-    }
+    locations["river_1"] = Location(
+        id="river_1",
+        name="Flowing River",
+        description="A wide river cutting through the landscape.",
+        coordinates=(3, 2),
+        terrain=Terrain.RIVER,
+        pois=[],
+        biome="coastal"
+    )
     
+    locations["ruins_1"] = Location(
+        id="ruins_1",
+        name="Ancient Ruins",
+        description="The crumbling remains of an ancient civilization.",
+        coordinates=(2, 4),
+        terrain=Terrain.HILLS,
+        pois=[],
+        biome="ruins"
+    )
+    
+    locations["desert_1"] = Location(
+        id="desert_1",
+        name="Vast Desert",
+        description="A sprawling desert with rolling sand dunes.",
+        coordinates=(7, 2),
+        terrain=Terrain.FLAT,
+        pois=[],
+        biome="desert"
+    )
+    
+    # Create the world
     return World(
-        id="world_1",
+        id="test_world",
         name="Test World",
         width=10,
         height=10,
         locations=locations,
-        climate="temperate"
+        climate=Climate.TEMPERATE
     )
 
 
 @pytest.fixture
-def magic_world_integration(magic_system):
-    """Fixture for a magic world integration."""
-    if not MAGIC_WORLD_AVAILABLE:
-        pytest.skip("Magic world integration not available")
-    return MagicWorldIntegration()
-
-
-@pytest.fixture
-def enhanced_world(magic_world_integration, test_world):
-    """Fixture for a world enhanced with magic."""
-    if not MAGIC_WORLD_AVAILABLE:
-        pytest.skip("Magic world integration not available")
+def enhanced_world(test_world, magic_world_integration):
+    """Create an enhanced world with magical features."""
     return magic_world_integration.enhance_world_with_magic(test_world)
 
 
 @pytest.fixture
-def test_combatant():
-    """Fixture for a test combatant."""
-    if not MAGIC_COMBAT_AVAILABLE:
-        pytest.skip("Magic combat integration not available")
-    
-    # Create a test combatant
+def test_character_domains():
+    """Create a list of domains for a test character."""
+    return [Domain.ARCANE, Domain.ELEMENTAL, Domain.NATURAL]
+
+
+@pytest.fixture
+def magic_user():
+    """Create a magic user for testing."""
+    return MagicUser(
+        id="test_user",
+        name="Test Mage",
+        level=5,
+        mana_max=100,
+        mana_current=100,
+        primary_domains=[Domain.ARCANE],
+        secondary_domains=[Domain.ELEMENTAL, Domain.NATURAL],
+        known_spells={"fireball", "arcane_missile", "healing_touch"},
+        magic_skills={
+            "spellcasting": 5,
+            "concentration": 4,
+            "magical_knowledge": 3,
+            "mana_control": 4
+        }
+    )
+
+
+@pytest.fixture
+def test_spell():
+    """Create a test spell."""
+    return Spell(
+        id="test_fireball",
+        name="Fireball",
+        description="A ball of fire that explodes on impact.",
+        domains=[Domain.ELEMENTAL],
+        damage_types=[DamageType.FIRE],
+        effect_types=[EffectType.DAMAGE],
+        mana_cost=15,
+        casting_time=1.5,
+        cooldown=3.0,
+        base_power=10.0,
+        level_req=3,
+        tier=MagicTier.MODERATE,
+        targeting_type="area",
+        range_max=20.0,
+        duration=0.0,
+        components=["verbal", "somatic"],
+        tags=["fire", "explosion", "area"]
+    )
+
+
+@pytest.fixture
+def location_magic_profile():
+    """Create a location magic profile for testing."""
+    return LocationMagicProfile(
+        location_id="test_location",
+        leyline_strength=0.7,
+        mana_flux_level=ManaFluxLevel.HIGH,
+        dominant_magic_aspects=[Domain.ARCANE, Domain.ELEMENTAL],
+        allows_ritual_sites=True,
+        magical_pois=[
+            {"id": "magical_font", "type": "ARCANE_FONT", "power": 0.8}
+        ],
+        magical_resources=[
+            {"id": "mana_crystal", "quantity": 5, "rarity": "uncommon"},
+            {"id": "fire_essence", "quantity": 3, "rarity": "uncommon"}
+        ]
+    )
+
+
+@pytest.fixture
+def test_combatant(magic_user):
+    """Create a test combatant with magic capabilities."""
     return Combatant(
-        name="Test Fighter",
-        domains={
-            Domain.BODY: 3,
-            Domain.MIND: 2,
-            Domain.CRAFT: 2,
-            Domain.AWARENESS: 3,
-            Domain.SOCIAL: 2,
-            Domain.AUTHORITY: 1,
-            Domain.SPIRIT: 2,
-            Domain.FIRE: 2,
-            Domain.WATER: 1,
-            Domain.EARTH: 1,
-            Domain.AIR: 0,
-            Domain.LIGHT: 0,
-            Domain.DARKNESS: 0
-        },
+        id="test_player",
+        name="Test Player",
+        combatant_type=CombatantType.PLAYER,
+        level=5,
         max_health=100,
         current_health=100,
-        max_stamina=50,
-        current_stamina=50,
-        max_focus=50,
-        current_focus=50,
-        max_spirit=50,
-        current_spirit=50
+        stats={
+            "strength": 10,
+            "dexterity": 12,
+            "constitution": 14,
+            "intelligence": 16,
+            "wisdom": 14,
+            "charisma": 12,
+            "perception": 13
+        },
+        resistances={DamageType.FIRE: 0.2},
+        weaknesses={DamageType.ICE: 0.2},
+        immunities=set(),
+        magic_profile=magic_user
     )
 
 
 @pytest.fixture
 def test_monster():
-    """Fixture for a test monster."""
-    if not MAGIC_COMBAT_AVAILABLE:
-        pytest.skip("Magic combat integration not available")
-    
-    # Create a test monster
+    """Create a test monster."""
     return Combatant(
-        name="Fire Elemental",
-        domains={
-            Domain.BODY: 2,
-            Domain.MIND: 1,
-            Domain.CRAFT: 0,
-            Domain.AWARENESS: 2,
-            Domain.SOCIAL: 0,
-            Domain.AUTHORITY: 0,
-            Domain.SPIRIT: 3,
-            Domain.FIRE: 4,
-            Domain.WATER: 0,
-            Domain.EARTH: 1,
-            Domain.AIR: 1,
-            Domain.LIGHT: 0,
-            Domain.DARKNESS: 0
-        },
+        id="test_monster",
+        name="Test Monster",
+        combatant_type=CombatantType.MONSTER,
+        level=4,
         max_health=80,
         current_health=80,
-        max_stamina=40,
-        current_stamina=40,
-        max_focus=30,
-        current_focus=30,
-        max_spirit=40,
-        current_spirit=40
+        stats={
+            "strength": 14,
+            "dexterity": 10,
+            "constitution": 12,
+            "intelligence": 8,
+            "wisdom": 10,
+            "charisma": 8,
+            "perception": 12
+        },
+        resistances={DamageType.PHYSICAL: 0.1},
+        weaknesses={DamageType.FIRE: 0.3},
+        immunities=set(),
+        magic_profile=None  # Will be enhanced with magic if needed
     )
 
 
 @pytest.fixture
-def combat_manager(magic_system):
-    """Fixture for a combat manager."""
-    if not MAGIC_COMBAT_AVAILABLE:
-        pytest.skip("Magic combat integration not available")
-    return MagicalCombatManager(magic_system)
-
-
-@pytest.fixture
-def magic_crafting_integration(magic_system):
-    """Fixture for a magic crafting integration."""
-    if not MAGIC_CRAFTING_AVAILABLE:
-        pytest.skip("Magic crafting integration not available")
-    return MagicCraftingIntegration(magic_system)
-
-
-@pytest.fixture
 def available_materials():
-    """Fixture for available crafting materials."""
-    if not MAGIC_CRAFTING_AVAILABLE:
-        pytest.skip("Magic crafting integration not available")
-    
-    # Return a dict of material IDs to quantities
+    """Create a dictionary of available crafting materials."""
     return {
-        "fire_essence": 5,
-        "resonant_crystal": 3,
-        "dragon_scale": 2,
-        "arcane_dust": 10,
-        "moonstone": 3,
-        "ethereal_silk": 3,
-        "mana_crystal": 4,
-        "celestial_prism": 1,
-        "wooden_shaft": 5,
-        "leather_binding": 3,
-        "healing_herb": 6,
-        "pure_water": 5,
-        "alchemical_catalyst": 4
+        "mana_crystal": 5,
+        "fire_essence": 3,
+        "wood": 10,
+        "hardwood": 5,
+        "silver": 3,
+        "gold": 2,
+        "arcane_dust": 4,
+        "mind_crystal": 2,
+        "shadow_residue": 2,
+        "divine_light": 1,
+        "elemental_essence": 3,
+        "pure_water": 10,
+        "healing_herb": 8,
+        "clarity_herb": 4,
+        "frost_extract": 3,
+        "ghost_flower": 1
     }
+
+
+@pytest.fixture
+def material_world_integration(magic_world_integration):
+    """Create a magical material world integration for testing."""
+    return MagicalMaterialWorldIntegration(magic_world_integration)
