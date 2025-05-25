@@ -1,0 +1,101 @@
+**Objective:** Design a comprehensive and precise internal Time System for a turn-based text-based RPG. This system must effectively track game time to manage durations for spells, buffs, crafting, rituals, travel, weather events, and resource regeneration. It needs to advance time based on player actions and integrate seamlessly with other game systems, while presenting time to the player in narratively appropriate blocks (e.g., Morning, Midday, Evening).
+
+**Project Context:**
+*   The game is a text-based RPG with a Python backend (FastAPI, Pydantic, SQLAlchemy). Celery and Redis are available for optimization and background tasks.
+*   Key systems to integrate with include: Weather, Magic (spells, rituals), Crafting, Combat, Character Stats (resource regeneration), and the Text Parser Engine (which will determine time costs for actions).
+*   The core challenge is to define how discrete player choices translate into appropriate advancements of game time.
+
+**Core Requirements for the Time System Design:**
+
+1.  **Pydantic Models (e.g., in `app/models/world_models.py` or a new `app/models/time_models.py`):**
+    *   **`GameDateTime`:**
+        *   `year: int`
+        *   `month: int` (1-indexed)
+        *   `day: int` (1-indexed)
+        *   `hour: int` (0-23)
+        *   `minute: int` (0-59)
+        *   Methods for easy addition/subtraction of time, comparison.
+    *   **`TimeBlock` (Enum):** e.g., `DEAD_OF_NIGHT`, `LATE_NIGHT`, `DAWN`, `MORNING`, `MIDDAY`, `AFTERNOON`, `DUSK`, `EVENING`.
+    *   **`Season` (Enum):** e.g., `SPRING`, `SUMMER`, `AUTUMN`, `WINTER`.
+    *   **`GameTimeSettings` (Pydantic Model for configuration):**
+        *   `minutes_per_hour: int` (default 60)
+        *   `hours_per_day: int` (default 24)
+        *   `days_per_month: Dict[int, int]` (mapping month number to days, to handle variable month lengths if desired, or a fixed number).
+        *   `months_per_year: int`
+        *   `year_zero_epoch: int` (starting year of the game world).
+        *   `season_definitions: Dict[Season, Tuple[int, int]]` (mapping season to start month, start day).
+        *   `time_block_definitions: Dict[TimeBlock, Tuple[int, int]]` (mapping time block to start hour, end hour).
+    *   **`ScheduledGameEvent` (Pydantic Model):**
+        *   `event_id: str` (unique)
+        *   `trigger_datetime: GameDateTime`
+        *   `event_type: str` (custom event type string or an Enum member from `app/events/event_bus.py`)
+        *   `event_context: Dict[str, Any]`
+        *   `character_id: Optional[str]` (if specific to a character)
+        *   `is_recurring: bool` (default False)
+        *   `recurrence_interval_minutes: Optional[int]` (if recurring)
+
+2.  **SQLAlchemy Models (e.g., in `app/db/models.py`):**
+    *   `DBGameTimeState`: To store the global `current_game_datetime` persistently.
+    *   `DBScheduledGameEvent`: To store scheduled events if they need to persist across sessions (especially for Celery integration).
+
+3.  **CRUD Operations (e.g., in `app/db/crud.py`):**
+    *   `CRUDGameTimeState`, `CRUDScheduledGameEvent`.
+
+4.  **`TimeService` (e.g., in `app/services/time_service.py`):**
+    *   `__init__(self, db: Session, settings: GameTimeSettings)`: Loads/initializes current game time.
+    *   `get_current_datetime() -> GameDateTime`.
+    *   `get_current_time_block() -> TimeBlock`.
+    *   `get_current_season() -> Season`.
+    *   `advance_time(minutes_to_advance: int) -> GameDateTime`:
+        *   The core function. Updates the internal `current_game_datetime`.
+        *   Persists the new `current_game_datetime` to the database.
+        *   Calls `_check_and_trigger_scheduled_events()`.
+        *   Publishes a `GAME_TIME_PROGRESSED` event on the `EventBus` with details like `minutes_advanced`, `new_datetime`, `new_time_block`, `old_time_block`.
+    *   `schedule_event(trigger_datetime: GameDateTime, event_type: str, event_context: Dict, character_id: Optional[str] = None, is_recurring: bool = False, recurrence_interval_minutes: Optional[int] = None) -> str`: Creates and stores a `ScheduledGameEvent`. Returns the event ID.
+    *   `cancel_scheduled_event(event_id: str) -> bool`.
+    *   `_check_and_trigger_scheduled_events()`: Iterates through `DBScheduledGameEvent`s. If `current_game_datetime` >= `trigger_datetime`, publishes the event on the `EventBus` and removes/updates the scheduled event.
+    *   `calculate_time_until_block(target_block: TimeBlock, current_dt: Optional[GameDateTime] = None) -> int`: Returns minutes until the start of the target block.
+    *   `calculate_time_until_datetime(target_dt: GameDateTime, current_dt: Optional[GameDateTime] = None) -> int`: Returns minutes until target datetime.
+
+5.  **Action Time Cost Allocation Strategy:**
+    *   Provide a detailed explanation and examples of how time costs will be determined and assigned to various player actions (trivial, minor, significant, major, combat, travel, crafting, resting, waiting).
+    *   Discuss where these time costs would be defined (e.g., within command handlers in the Text Parser Engine, in a central configuration).
+    *   Explain how the `TextParserEngine`'s command handlers will call `TimeService.advance_time()` after executing an action.
+
+6.  **Managing Timed Effects (Buffs, Spells, Weather):**
+    *   Explain how systems managing these effects will work with the `TimeService`.
+    *   When a timed effect starts, it should calculate its `end_game_datetime`.
+    *   These systems should subscribe to the `GAME_TIME_PROGRESSED` event. Upon receiving it, they check their active effects against the new `current_game_datetime` to see if any have expired.
+    *   Detail how `ActiveWeatherInstance` durations are managed.
+
+7.  **Resource Regeneration:**
+    *   Explain how character resource regeneration (mana, health) is tied to time advancement.
+    *   This could also be handled by a service subscribing to `GAME_TIME_PROGRESSED` and calculating regeneration based on `minutes_advanced` and character-specific rates.
+
+8.  **"Wait" / "Rest" Commands:**
+    *   How will the `TextParserEngine` handle commands like "wait until morning," "rest for 6 hours," "wait X minutes"?
+    *   The command handler for these will use `TimeService.calculate_time_until_block` or parse the duration, then call `TimeService.advance_time()` with the calculated number of minutes.
+
+9.  **Celery & Redis Integration:**
+    *   **Redis:**
+        *   Cache `GameTimeSettings`.
+        *   Potentially cache frequently accessed `ScheduledGameEvent`s if the list becomes very large (though DB query might be fine).
+    *   **Celery:**
+        *   **Offloading Processing:** When `TimeService.advance_time()` publishes `GAME_TIME_PROGRESSED`, Celery workers can subscribe to this event to handle computationally intensive updates triggered by time passing (e.g., complex NPC AI routines, large-scale economic shifts, checking many scheduled events) without blocking the main player interaction loop.
+        *   **Robust Scheduled Events (Optional for very long-term):** For events scheduled very far in the future game time, Celery tasks could be used to ensure they are checked even if the game server restarts, by scheduling a Celery task to run at a real-world time that corresponds to when the game time *should* have passed. This is more complex and might be overkill for a primarily action-driven turn-based game. The primary mechanism should be `_check_and_trigger_scheduled_events()` called during `advance_time()`.
+
+10. **Integration with Other Systems:**
+    *   Clearly outline how the `WeatherManagerService`, `MagicCastingService` (for spell/ritual durations), `CraftingService`, `CombatSystem` (for buff/debuff durations), and `CharacterService` (for resource regeneration) will interact with the `TimeService` and respond to `GAME_TIME_PROGRESSED` events.
+
+11. **Initial Game State:**
+    *   How is the game's starting date and time established?
+
+**Deliverables Expected from the AI Assistant (based on this prompt):**
+*   A detailed implementation plan document for the Time System.
+*   Python code snippets for all proposed Pydantic models.
+*   SQLAlchemy model definitions.
+*   High-level descriptions and method signatures for the `TimeService`.
+*   A comprehensive strategy for allocating time costs to player actions.
+*   Detailed explanations for managing timed effects, resource regeneration, and "wait/rest" commands.
+*   Specific suggestions for Celery and Redis utilization.
+*   Clear explanations of integration points with other game systems.
