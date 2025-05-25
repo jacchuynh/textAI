@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional, Tuple
 from sqlalchemy.orm import Session
 
-from world_model import (
+from world_generation.world_model import (
     DBPointOfInterest, DBGeneratedLocationDetails, DBBiome,
     POIType, RACIAL_CHARACTERISTICS, MAJOR_CITIES
 )

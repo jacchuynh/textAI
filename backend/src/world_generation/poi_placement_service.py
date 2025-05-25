@@ -14,10 +14,10 @@ from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
 from sqlalchemy.orm import Session
 
-from world_model import (
+from .world_model import (
     DBBiome, DBPointOfInterest, DBRegion,
     POIType, POIState, BiomeType,
-    get_biome_generation_rules, RACIAL_CHARACTERISTICS
+    RACIAL_CHARACTERISTICS
 )
 
 logger = logging.getLogger(__name__)

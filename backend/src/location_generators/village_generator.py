@@ -12,7 +12,7 @@ from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 
 from .base_generator import BaseLocationGenerator
-from world_model import (
+from world_generation.world_model import (
     DBPointOfInterest, DBGeneratedLocationDetails,
     POIType, RACIAL_CHARACTERISTICS
 )

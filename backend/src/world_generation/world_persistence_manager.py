@@ -13,7 +13,7 @@ from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 
-from world_model import (
+from .world_model import (
     DBRegion, DBBiome, DBPredefinedLocation, DBPointOfInterest,
     DBGeneratedLocationDetails, POIState
 )
