@@ -80,10 +80,10 @@ export default function PlayerView() {
     
     try {
       // Send command to server
-      const response = await axios.post(`/api/player/${userId}/command`, { command });
+      const response = await axios.post('/api/command', { userId, command });
       
       // Add response to game log
-      setGameLog(prev => [...prev, { type: 'response', content: response.data.message }]);
+      setGameLog(prev => [...prev, { type: 'response', content: response.data.result }]);
     } catch (error) {
       console.error('Error processing command:', error);
       setGameLog(prev => [

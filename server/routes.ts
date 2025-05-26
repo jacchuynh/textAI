@@ -23,7 +23,6 @@ const router = express.Router();
 
 // Game engine integration middleware
 import { processGameCommand } from './game-engine';
-import type { Player as PlayerType } from '@shared/schema';
 
 // Simple health check to verify backend is working
 router.get('/health', (req, res) => {
@@ -49,8 +48,6 @@ router.get('/api/players', async (req, res) => {
       limit: 50 // Limit results to prevent overwhelming responses
     });
     
-    // knownAspects should already be an array from Drizzle JSON handling
-    
     clearTimeout(timeout);
     res.json(allPlayers);
   } catch (error) {
@@ -75,8 +72,6 @@ router.get('/api/player/:userId', async (req, res) => {
       return res.status(404).json({ error: 'Player not found' });
     }
     
-    // knownAspects should already be an array from Drizzle JSON handling
-    
     res.json(player);
   } catch (error) {
     console.error(`Error fetching player ${req.params.userId}:`, error);
@@ -94,31 +89,15 @@ router.post('/api/player', async (req, res) => {
     const [newPlayer] = await db.insert(players).values(validatedData).returning();
     
     // Create initial magic profile
-    let knownAspectsArray = req.body.knownAspects || ['basic'];
-    // Ensure it's an array, not a string
-    if (typeof knownAspectsArray === 'string') {
-      try {
-        knownAspectsArray = JSON.parse(knownAspectsArray);
-      } catch {
-        knownAspectsArray = ['basic'];
-      }
-    }
-    // Ensure we have a valid array
-    if (!Array.isArray(knownAspectsArray)) {
-      knownAspectsArray = ['basic'];
-    }
-    
     const magicProfileData = {
       playerId: newPlayer.id,
       magicAffinity: req.body.magicAffinity || 'arcane',
-      knownAspects: knownAspectsArray // Pass as array directly to Drizzle
+      knownAspects: req.body.knownAspects || ['basic']
     };
     
     const [magicProfile] = await db.insert(magicProfiles)
       .values(magicProfileData)
       .returning();
-    
-    // knownAspects should already be an array from Drizzle JSON handling
     
     // Return player with magic profile
     const playerWithProfile = {
@@ -190,24 +169,10 @@ router.patch('/api/player/:userId/magic-profile', async (req, res) => {
     
     if (!existingProfile) {
       // Create new profile if it doesn't exist
-      let knownAspectsArray = req.body.knownAspects || ['basic'];
-      // Ensure it's an array, not a string
-      if (typeof knownAspectsArray === 'string') {
-        try {
-          knownAspectsArray = JSON.parse(knownAspectsArray);
-        } catch {
-          knownAspectsArray = ['basic'];
-        }
-      }
-      // Ensure we have a valid array
-      if (!Array.isArray(knownAspectsArray)) {
-        knownAspectsArray = ['basic'];
-      }
-      
       const magicProfileData = {
         playerId: existingPlayer.id,
         magicAffinity: req.body.magicAffinity || 'arcane',
-        knownAspects: knownAspectsArray, // Pass as array directly to Drizzle
+        knownAspects: req.body.knownAspects || ['basic'],
         updatedAt: new Date()
       };
       
@@ -215,33 +180,13 @@ router.patch('/api/player/:userId/magic-profile', async (req, res) => {
         .values(magicProfileData)
         .returning();
       
-      // knownAspects should already be an array from Drizzle JSON handling
-      
       return res.status(201).json(newProfile);
     }
     
     // Update existing profile
-    const updateData = { ...req.body };
-    if (updateData.knownAspects) {
-      let knownAspectsArray = updateData.knownAspects;
-      // Ensure it's an array, not a string
-      if (typeof knownAspectsArray === 'string') {
-        try {
-          knownAspectsArray = JSON.parse(knownAspectsArray);
-        } catch {
-          knownAspectsArray = ['basic'];
-        }
-      }
-      // Ensure we have a valid array
-      if (!Array.isArray(knownAspectsArray)) {
-        knownAspectsArray = ['basic'];
-      }
-      updateData.knownAspects = knownAspectsArray; // Pass as array directly to Drizzle
-    }
-    
     const [updatedProfile] = await db.update(magicProfiles)
       .set({
-        ...updateData,
+        ...req.body,
         // Prevent these fields from being updated directly
         id: undefined,
         playerId: undefined,
@@ -250,8 +195,6 @@ router.patch('/api/player/:userId/magic-profile', async (req, res) => {
       })
       .where(eq(magicProfiles.id, existingProfile.id))
       .returning();
-    
-    // knownAspects should already be an array from Drizzle JSON handling
     
     res.json(updatedProfile);
   } catch (error) {
