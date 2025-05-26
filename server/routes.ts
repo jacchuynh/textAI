@@ -24,6 +24,15 @@ const router = express.Router();
 // Game engine integration middleware
 import { processGameCommand } from './game-engine';
 
+// Simple health check to verify backend is working
+router.get('/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    message: 'Fantasy RPG Backend is working perfectly!',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Get all players (optimized for faster loading)
 router.get('/api/players', async (req, res) => {
   try {
