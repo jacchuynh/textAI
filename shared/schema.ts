@@ -27,7 +27,7 @@ export const magicProfiles = pgTable('magic_profiles', {
   magicAffinity: text('magic_affinity').notNull(),
   manaCapacity: integer('mana_capacity').notNull().default(100),
   manaCurrent: integer('mana_current').notNull().default(100),
-  knownAspects: json('known_aspects').$type<string[]>().notNull(),
+  knownAspects: text('known_aspects').array().notNull(),
   manaRegenRate: decimal('mana_regen_rate').notNull().default('5.0'),
   spellPower: integer('spell_power').notNull().default(10),
   spellMastery: integer('spell_mastery').notNull().default(1),
