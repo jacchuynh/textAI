@@ -51,3 +51,7 @@ def create_app() -> FastAPI:
         return {"status": "healthy"}
 
     return app
+
+
+# Create the app instance for uvicorn
+app = create_app()
