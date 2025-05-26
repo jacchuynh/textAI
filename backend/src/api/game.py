@@ -78,12 +78,12 @@ async def start_game(request: StartGameRequest):
 @router.post("/send-input")
 async def send_input(request: SendInputRequest):
     """Process player input and return AI response"""
-    if not request.gameId:
-        raise HTTPException(status_code=400, detail="Game ID is required")
-    if not request.input:
-        raise HTTPException(status_code=400, detail="Input is required")
-    
     try:
+        if not request.gameId:
+            raise HTTPException(status_code=400, detail="Game ID is required")
+        if not request.input:
+            raise HTTPException(status_code=400, detail="Input is required")
+        
         if request.gameId not in games:
             raise HTTPException(status_code=404, detail="Game not found")
         
@@ -94,28 +94,29 @@ async def send_input(request: SendInputRequest):
         # In a full implementation, this would use the AI GM system
         
         # Generate a basic response
-        narrative_response = f"You decide to {request.input.lower()}. "
+        user_input = request.input.lower()
+        narrative_response = f"You decide to {user_input}. "
         
-        if "look" in request.input.lower() or "examine" in request.input.lower():
+        if "look" in user_input or "examine" in user_input:
             narrative_response += "You take a moment to observe your surroundings. The village bustles with activity as merchants hawk their wares and children play in the streets."
-        elif "talk" in request.input.lower() or "speak" in request.input.lower():
+        elif "talk" in user_input or "speak" in user_input:
             narrative_response += "A friendly villager approaches you with a warm smile. 'Welcome, traveler! What brings you to our humble village?'"
-        elif "explore" in request.input.lower() or "wander" in request.input.lower():
+        elif "explore" in user_input or "wander" in user_input:
             narrative_response += "You begin to explore the area, discovering new paths and interesting locations. The adventure beckons!"
-        elif "inventory" in request.input.lower() or "items" in request.input.lower():
+        elif "inventory" in user_input or "items" in user_input:
             narrative_response += "You check your belongings. You carry the basic equipment of an adventurer - a simple weapon, some coins, and traveling supplies."
         else:
             narrative_response += "Your action ripples through the world, creating new possibilities for adventure."
         
         # Generate some choices based on the input
         choices = []
-        if "talk" in request.input.lower():
+        if "talk" in user_input:
             choices = [
                 "Ask about local rumors",
                 "Inquire about work opportunities", 
                 "Ask for directions to interesting places"
             ]
-        elif "explore" in request.input.lower():
+        elif "explore" in user_input:
             choices = [
                 "Head to the town square",
                 "Visit the local tavern",
