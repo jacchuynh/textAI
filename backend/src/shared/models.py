@@ -144,6 +144,8 @@ class Character(BaseModel):
     """Character model with domains and tags"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
+    character_class: Optional[str] = "Adventurer"
+    background: Optional[str] = "Commoner"
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     
