@@ -9,7 +9,7 @@ import { dirname, resolve } from 'path';
 
 // Environment variables
 const isProduction = process.env.NODE_ENV === 'production';
-const PORT = Number(process.env.PORT || 3000);
+const PORT = Number(process.env.PORT || 5000);
 const SESSION_SECRET = process.env.SESSION_SECRET || 'fantasy-rpg-secret';
 
 // Initialize Express
