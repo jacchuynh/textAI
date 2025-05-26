@@ -93,7 +93,7 @@ router.post('/api/player', async (req, res) => {
     const magicProfileData = {
       playerId: newPlayer.id,
       magicAffinity: req.body.magicAffinity || 'arcane',
-      knownAspects: req.body.knownAspects || ['basic']
+      knownAspects: JSON.stringify(req.body.knownAspects || ['basic'])
     };
     
     const [magicProfile] = await db.insert(magicProfiles)
@@ -173,7 +173,7 @@ router.patch('/api/player/:userId/magic-profile', async (req, res) => {
       const magicProfileData = {
         playerId: existingPlayer.id,
         magicAffinity: req.body.magicAffinity || 'arcane',
-        knownAspects: req.body.knownAspects || ['basic'],
+        knownAspects: JSON.stringify(req.body.knownAspects || ['basic']),
         updatedAt: new Date()
       };
       
@@ -185,9 +185,14 @@ router.patch('/api/player/:userId/magic-profile', async (req, res) => {
     }
     
     // Update existing profile
+    const updateData = { ...req.body };
+    if (updateData.knownAspects && Array.isArray(updateData.knownAspects)) {
+      updateData.knownAspects = JSON.stringify(updateData.knownAspects);
+    }
+    
     const [updatedProfile] = await db.update(magicProfiles)
       .set({
-        ...req.body,
+        ...updateData,
         // Prevent these fields from being updated directly
         id: undefined,
         playerId: undefined,
