@@ -265,7 +265,9 @@ export type PlayerInsert = z.infer<typeof playerInsertSchema>;
 export const playerSelectSchema = createSelectSchema(players);
 export type Player = z.infer<typeof playerSelectSchema>;
 
-export const magicProfileInsertSchema = createInsertSchema(magicProfiles);
+export const magicProfileInsertSchema = createInsertSchema(magicProfiles, {
+  knownAspects: z.array(z.string()).default(['basic'])
+});
 export type MagicProfileInsert = z.infer<typeof magicProfileInsertSchema>;
 export const magicProfileSelectSchema = createSelectSchema(magicProfiles);
 export type MagicProfile = z.infer<typeof magicProfileSelectSchema>;
