@@ -24,15 +24,22 @@ const router = express.Router();
 // Game engine integration middleware
 import { processGameCommand } from './game-engine';
 
-// Get all players
+// Get all players (optimized for faster loading)
 router.get('/api/players', async (req, res) => {
   try {
+    // Set timeout and add basic query optimization
+    const timeout = setTimeout(() => {
+      res.status(408).json({ error: 'Request timeout' });
+    }, 10000);
+
     const allPlayers = await db.query.players.findMany({
       with: {
         magicProfile: true
-      }
+      },
+      limit: 50 // Limit results to prevent overwhelming responses
     });
     
+    clearTimeout(timeout);
     res.json(allPlayers);
   } catch (error) {
     console.error('Error fetching players:', error);

@@ -15,6 +15,16 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'fantasy-rpg-secret';
 // Initialize Express
 const app = express();
 
+// Add request timeout and performance optimizations
+app.use((req, res, next) => {
+  res.setTimeout(30000); // 30 second timeout
+  next();
+});
+
+// Body parsing with size limits
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
 // Session store setup with PostgreSQL
 const PgSession = connectPgSimple(session);
 const sessionStore = new PgSession({
@@ -48,12 +58,18 @@ if (!isProduction) {
   (async () => {
     try {
       const vite = await createServer({
-        server: { middlewareMode: true },
+        server: { 
+          middlewareMode: true,
+          hmr: { port: 24678 }
+        },
         appType: 'spa',
+        optimizeDeps: {
+          include: ['react', 'react-dom', 'wouter']
+        }
       });
       
       app.use(vite.middlewares);
-      console.log('Vite middleware attached');
+      console.log('Vite middleware attached with optimization');
     } catch (e) {
       console.error('Error setting up Vite middleware:', e);
     }
