@@ -79,6 +79,11 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
+  // Add health check endpoint
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
