@@ -49,6 +49,18 @@ router.get('/api/players', async (req, res) => {
       limit: 50 // Limit results to prevent overwhelming responses
     });
     
+    // Parse knownAspects JSON strings back to arrays for frontend
+    allPlayers.forEach(player => {
+      if (player.magicProfile?.knownAspects) {
+        try {
+          player.magicProfile.knownAspects = JSON.parse(player.magicProfile.knownAspects as any);
+        } catch (parseError) {
+          console.error('Error parsing knownAspects for player:', player.id, parseError);
+          player.magicProfile.knownAspects = ['basic']; // fallback
+        }
+      }
+    });
+    
     clearTimeout(timeout);
     res.json(allPlayers);
   } catch (error) {
@@ -71,6 +83,16 @@ router.get('/api/player/:userId', async (req, res) => {
     
     if (!player) {
       return res.status(404).json({ error: 'Player not found' });
+    }
+    
+    // Parse knownAspects JSON string back to array for frontend
+    if (player.magicProfile?.knownAspects) {
+      try {
+        player.magicProfile.knownAspects = JSON.parse(player.magicProfile.knownAspects as any);
+      } catch (parseError) {
+        console.error('Error parsing knownAspects:', parseError);
+        player.magicProfile.knownAspects = ['basic']; // fallback
+      }
     }
     
     res.json(player);
@@ -99,6 +121,16 @@ router.post('/api/player', async (req, res) => {
     const [magicProfile] = await db.insert(magicProfiles)
       .values(magicProfileData)
       .returning();
+    
+    // Parse knownAspects back to array for response
+    if (magicProfile.knownAspects) {
+      try {
+        magicProfile.knownAspects = JSON.parse(magicProfile.knownAspects as any);
+      } catch (parseError) {
+        console.error('Error parsing knownAspects:', parseError);
+        magicProfile.knownAspects = ['basic']; // fallback
+      }
+    }
     
     // Return player with magic profile
     const playerWithProfile = {
@@ -181,6 +213,16 @@ router.patch('/api/player/:userId/magic-profile', async (req, res) => {
         .values(magicProfileData)
         .returning();
       
+      // Parse knownAspects back to array for response
+      if (newProfile.knownAspects) {
+        try {
+          newProfile.knownAspects = JSON.parse(newProfile.knownAspects as any);
+        } catch (parseError) {
+          console.error('Error parsing knownAspects:', parseError);
+          newProfile.knownAspects = ['basic']; // fallback
+        }
+      }
+      
       return res.status(201).json(newProfile);
     }
     
@@ -201,6 +243,16 @@ router.patch('/api/player/:userId/magic-profile', async (req, res) => {
       })
       .where(eq(magicProfiles.id, existingProfile.id))
       .returning();
+    
+    // Parse knownAspects back to array for response
+    if (updatedProfile.knownAspects) {
+      try {
+        updatedProfile.knownAspects = JSON.parse(updatedProfile.knownAspects as any);
+      } catch (parseError) {
+        console.error('Error parsing knownAspects:', parseError);
+        updatedProfile.knownAspects = ['basic']; // fallback
+      }
+    }
     
     res.json(updatedProfile);
   } catch (error) {
