@@ -12,6 +12,7 @@ import {
   regions,
   areas,
   playerCraftingSkills,
+  craftingRecipes,
   playerInsertSchema,
   magicProfileInsertSchema
 } from '@shared/schema';
@@ -21,7 +22,7 @@ import { z } from 'zod';
 const router = express.Router();
 
 // Game engine integration middleware
-import { processGameCommand } from '../server/game-engine';
+import { processGameCommand } from './game-engine';
 
 // Get all players
 router.get('/api/players', async (req, res) => {
@@ -415,6 +416,23 @@ router.post('/api/player/:userId/command', async (req, res) => {
     
     // Process the command through game engine
     const result = await processGameCommand(existingPlayer, command);
+    
+    // Apply any player updates if the command was successful
+    if (result.success && result.playerUpdates) {
+      await db.update(players)
+        .set(result.playerUpdates)
+        .where(eq(players.userId, userId));
+    }
+    
+    // Apply any magic profile updates if the command was successful
+    if (result.success && result.magicProfileUpdates && existingPlayer.magicProfile) {
+      await db.update(magicProfiles)
+        .set({
+          ...result.magicProfileUpdates,
+          updatedAt: new Date()
+        })
+        .where(eq(magicProfiles.id, existingPlayer.magicProfile.id));
+    }
     
     res.json(result);
   } catch (error) {

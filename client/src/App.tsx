@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route, Switch } from 'wouter';
-import { ThemeProvider } from '@/components/theme-provider';
+import { ThemeProvider } from './components/theme-provider';
 import HomePage from './pages/HomePage';
 import CreateCharacter from './pages/CreateCharacter';
 import PlayerView from './pages/PlayerView';

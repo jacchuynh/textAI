@@ -1,7 +1,7 @@
 import express from 'express';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
-import { query } from '../db';
+import { db } from '@db';
 import routes from './routes';
 import { createServer } from 'vite';
 import { fileURLToPath } from 'url';
@@ -18,7 +18,7 @@ const app = express();
 // Session store setup with PostgreSQL
 const PgSession = connectPgSimple(session);
 const sessionStore = new PgSession({
-  pgPromise: query,
+  conString: process.env.DATABASE_URL,
   createTableIfMissing: true,
 });
 
