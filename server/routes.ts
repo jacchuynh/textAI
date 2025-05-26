@@ -49,17 +49,7 @@ router.get('/api/players', async (req, res) => {
       limit: 50 // Limit results to prevent overwhelming responses
     });
     
-    // Parse knownAspects JSON strings back to arrays for frontend
-    allPlayers.forEach(player => {
-      if (player.magicProfile?.knownAspects) {
-        try {
-          player.magicProfile.knownAspects = JSON.parse(player.magicProfile.knownAspects as any);
-        } catch (parseError) {
-          console.error('Error parsing knownAspects for player:', player.id, parseError);
-          player.magicProfile.knownAspects = ['basic']; // fallback
-        }
-      }
-    });
+    // knownAspects should already be an array from Drizzle JSON handling
     
     clearTimeout(timeout);
     res.json(allPlayers);
@@ -85,15 +75,7 @@ router.get('/api/player/:userId', async (req, res) => {
       return res.status(404).json({ error: 'Player not found' });
     }
     
-    // Parse knownAspects JSON string back to array for frontend
-    if (player.magicProfile?.knownAspects) {
-      try {
-        player.magicProfile.knownAspects = JSON.parse(player.magicProfile.knownAspects as any);
-      } catch (parseError) {
-        console.error('Error parsing knownAspects:', parseError);
-        player.magicProfile.knownAspects = ['basic']; // fallback
-      }
-    }
+    // knownAspects should already be an array from Drizzle JSON handling
     
     res.json(player);
   } catch (error) {
@@ -121,26 +103,22 @@ router.post('/api/player', async (req, res) => {
         knownAspectsArray = ['basic'];
       }
     }
+    // Ensure we have a valid array
+    if (!Array.isArray(knownAspectsArray)) {
+      knownAspectsArray = ['basic'];
+    }
     
     const magicProfileData = {
       playerId: newPlayer.id,
       magicAffinity: req.body.magicAffinity || 'arcane',
-      knownAspects: JSON.stringify(knownAspectsArray)
+      knownAspects: knownAspectsArray // Pass as array directly to Drizzle
     };
     
     const [magicProfile] = await db.insert(magicProfiles)
       .values(magicProfileData)
       .returning();
     
-    // Parse knownAspects back to array for response
-    if (magicProfile.knownAspects) {
-      try {
-        magicProfile.knownAspects = JSON.parse(magicProfile.knownAspects as any);
-      } catch (parseError) {
-        console.error('Error parsing knownAspects:', parseError);
-        magicProfile.knownAspects = ['basic']; // fallback
-      }
-    }
+    // knownAspects should already be an array from Drizzle JSON handling
     
     // Return player with magic profile
     const playerWithProfile = {
@@ -221,11 +199,15 @@ router.patch('/api/player/:userId/magic-profile', async (req, res) => {
           knownAspectsArray = ['basic'];
         }
       }
+      // Ensure we have a valid array
+      if (!Array.isArray(knownAspectsArray)) {
+        knownAspectsArray = ['basic'];
+      }
       
       const magicProfileData = {
         playerId: existingPlayer.id,
         magicAffinity: req.body.magicAffinity || 'arcane',
-        knownAspects: JSON.stringify(knownAspectsArray),
+        knownAspects: knownAspectsArray, // Pass as array directly to Drizzle
         updatedAt: new Date()
       };
       
@@ -233,15 +215,7 @@ router.patch('/api/player/:userId/magic-profile', async (req, res) => {
         .values(magicProfileData)
         .returning();
       
-      // Parse knownAspects back to array for response
-      if (newProfile.knownAspects) {
-        try {
-          newProfile.knownAspects = JSON.parse(newProfile.knownAspects as any);
-        } catch (parseError) {
-          console.error('Error parsing knownAspects:', parseError);
-          newProfile.knownAspects = ['basic']; // fallback
-        }
-      }
+      // knownAspects should already be an array from Drizzle JSON handling
       
       return res.status(201).json(newProfile);
     }
@@ -258,7 +232,11 @@ router.patch('/api/player/:userId/magic-profile', async (req, res) => {
           knownAspectsArray = ['basic'];
         }
       }
-      updateData.knownAspects = JSON.stringify(knownAspectsArray);
+      // Ensure we have a valid array
+      if (!Array.isArray(knownAspectsArray)) {
+        knownAspectsArray = ['basic'];
+      }
+      updateData.knownAspects = knownAspectsArray; // Pass as array directly to Drizzle
     }
     
     const [updatedProfile] = await db.update(magicProfiles)
@@ -273,15 +251,7 @@ router.patch('/api/player/:userId/magic-profile', async (req, res) => {
       .where(eq(magicProfiles.id, existingProfile.id))
       .returning();
     
-    // Parse knownAspects back to array for response
-    if (updatedProfile.knownAspects) {
-      try {
-        updatedProfile.knownAspects = JSON.parse(updatedProfile.knownAspects as any);
-      } catch (parseError) {
-        console.error('Error parsing knownAspects:', parseError);
-        updatedProfile.knownAspects = ['basic']; // fallback
-      }
-    }
+    // knownAspects should already be an array from Drizzle JSON handling
     
     res.json(updatedProfile);
   } catch (error) {
