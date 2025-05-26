@@ -69,15 +69,17 @@ async def start_game(
 
 
 @router.post("/send-input")
-async def send_input(request: dict):
+async def send_input(
+    gameId: str = Body(...),
+    input: str = Body(...)
+):
     """Process player input and return AI response"""
-    gameId = request.get("gameId")
-    input_text = request.get("input")
-    
     if not gameId:
         raise HTTPException(status_code=400, detail="Game ID is required")
-    if not input_text:
+    if not input:
         raise HTTPException(status_code=400, detail="Input is required")
+    
+    input_text = input
     try:
         if gameId not in games:
             raise HTTPException(status_code=404, detail="Game not found")
