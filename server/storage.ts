@@ -98,7 +98,7 @@ class StorageService {
               background: character.background,
               level: character.level,
               xp: character.xp,
-              stats: character.stats as any,
+              stats: JSON.stringify(character.stats),
               maxHealth: character.maxHealth,
               currentHealth: character.currentHealth,
               maxMana: character.maxMana,
@@ -110,7 +110,7 @@ class StorageService {
             .set({
               level: character.level,
               xp: character.xp,
-              stats: character.stats as any,
+              stats: JSON.stringify(character.stats),
               maxHealth: character.maxHealth,
               currentHealth: character.currentHealth,
               maxMana: character.maxMana,
@@ -146,7 +146,7 @@ class StorageService {
                 quantity: item.quantity,
                 weight: item.weight,
                 type: item.type,
-                properties: item.properties as any
+                properties: JSON.stringify(item.properties || {})
               });
           }
         }

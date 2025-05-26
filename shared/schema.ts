@@ -243,6 +243,18 @@ export const areasRelations = relations(areas, ({ one }) => ({
   })
 }));
 
+export const magicalMaterialsRelations = relations(magicalMaterials, ({  }) => ({
+
+}));
+
+export const craftingRecipesRelations = relations(craftingRecipes, ({  }) => ({
+
+}));
+
+export const playerCraftingSkillsRelations = relations(playerCraftingSkills, ({  }) => ({
+
+}));
+
 // Zod schemas for validation
 export const playerInsertSchema = createInsertSchema(players, {
   name: (schema) => schema.min(2, "Name must be at least 2 characters"),
@@ -282,3 +294,18 @@ export const areaInsertSchema = createInsertSchema(areas);
 export type AreaInsert = z.infer<typeof areaInsertSchema>;
 export const areaSelectSchema = createSelectSchema(areas);
 export type Area = z.infer<typeof areaSelectSchema>;
+
+export const magicalMaterialsInsertSchema = createInsertSchema(magicalMaterials);
+export type MagicalMaterialsInsert = z.infer<typeof magicalMaterialsInsertSchema>;
+export const magicalMaterialsSelectSchema = createSelectSchema(magicalMaterials);
+export type MagicalMaterials = z.infer<typeof magicalMaterialsSelectSchema>;
+
+export const craftingRecipesInsertSchema = createInsertSchema(craftingRecipes);
+export type CraftingRecipesInsert = z.infer<typeof craftingRecipesInsertSchema>;
+export const craftingRecipesSelectSchema = createSelectSchema(craftingRecipes);
+export type CraftingRecipes = z.infer<typeof craftingRecipesSelectSchema>;
+
+export const playerCraftingSkillsInsertSchema = createInsertSchema(playerCraftingSkills);
+export type PlayerCraftingSkillsInsert = z.infer<typeof playerCraftingSkillsInsertSchema>;
+export const playerCraftingSkillsSelectSchema = createSelectSchema(playerCraftingSkills);
+export type PlayerCraftingSkills = z.infer<typeof playerCraftingSkillsSelectSchema>;
