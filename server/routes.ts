@@ -88,11 +88,12 @@ router.post('/api/player', async (req, res) => {
     // Insert player
     const [newPlayer] = await db.insert(players).values(validatedData).returning();
     
-    // Create initial magic profile
+    // Create initial magic profile with proper array formatting
+    const knownAspects = req.body.knownAspects || ['basic'];
     const magicProfileData = {
       playerId: newPlayer.id,
       magicAffinity: req.body.magicAffinity || 'arcane',
-      knownAspects: req.body.knownAspects || ['basic']
+      knownAspects: knownAspects
     };
     
     const [magicProfile] = await db.insert(magicProfiles)
