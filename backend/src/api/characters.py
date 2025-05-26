@@ -21,6 +21,11 @@ async def create_character(name: str = Body(..., embed=True)):
         # Create character using game engine
         character = game_engine.create_character(name)
         
+        # Debug: Print character data before storage
+        print(f"Character created: {character.name}")
+        print(f"Character domains: {character.domains}")
+        print(f"Character tags: {character.tags}")
+        
         # Store in memory
         characters[character.id] = character
         
@@ -34,6 +39,9 @@ async def create_character(name: str = Body(..., embed=True)):
         return character
     except Exception as e:
         print(f"Error creating character: {e}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to create character: {str(e)}")
 
 
