@@ -67,9 +67,36 @@ def save_character(character: Character) -> bool:
     
     try:
         with open(character_file, "w", encoding="utf-8") as f:
-            # Convert character to dict with model_dump() or dict()
-            character_dict = character.dict() if hasattr(character, "dict") else character.model_dump()
-            json.dump(character_dict, f, default=str, indent=2)
+            # Convert character to dict with proper serialization
+            if hasattr(character, "model_dump"):
+                character_dict = character.model_dump()
+            elif hasattr(character, "dict"):
+                character_dict = character.dict()
+            else:
+                # Fallback to manual conversion
+                character_dict = {
+                    "id": str(character.id),
+                    "name": character.name,
+                    "character_class": getattr(character, 'character_class', 'Adventurer'),
+                    "background": getattr(character, 'background', 'Commoner'),
+                    "created_at": character.created_at.isoformat() if hasattr(character, 'created_at') else datetime.now().isoformat(),
+                    "updated_at": character.updated_at.isoformat() if hasattr(character, 'updated_at') else datetime.now().isoformat(),
+                    "domains": {k.value if hasattr(k, 'value') else str(k): v.dict() if hasattr(v, 'dict') else v for k, v in getattr(character, 'domains', {}).items()},
+                    "tags": {k: v.dict() if hasattr(v, 'dict') else v for k, v in getattr(character, 'tags', {}).items()},
+                    "domain_history": {k.value if hasattr(k, 'value') else str(k): v for k, v in getattr(character, 'domain_history', {}).items()}
+                }
+            
+            def json_serializer(obj):
+                """Custom JSON serializer for complex objects"""
+                if hasattr(obj, 'isoformat'):
+                    return obj.isoformat()
+                elif hasattr(obj, 'value'):
+                    return obj.value
+                elif hasattr(obj, 'dict'):
+                    return obj.dict()
+                return str(obj)
+            
+            json.dump(character_dict, f, default=json_serializer, indent=2)
         return True
     except Exception as e:
         print(f"Error saving character {character_id}: {e}")

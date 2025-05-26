@@ -17,9 +17,22 @@ characters: Dict[str, Character] = {}
 @router.post("/", response_model=Character)
 async def create_character(name: str = Body(..., embed=True)):
     """Create a new character"""
-    character = game_engine.create_character(name)
-    characters[character.id] = character
-    return character
+    try:
+        character = game_engine.create_character(name)
+        characters[character.id] = character
+        
+        # Save to storage with proper error handling
+        from ..storage.character_storage import save_character
+        save_success = save_character(character)
+        
+        if not save_success:
+            # Log the issue but still return the character since it's in memory
+            print(f"Warning: Failed to persist character {character.id} to storage")
+        
+        return character
+    except Exception as e:
+        print(f"Error creating character: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create character: {str(e)}")
 
 
 @router.get("/{character_id}", response_model=Character)

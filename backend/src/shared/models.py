@@ -167,6 +167,15 @@ class Character(BaseModel):
                 result[domain_type] = Domain(type=domain_type)
         return result
     
+    class Config:
+        """Pydantic configuration"""
+        use_enum_values = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat(),
+            # Handle any enum serialization
+            DomainType: lambda v: v.value if hasattr(v, 'value') else str(v)
+        }
+    
     def roll_check(self, domain_type: DomainType, tag_name: Optional[str] = None, difficulty: int = 10) -> dict:
         """Perform a domain check with optional tag bonus
         
