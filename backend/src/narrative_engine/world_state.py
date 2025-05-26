@@ -12,8 +12,24 @@ import json
 from datetime import datetime
 import uuid
 import copy
+from enum import Enum
 
 logger = logging.getLogger(__name__)
+
+class EconomicStatus(Enum):
+    """Economic status levels for the world."""
+    BOOM = "boom"
+    STABLE = "stable"
+    RECESSION = "recession"
+    DEPRESSION = "depression"
+
+class PoliticalStability(Enum):
+    """Political stability levels for the world."""
+    PEACEFUL = "peaceful"
+    STABLE = "stable"
+    UNREST = "unrest"
+    REBELLION = "rebellion"
+    AT_WAR = "at_war"
 
 class WorldState:
     """
@@ -678,6 +694,11 @@ class WorldStateManager:
         self.logger = logging.getLogger("WorldStateManager")
         self.storage_service = storage_service
         self.active_worlds = {}  # In-memory cache of active world states
+        
+        # Initialize default world state properties
+        self.economic_status = EconomicStatus.STABLE
+        self.political_stability = PoliticalStability.STABLE
+        self.current_season = "spring"
     
     def create_world(self, world_id: str = None) -> WorldState:
         """
@@ -912,3 +933,29 @@ class WorldStateManager:
                 return (faction_id, faction_data)
                 
         return None
+    
+    def update_economic_status(self, status: EconomicStatus) -> None:
+        """Update the global economic status."""
+        self.economic_status = status
+        
+    def update_political_stability(self, stability: PoliticalStability) -> None:
+        """Update the global political stability."""
+        self.political_stability = stability
+        
+    def update_current_season(self, season: str) -> None:
+        """Update the current season."""
+        self.current_season = season
+        
+    def get_current_state_summary(self) -> dict:
+        """Get a summary of the current world state."""
+        return {
+            "economic_status": self.economic_status.value,
+            "political_stability": self.political_stability.value,
+            "current_season": self.current_season,
+            "active_global_threats": [],  # Can be expanded
+            "world_events": []  # Can be expanded
+        }
+
+
+# Global world state manager instance
+world_state_manager = WorldStateManager()
