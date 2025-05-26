@@ -83,7 +83,7 @@ export default function PlayerView() {
       const response = await axios.post('/api/command', { userId, command });
       
       // Add response to game log
-      setGameLog(prev => [...prev, { type: 'response', content: response.data.result }]);
+      setGameLog(prev => [...prev, { type: 'response', content: response.data.message }]);
     } catch (error) {
       console.error('Error processing command:', error);
       setGameLog(prev => [
