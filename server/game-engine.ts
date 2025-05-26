@@ -1,4 +1,4 @@
-import { Player, MagicProfile } from '@shared/schema';
+import type { Player, MagicProfile } from '@shared/schema';
 
 /**
  * Game Engine - Coordinates between text parser and game systems

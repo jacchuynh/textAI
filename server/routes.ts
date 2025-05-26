@@ -23,6 +23,7 @@ const router = express.Router();
 
 // Game engine integration middleware
 import { processGameCommand } from './game-engine';
+import type { Player as PlayerType } from '@shared/schema';
 
 // Simple health check to verify backend is working
 router.get('/health', (req, res) => {
