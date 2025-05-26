@@ -18,16 +18,18 @@ characters: Dict[str, Character] = {}
 async def create_character(name: str = Body(..., embed=True)):
     """Create a new character"""
     try:
+        # Create character using game engine
         character = game_engine.create_character(name)
+        
+        # Store in memory
         characters[character.id] = character
         
-        # Save to storage with proper error handling
+        # Save to file storage (not database)
         from ..storage.character_storage import save_character
         save_success = save_character(character)
         
         if not save_success:
-            # Log the issue but still return the character since it's in memory
-            print(f"Warning: Failed to persist character {character.id} to storage")
+            print(f"Warning: Failed to save character {character.id} to file storage")
         
         return character
     except Exception as e:

@@ -172,9 +172,38 @@ class Character(BaseModel):
         use_enum_values = True
         json_encoders = {
             datetime: lambda v: v.isoformat(),
-            # Handle any enum serialization
-            DomainType: lambda v: v.value if hasattr(v, 'value') else str(v)
+            DomainType: lambda v: v.value if hasattr(v, 'value') else str(v),
+            TagCategory: lambda v: v.value if hasattr(v, 'value') else str(v)
         }
+        
+    def model_dump(self, **kwargs):
+        """Custom model dump to handle serialization issues"""
+        data = super().model_dump(**kwargs)
+        
+        # Ensure domains are properly serialized
+        if 'domains' in data:
+            serialized_domains = {}
+            for domain_type, domain in data['domains'].items():
+                key = domain_type.value if hasattr(domain_type, 'value') else str(domain_type)
+                serialized_domains[key] = domain
+            data['domains'] = serialized_domains
+            
+        # Ensure tags are properly serialized
+        if 'tags' in data:
+            serialized_tags = {}
+            for tag_name, tag in data['tags'].items():
+                serialized_tags[tag_name] = tag
+            data['tags'] = serialized_tags
+            
+        # Ensure domain_history is properly serialized
+        if 'domain_history' in data:
+            serialized_history = {}
+            for domain_type, history in data['domain_history'].items():
+                key = domain_type.value if hasattr(domain_type, 'value') else str(domain_type)
+                serialized_history[key] = history
+            data['domain_history'] = serialized_history
+            
+        return data
     
     def roll_check(self, domain_type: DomainType, tag_name: Optional[str] = None, difficulty: int = 10) -> dict:
         """Perform a domain check with optional tag bonus
