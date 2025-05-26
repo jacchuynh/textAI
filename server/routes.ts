@@ -112,10 +112,20 @@ router.post('/api/player', async (req, res) => {
     const [newPlayer] = await db.insert(players).values(validatedData).returning();
     
     // Create initial magic profile
+    let knownAspectsArray = req.body.knownAspects || ['basic'];
+    // Ensure it's an array, not a string
+    if (typeof knownAspectsArray === 'string') {
+      try {
+        knownAspectsArray = JSON.parse(knownAspectsArray);
+      } catch {
+        knownAspectsArray = ['basic'];
+      }
+    }
+    
     const magicProfileData = {
       playerId: newPlayer.id,
       magicAffinity: req.body.magicAffinity || 'arcane',
-      knownAspects: JSON.stringify(req.body.knownAspects || ['basic'])
+      knownAspects: JSON.stringify(knownAspectsArray)
     };
     
     const [magicProfile] = await db.insert(magicProfiles)
@@ -202,10 +212,20 @@ router.patch('/api/player/:userId/magic-profile', async (req, res) => {
     
     if (!existingProfile) {
       // Create new profile if it doesn't exist
+      let knownAspectsArray = req.body.knownAspects || ['basic'];
+      // Ensure it's an array, not a string
+      if (typeof knownAspectsArray === 'string') {
+        try {
+          knownAspectsArray = JSON.parse(knownAspectsArray);
+        } catch {
+          knownAspectsArray = ['basic'];
+        }
+      }
+      
       const magicProfileData = {
         playerId: existingPlayer.id,
         magicAffinity: req.body.magicAffinity || 'arcane',
-        knownAspects: JSON.stringify(req.body.knownAspects || ['basic']),
+        knownAspects: JSON.stringify(knownAspectsArray),
         updatedAt: new Date()
       };
       
@@ -228,8 +248,17 @@ router.patch('/api/player/:userId/magic-profile', async (req, res) => {
     
     // Update existing profile
     const updateData = { ...req.body };
-    if (updateData.knownAspects && Array.isArray(updateData.knownAspects)) {
-      updateData.knownAspects = JSON.stringify(updateData.knownAspects);
+    if (updateData.knownAspects) {
+      let knownAspectsArray = updateData.knownAspects;
+      // Ensure it's an array, not a string
+      if (typeof knownAspectsArray === 'string') {
+        try {
+          knownAspectsArray = JSON.parse(knownAspectsArray);
+        } catch {
+          knownAspectsArray = ['basic'];
+        }
+      }
+      updateData.knownAspects = JSON.stringify(knownAspectsArray);
     }
     
     const [updatedProfile] = await db.update(magicProfiles)
