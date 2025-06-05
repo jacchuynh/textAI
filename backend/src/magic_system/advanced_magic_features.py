@@ -460,60 +460,117 @@ class EnvironmentalMagicResonance:
         
         return modifier
     
-    def get_environmental_magic_effects(self, location: Dict[str, Any]) -> List[Effect]:
+    def get_environmental_magic_effects(self, location: Dict[str, Any], character=None) -> List[Effect]:
         """
-        Generate random magical effects that might occur in a location due to environmental factors.
+        Generate magical effects that might occur in a location due to environmental factors.
+        Enhanced version uses character's enhanced roll system when available.
         
         Args:
             location: Information about the location
+            character: Optional character object for enhanced roll checks
             
         Returns:
             A list of magical effects
         """
         effects = []
         
+        # Helper function for probability checks
+        def check_probability(base_probability: float, difficulty: int, description: str) -> bool:
+            if character and hasattr(character, 'roll_check_hybrid'):
+                # Use enhanced roll system with Spirit domain (magical sensitivity)
+                try:
+                    from ..shared.models import DomainType
+                    result = character.roll_check_hybrid(
+                        domain_type=DomainType.SPIRIT,
+                        difficulty=difficulty,
+                        action_data={
+                            "label": f"Environmental Magic Sensitivity - {description}",
+                            "action_type": "magical_perception",
+                            "tags": ["magical_awareness", "environmental_magic"]
+                        }
+                    )
+                    return result.get('success', False)
+                except:
+                    # Fallback to simple probability
+                    pass
+            
+            # Fallback: use simple probability
+            return random.random() < base_probability
+        
         # Leyline surges in areas with strong leylines
-        if location.get("leyline_strength", 0) >= 4 and random.random() < 0.3:
-            effects.append(Effect(
-                id="leyline_surge",
-                description="The leylines pulse with energy, temporarily boosting magical power",
-                duration_seconds=600,  # 10 minutes
-                magnitude=0.2  # 20% boost to spell power
-            ))
+        if location.get("leyline_strength", 0) >= 4:
+            # Higher leyline strength = easier to detect/trigger surges
+            difficulty = 15 - location.get("leyline_strength", 4)  # DC 11 for strength 4, DC 5 for strength 10
+            if check_probability(0.3, difficulty, "Leyline Surge Detection"):
+                effects.append(Effect(
+                    id="leyline_surge",
+                    description="The leylines pulse with energy, temporarily boosting magical power",
+                    duration_seconds=600,  # 10 minutes
+                    magnitude=0.2  # 20% boost to spell power
+                ))
         
         # Magical echoes in historically significant locations
-        if "crimson_dissonance_site" in location.get("historical_events", []) and random.random() < 0.4:
-            effects.append(Effect(
-                id="war_magic_echo",
-                description="Echoes of war magic from the Crimson Dissonance linger, empowering destructive spells",
-                duration_seconds=300,  # 5 minutes
-                magnitude={"damage_bonus": 0.3}
-            ))
+        if "crimson_dissonance_site" in location.get("historical_events", []):
+            # War magic echoes are more prominent and easier to sense
+            if check_probability(0.4, 12, "War Magic Echo Sensitivity"):
+                effects.append(Effect(
+                    id="war_magic_echo",
+                    description="Echoes of war magic from the Crimson Dissonance linger, empowering destructive spells",
+                    duration_seconds=300,  # 5 minutes
+                    magnitude={"damage_bonus": 0.3}
+                ))
         
         # Reality distortions in corrupted areas
-        if location.get("corruption_level", 0) >= 4 and random.random() < 0.3:
-            effects.append(Effect(
-                id="reality_distortion",
-                description="Reality warps and bends, causing spells to have unpredictable effects",
-                duration_seconds=900,  # 15 minutes
-                magnitude={"unpredictability": 0.5}
-            ))
+        if location.get("corruption_level", 0) >= 4:
+            # Higher corruption = more chaotic and easier to trigger distortions
+            difficulty = 18 - location.get("corruption_level", 4)  # DC 14 for corruption 4, DC 8 for corruption 10
+            if check_probability(0.3, difficulty, "Reality Distortion Awareness"):
+                effects.append(Effect(
+                    id="reality_distortion",
+                    description="Reality warps and bends, causing spells to have unpredictable effects",
+                    duration_seconds=900,  # 15 minutes
+                    magnitude={"unpredictability": 0.5}
+                ))
         
         # Elemental manifestations in strongly-aligned areas
-        if location.get("environment_type") in ["volcano", "ocean", "storm"] and random.random() < 0.5:
-            element_map = {
-                "volcano": ("fire_manifestation", "Fire", DamageType.FIRE),
-                "ocean": ("water_manifestation", "Water", DamageType.WATER),
-                "storm": ("lightning_manifestation", "Lightning", DamageType.LIGHTNING)
-            }
-            
-            element_id, element_name, element_type = element_map[location.get("environment_type")]
-            effects.append(Effect(
-                id=element_id,
-                description=f"The ambient {element_name} energy coalesces into a temporary elemental manifestation",
-                duration_seconds=120,  # 2 minutes
-                magnitude={"element": element_type, "power": random.randint(1, 3)}
-            ))
+        if location.get("environment_type") in ["volcano", "ocean", "storm"]:
+            # Elemental environments are volatile and easier to trigger manifestations
+            if check_probability(0.5, 10, "Elemental Manifestation Sensitivity"):
+                element_map = {
+                    "volcano": ("fire_manifestation", "Fire", DamageType.FIRE),
+                    "ocean": ("water_manifestation", "Water", DamageType.WATER),
+                    "storm": ("lightning_manifestation", "Lightning", DamageType.LIGHTNING)
+                }
+                
+                element_id, element_name, element_type = element_map[location.get("environment_type")]
+                
+                # Enhanced power calculation
+                if character and hasattr(character, 'roll_check_hybrid'):
+                    # Use Spirit domain for elemental attunement
+                    try:
+                        from ..shared.models import DomainType
+                        power_result = character.roll_check_hybrid(
+                            domain_type=DomainType.SPIRIT,
+                            difficulty=12,
+                            action_data={
+                                "label": f"Elemental Attunement - {element_name}",
+                                "action_type": "elemental_magic",
+                                "tags": ["elemental_magic", element_name.lower()]
+                            }
+                        )
+                        # Power based on success margin (1-4)
+                        power = max(1, min(4, 1 + power_result.get('margin', 0) // 3))
+                    except:
+                        power = random.randint(1, 3)
+                else:
+                    power = random.randint(1, 3)
+                
+                effects.append(Effect(
+                    id=element_id,
+                    description=f"The ambient {element_name} energy coalesces into a temporary elemental manifestation",
+                    duration_seconds=120,  # 2 minutes
+                    magnitude={"element": element_type, "power": power}
+                ))
         
         return effects
 
@@ -2274,7 +2331,43 @@ class NPCMagicRelationship:
         
         # Generate narrative
         narratives = self.reaction_narratives.get(attitude, self.reaction_narratives["neutral"])
-        narrative = random.choice(narratives).format(
+        
+        # Enhanced narrative selection - use character's Social domain if available
+        if hasattr(npc, 'character') and npc.character and hasattr(npc.character, 'roll_check_hybrid'):
+            # Use Social domain to determine narrative quality/depth
+            try:
+                from ..shared.models import DomainType
+                narrative_result = npc.character.roll_check_hybrid(
+                    domain_type=DomainType.SOCIAL,
+                    difficulty=12,
+                    action_data={
+                        "label": "Social Perception of Magic",
+                        "action_type": "social_observation",
+                        "tags": ["observation", "social_awareness"]
+                    }
+                )
+                
+                # Select narrative based on social perception success
+                if narrative_result.get('success', False):
+                    # High social awareness gets more detailed/nuanced narrative
+                    if len(narratives) > 1:
+                        # Prefer later narratives which tend to be more detailed
+                        narrative_index = min(len(narratives) - 1, 
+                                            max(0, len(narratives) - 1 - (narrative_result.get('margin', 0) // 3)))
+                        narrative = narratives[narrative_index]
+                    else:
+                        narrative = narratives[0]
+                else:
+                    # Lower social awareness gets simpler narrative
+                    narrative = narratives[0]
+            except:
+                # Fallback to random selection
+                narrative = random.choice(narratives)
+        else:
+            # Original random selection for backward compatibility
+            narrative = random.choice(narratives)
+        
+        narrative = narrative.format(
             npc_name=npc.name,
             spell_name=spell_cast.name
         )
@@ -3231,42 +3324,88 @@ class AIGMMagicIntegration:
         }
     
     def enhance_narrative_with_magic(self, base_context: Dict[str, Any], 
-                                   magic_profile: Any) -> Dict[str, Any]:
+                                   magic_profile: Any, character=None) -> Dict[str, Any]:
         """
         Enhance the AI GM narrative context with magical elements.
+        Enhanced version uses character's Mind domain for narrative depth when available.
         
         Args:
             base_context: Base narrative context
             magic_profile: Character's magic profile
+            character: Optional character object for enhanced narrative selection
             
         Returns:
             Enhanced narrative context
         """
         enhanced_context = base_context.copy()
         
+        # Helper function for intelligent narrative selection
+        def select_narrative(narratives: List[str], context_type: str) -> str:
+            if character and hasattr(character, 'roll_check_hybrid') and len(narratives) > 1:
+                try:
+                    from ..shared.models import DomainType
+                    # Use Mind domain for narrative perception and detail
+                    perception_result = character.roll_check_hybrid(
+                        domain_type=DomainType.MIND,
+                        difficulty=12,
+                        action_data={
+                            "label": f"Magical Perception - {context_type}",
+                            "action_type": "magical_observation",
+                            "tags": ["magical_awareness", "perception", "observation"]
+                        }
+                    )
+                    
+                    if perception_result.get('success', False):
+                        # High Mind gets more detailed/nuanced descriptions
+                        margin = perception_result.get('margin', 0)
+                        # Select more detailed narratives based on success margin
+                        narrative_index = min(len(narratives) - 1, max(0, margin // 2))
+                        return narratives[narrative_index]
+                    else:
+                        # Lower Mind gets simpler descriptions
+                        return narratives[0]
+                except:
+                    # Fallback to random
+                    pass
+            
+            # Default/fallback: random selection
+            return random.choice(narratives)
+        
         # Add character aura description
         if hasattr(magic_profile, "corruption_level") and magic_profile.corruption_level >= 30:
             enhanced_context["character_aura"] = "dark_corruption"
-            enhanced_context["aura_description"] = random.choice(self.magical_aura_descriptions["dark_corruption"])
+            enhanced_context["aura_description"] = select_narrative(
+                self.magical_aura_descriptions["dark_corruption"], "Dark Corruption Aura"
+            )
         elif hasattr(magic_profile, "has_mana_heart"):
             if not magic_profile.has_mana_heart:
                 if hasattr(magic_profile, "ley_energy_sensitivity") and magic_profile.ley_energy_sensitivity >= 3:
                     enhanced_context["character_aura"] = "novice"
-                    enhanced_context["aura_description"] = random.choice(self.magical_aura_descriptions["novice"])
+                    enhanced_context["aura_description"] = select_narrative(
+                        self.magical_aura_descriptions["novice"], "Novice Magical Aura"
+                    )
                 else:
                     enhanced_context["character_aura"] = "none"
-                    enhanced_context["aura_description"] = random.choice(self.magical_aura_descriptions["none"])
+                    enhanced_context["aura_description"] = select_narrative(
+                        self.magical_aura_descriptions["none"], "No Magical Aura"
+                    )
             else:
                 # Determine Mana Heart stage based on max mana
                 if magic_profile.mana_max >= 100:
                     enhanced_context["character_aura"] = "transcendent"
-                    enhanced_context["aura_description"] = random.choice(self.magical_aura_descriptions["transcendent"])
+                    enhanced_context["aura_description"] = select_narrative(
+                        self.magical_aura_descriptions["transcendent"], "Transcendent Magical Aura"
+                    )
                 elif magic_profile.mana_max >= 60:
                     enhanced_context["character_aura"] = "mature"
-                    enhanced_context["aura_description"] = random.choice(self.magical_aura_descriptions["mature"])
+                    enhanced_context["aura_description"] = select_narrative(
+                        self.magical_aura_descriptions["mature"], "Mature Magical Aura"
+                    )
                 else:
                     enhanced_context["character_aura"] = "developing"
-                    enhanced_context["aura_description"] = random.choice(self.magical_aura_descriptions["developing"])
+                    enhanced_context["aura_description"] = select_narrative(
+                        self.magical_aura_descriptions["developing"], "Developing Magical Aura"
+                    )
         
         # Add elemental aura if appropriate
         if hasattr(magic_profile, "attunements"):
@@ -3279,8 +3418,8 @@ class AIGMMagicIntegration:
                     aura_key = f"elemental_{element}"
                     if aura_key in self.magical_aura_descriptions:
                         enhanced_context["elemental_aura"] = element
-                        enhanced_context["elemental_aura_description"] = random.choice(
-                            self.magical_aura_descriptions[aura_key]
+                        enhanced_context["elemental_aura_description"] = select_narrative(
+                            self.magical_aura_descriptions[aura_key], f"Elemental {element.title()} Aura"
                         )
                 elif attunement == "void_touched":
                     enhanced_context["void_aura"] = True
@@ -3307,18 +3446,18 @@ class AIGMMagicIntegration:
         if location:
             if location.get("leyline_strength", 0) >= 4:
                 enhanced_context["magical_environment"] = "strong_leyline"
-                enhanced_context["environmental_description"] = random.choice(
-                    self.magical_environmental_effects["strong_leyline"]
+                enhanced_context["environmental_description"] = select_narrative(
+                    self.magical_environmental_effects["strong_leyline"], "Strong Leyline Environment"
                 )
             elif location.get("corruption_level", 0) >= 3:
                 enhanced_context["magical_environment"] = "corrupted_magic"
-                enhanced_context["environmental_description"] = random.choice(
-                    self.magical_environmental_effects["corrupted_magic"]
+                enhanced_context["environmental_description"] = select_narrative(
+                    self.magical_environmental_effects["corrupted_magic"], "Corrupted Magic Environment"
                 )
             elif location.get("recent_spellcasting", False):
                 enhanced_context["magical_environment"] = "recent_spellcasting"
-                enhanced_context["environmental_description"] = random.choice(
-                    self.magical_environmental_effects["recent_spellcasting"]
+                enhanced_context["environmental_description"] = select_narrative(
+                    self.magical_environmental_effects["recent_spellcasting"], "Recent Spellcasting Environment"
                 )
         
         # Add magical hooks based on character and world state
@@ -3338,13 +3477,51 @@ class AIGMMagicIntegration:
         
         # Add 1-2 potential magical hooks
         if potential_hooks:
-            hook_count = min(2, len(potential_hooks))
-            selected_hooks = random.sample(potential_hooks, hook_count)
+            # Use enhanced selection when character is available
+            def select_hooks(hooks_list: List[str], max_count: int) -> List[str]:
+                if character and hasattr(character, 'roll_check_hybrid') and len(hooks_list) > max_count:
+                    try:
+                        from ..shared.models import DomainType
+                        # Use Mind domain to determine hook selection quality
+                        perception_result = character.roll_check_hybrid(
+                            domain_type=DomainType.MIND,
+                            difficulty=10,
+                            action_data={
+                                "label": "Magical Hook Perception",
+                                "action_type": "magical_observation",
+                                "tags": ["magical_awareness", "story_hooks", "perception"]
+                            }
+                        )
+                        
+                        if perception_result.get('success', False):
+                            # Success means character notices more relevant/interesting hooks
+                            margin = perception_result.get('margin', 0)
+                            if margin >= 5:
+                                # High success - pick the most interesting hooks
+                                priority_hooks = ["magical_corruption", "crimson_dissonance", "leyline_disruption"]
+                                selected = [hook for hook in priority_hooks if hook in hooks_list]
+                                remaining = [hook for hook in hooks_list if hook not in selected]
+                                return (selected + remaining)[:max_count]
+                            else:
+                                # Regular success - good selection
+                                return hooks_list[:max_count]
+                        else:
+                            # Failure - might miss some hooks or get less relevant ones
+                            return hooks_list[-max_count:] if len(hooks_list) > max_count else hooks_list
+                    except:
+                        # Fallback to random selection
+                        pass
+                
+                # Fallback: random selection
+                hook_count = min(max_count, len(hooks_list))
+                return random.sample(hooks_list, hook_count)
+            
+            selected_hooks = select_hooks(potential_hooks, 2)
             enhanced_context["magical_hooks"] = []
             
             for hook in selected_hooks:
                 if hook in self.magical_story_hooks:
-                    hook_text = random.choice(self.magical_story_hooks[hook])
+                    hook_text = select_narrative(self.magical_story_hooks[hook], f"Magical Hook - {hook}")
                     enhanced_context["magical_hooks"].append({
                         "type": hook,
                         "description": hook_text
@@ -3353,13 +3530,15 @@ class AIGMMagicIntegration:
         return enhanced_context
     
     def generate_magical_event(self, location: Dict[str, Any], 
-                             magic_profile: Any = None) -> Dict[str, Any]:
+                             magic_profile: Any = None, character=None) -> Dict[str, Any]:
         """
         Generate a random magical event appropriate to a location.
+        Enhanced version uses character's enhanced roll system when available.
         
         Args:
             location: Location information
             magic_profile: Optional character magic profile
+            character: Optional character object for enhanced event generation
             
         Returns:
             Dictionary describing the magical event
@@ -3388,14 +3567,106 @@ class AIGMMagicIntegration:
                 if magic_profile.mana_max >= 60:
                     event_categories.append("resonance")
         
+        # Enhanced event category selection using character's Spirit domain
+        def select_event_category(categories: List[str]) -> str:
+            if character and hasattr(character, 'roll_check_hybrid') and len(categories) > 1:
+                try:
+                    from ..shared.models import DomainType
+                    # Use Spirit domain for magical attunement to environmental events
+                    attunement_result = character.roll_check_hybrid(
+                        domain_type=DomainType.SPIRIT,
+                        difficulty=12,
+                        action_data={
+                            "label": "Magical Event Attunement",
+                            "action_type": "environmental_attunement",
+                            "tags": ["magical_awareness", "environmental_magic", "spirit_sensitivity"]
+                        }
+                    )
+                    
+                    if attunement_result.get('success', False):
+                        # Success means character attracts more significant events
+                        margin = attunement_result.get('margin', 0)
+                        if margin >= 5:
+                            # High success - attract powerful/meaningful events
+                            priority_categories = ["resonance", "major", "leyline", "historical"]
+                            for cat in priority_categories:
+                                if cat in categories:
+                                    return cat
+                        # Regular success - attract interesting events
+                        interesting_categories = ["leyline", "corruption", "wild", "resonance"]
+                        for cat in interesting_categories:
+                            if cat in categories:
+                                return cat
+                    else:
+                        # Failure - more likely to get minor events or even miss events
+                        if attunement_result.get('margin', 0) <= -5:
+                            # Critical failure - might get opposite of what's expected
+                            mundane_categories = ["minor", "ambient"]
+                            for cat in mundane_categories:
+                                if cat in categories:
+                                    return cat
+                    
+                    # Fallback to first available category
+                    return categories[0] if categories else "minor"
+                except:
+                    # Fallback to random choice
+                    pass
+            
+            # Fallback: random selection
+            return random.choice(categories)
+        
         # Select an event category
-        event_category = random.choice(event_categories)
+        event_category = select_event_category(event_categories)
+        
+        # Enhanced event intensity and duration using character's Spirit domain  
+        def determine_event_properties() -> Tuple[int, str]:
+            if character and hasattr(character, 'roll_check_hybrid'):
+                try:
+                    from ..shared.models import DomainType
+                    # Use Spirit domain to influence event intensity
+                    intensity_result = character.roll_check_hybrid(
+                        domain_type=DomainType.SPIRIT,
+                        difficulty=10,
+                        action_data={
+                            "label": "Magical Event Intensity",
+                            "action_type": "magical_resonance",
+                            "tags": ["magical_awareness", "spirit_attunement"]
+                        }
+                    )
+                    
+                    if intensity_result.get('success', False):
+                        margin = intensity_result.get('margin', 0)
+                        intensity = min(5, max(1, 3 + (margin // 3)))  # Scale based on success margin
+                        
+                        # Higher success = longer duration events
+                        if margin >= 10:
+                            duration = "lasting"
+                        elif margin >= 5:
+                            duration = "sustained"
+                        elif margin >= 0:
+                            duration = "brief"
+                        else:
+                            duration = "momentary"
+                    else:
+                        # Failure - weaker, shorter events
+                        intensity = random.randint(1, 2)
+                        duration = random.choice(["momentary", "brief"])
+                    
+                    return intensity, duration
+                except:
+                    # Fallback to random
+                    pass
+            
+            # Fallback: random generation
+            return random.randint(1, 5), random.choice(["momentary", "brief", "sustained", "lasting"])
+        
+        intensity, duration = determine_event_properties()
         
         # Generate event based on category
         event = {
             "category": event_category,
-            "intensity": random.randint(1, 5),  # 1-5 scale
-            "duration": random.choice(["momentary", "brief", "sustained", "lasting"])
+            "intensity": intensity,
+            "duration": duration
         }
         
         # Generate description and effects based on category

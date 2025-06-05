@@ -15,7 +15,7 @@ export const players = pgTable('players', {
   healthMax: integer('health_max').notNull().default(100),
   locationRegion: text('location_region').notNull(),
   locationArea: text('location_area').notNull(),
-  locationCoordinates: json('location_coordinates').notNull(),
+  locationCoordinates: json('location_coordinates').$type<Record<string, any>>().notNull(),
   inventory: json('inventory').$type<Record<string, any>>().default({}),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
@@ -150,7 +150,7 @@ export const craftingRecipes = pgTable('crafting_recipes', {
   description: text('description').notNull(),
   category: text('category').notNull(), // blacksmithing, alchemy, etc.
   resultItemId: integer('result_item_id').references(() => items.id).notNull(),
-  ingredients: json('ingredients').$type<{itemId: number, quantity: number}[]>().notNull(),
+  ingredients: json('ingredients').$type<{ itemId: number, quantity: number }[]>().notNull(),
   requiredLevel: integer('required_level').notNull().default(1),
   requiredMagicAffinity: text('required_magic_affinity'),
   createdAt: timestamp('created_at').defaultNow().notNull()
@@ -243,15 +243,15 @@ export const areasRelations = relations(areas, ({ one }) => ({
   })
 }));
 
-export const magicalMaterialsRelations = relations(magicalMaterials, ({  }) => ({
+export const magicalMaterialsRelations = relations(magicalMaterials, ({ }) => ({
 
 }));
 
-export const craftingRecipesRelations = relations(craftingRecipes, ({  }) => ({
+export const craftingRecipesRelations = relations(craftingRecipes, ({ }) => ({
 
 }));
 
-export const playerCraftingSkillsRelations = relations(playerCraftingSkills, ({  }) => ({
+export const playerCraftingSkillsRelations = relations(playerCraftingSkills, ({ }) => ({
 
 }));
 
@@ -311,3 +311,8 @@ export const playerCraftingSkillsInsertSchema = createInsertSchema(playerCraftin
 export type PlayerCraftingSkillsInsert = z.infer<typeof playerCraftingSkillsInsertSchema>;
 export const playerCraftingSkillsSelectSchema = createSelectSchema(playerCraftingSkills);
 export type PlayerCraftingSkills = z.infer<typeof playerCraftingSkillsSelectSchema>;
+
+// Extended types with relations
+export type PlayerWithMagicProfile = Player & {
+  magicProfile?: MagicProfile | null;
+};

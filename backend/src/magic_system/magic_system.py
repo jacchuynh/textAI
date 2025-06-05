@@ -15,6 +15,8 @@ import uuid
 # Import domain and combat systems
 from backend.src.game_engine.domain_system import DomainSystem
 from backend.src.game_engine.enhanced_combat.combat_system_core import Combatant, CombatMove, MoveType, Status, Domain
+from backend.src.storage.character_storage import get_character
+from backend.src.shared.models import Character, DomainType
 
 
 # ======================================================================
@@ -352,30 +354,72 @@ class MagicUser:
         self.mana_current = min(self.mana_current + regen_amount, self.mana_max)
         return regen_amount
     
-    def draw_from_leyline(self, leyline_strength: int, amount_desired: int) -> int:
+    def draw_from_leyline(self, leyline_strength: int, amount_desired: int, character: Optional['Character'] = None) -> int:
         """
         Attempt to draw energy from a leyline
         Returns the amount of energy successfully drawn
         """
-        # Base chance depends on sensitivity and leyline strength
-        base_chance = 0.3 + (0.05 * self.ley_energy_sensitivity) + (0.1 * leyline_strength)
-        success_chance = min(base_chance, 0.9)  # Cap at 90%
-        
         # Calculate amount drawn
         max_draw = leyline_strength * 5
         amount_drawn = min(amount_desired, max_draw)
         
-        # Check for success
-        if random.random() <= success_chance:
-            self.current_ley_energy += amount_drawn
-            return amount_drawn
+        if character:
+            # Use enhanced roll system for leyline drawing
+            base_difficulty = 8  # Base difficulty for leyline drawing
+            difficulty = base_difficulty - leyline_strength  # Stronger leylines are easier
+            difficulty += max(0, amount_desired // 10)  # Harder to draw large amounts
+            
+            # Use Spirit domain for leyline connection, with Mind as secondary
+            from backend.src.shared.models import DomainType
+            result = character.roll_check_hybrid(
+                primary_domain=DomainType.SPIRIT,
+                secondary_domain=DomainType.MIND,
+                difficulty=difficulty,
+                context="drawing energy from leyline"
+            )
+            
+            if result['success']:
+                self.current_ley_energy += amount_drawn
+                
+                # Critical success might draw extra energy or reduce corruption risk
+                if result['is_critical_success']:
+                    bonus_energy = min(amount_drawn // 4, 5)
+                    self.current_ley_energy += bonus_energy
+                    amount_drawn += bonus_energy
+                
+                return amount_drawn
+            else:
+                # Check for backlash on failure
+                backlash_difficulty = 10 + self.ley_energy_sensitivity
+                backlash_result = character.roll_check_hybrid(
+                    primary_domain=DomainType.SPIRIT,
+                    secondary_domain=DomainType.BODY,
+                    difficulty=backlash_difficulty,
+                    context="resisting leyline backlash"
+                )
+                
+                if not backlash_result['success']:
+                    self.corruption_level += 1
+                    if backlash_result['is_critical_failure']:
+                        self.corruption_level += 1  # Extra corruption on critical failure
+                
+                return 0
         else:
-            # Failed attempt
-            backlash_chance = 0.2 - (0.02 * self.ley_energy_sensitivity)
-            if random.random() <= backlash_chance:
-                # Backlash occurs
-                self.corruption_level += 1
-            return 0
+            # Fallback to original probability system if no character provided
+            base_chance = 0.3 + (0.05 * self.ley_energy_sensitivity) + (0.1 * leyline_strength)
+            success_chance = min(base_chance, 0.9)  # Cap at 90%
+            
+            # Check for success
+            if random.random() <= success_chance:
+                self.current_ley_energy += amount_drawn
+                return amount_drawn
+            else:
+                # Failed attempt
+                backlash_chance = 0.2 - (0.02 * self.ley_energy_sensitivity)
+                if random.random() <= backlash_chance:
+                    # Backlash occurs
+                    self.corruption_level += 1
+                return 0
     
     def use_mana(self, amount: int) -> bool:
         """
@@ -447,7 +491,7 @@ class MagicCastingService:
     
     def learn_spell(self, character_id: str, spell_id: str, character_magic_profile: MagicUser) -> Tuple[bool, str]:
         """
-        Add a spell to a character's known spells
+        Add a spell to a character's known spells with basic requirements check
         Returns (success, message)
         """
         if spell_id not in self.spells:
@@ -455,6 +499,14 @@ class MagicCastingService:
         
         if spell_id in character_magic_profile.known_spells:
             return False, f"Already knows spell {self.spells[spell_id].name}"
+        
+        spell = self.spells[spell_id]
+        
+        # Check basic requirements for the spell
+        can_cast, reason = spell.can_be_cast_by(character_magic_profile)
+        if not can_cast and "mana" not in reason.lower():
+            # Allow learning even if can't cast due to mana, but not for other requirements
+            return False, f"Cannot learn {spell.name}: {reason}"
         
         # Add the spell to the character's known spells
         character_magic_profile.known_spells.append(spell_id)
@@ -482,7 +534,8 @@ class MagicCastingService:
                   caster_magic_profile: MagicUser,
                   spell_id: str, 
                   targets: List[Combatant], 
-                  location_magic_profile: LocationMagicProfile) -> Dict[str, Any]:
+                  location_magic_profile: LocationMagicProfile,
+                  character: Optional['Character'] = None) -> Dict[str, Any]:
         """
         Cast a spell and apply its effects
         Returns a result dictionary with details about the casting
@@ -510,29 +563,56 @@ class MagicCastingService:
         if spell.ley_energy_cost:
             caster_magic_profile.use_ley_energy(spell.ley_energy_cost)
         
-        # Check for backlash
+        # Check for backlash using enhanced roll system
         backlash_occurred = False
         backlash_results = []
         
-        # Backlash chance is influenced by:
-        # - The spell's inherent backlash potential
-        # - The mana flux level of the location
-        # - The caster's corruption level
-        base_backlash_chance = spell.backlash_potential
-        flux_modifier = 0.05 * (location_magic_profile.mana_flux_level.value - 2)  # MODERATE is baseline
-        corruption_modifier = 0.01 * caster_magic_profile.corruption_level
-        
-        final_backlash_chance = base_backlash_chance + flux_modifier + corruption_modifier
-        
-        if random.random() < final_backlash_chance:
-            backlash_occurred = True
-            # Apply backlash effects if any
-            for effect in spell.backlash_effects:
-                result = effect.apply_to_target(caster, caster)
-                backlash_results.append(result)
+        if character and spell.backlash_potential > 0:
+            # Calculate difficulty for resisting backlash
+            base_difficulty = int(spell.backlash_potential * 20)  # Convert to difficulty scale
+            flux_modifier = (location_magic_profile.mana_flux_level.value - 2) * 2  # MODERATE is baseline
+            corruption_modifier = caster_magic_profile.corruption_level
             
-            # Increase corruption from backlash
-            caster_magic_profile.corruption_level += 1
+            backlash_resistance_difficulty = base_difficulty + flux_modifier + corruption_modifier
+            
+            # Use Spirit as primary (magical resistance) and Mind as secondary (concentration)
+            from backend.src.shared.models import DomainType
+            resistance_result = character.roll_check_hybrid(
+                primary_domain=DomainType.SPIRIT,
+                secondary_domain=DomainType.MIND,
+                difficulty=backlash_resistance_difficulty,
+                context=f"resisting backlash from {spell.name}"
+            )
+            
+            if not resistance_result['success']:
+                backlash_occurred = True
+                # Apply backlash effects if any
+                for effect in spell.backlash_effects:
+                    result = effect.apply_to_target(caster, caster)
+                    backlash_results.append(result)
+                
+                # Increase corruption from backlash
+                corruption_increase = 1
+                if resistance_result['is_critical_failure']:
+                    corruption_increase = 2  # More corruption on critical failure
+                caster_magic_profile.corruption_level += corruption_increase
+        elif spell.backlash_potential > 0:
+            # Fallback to original probability system if no character provided
+            base_backlash_chance = spell.backlash_potential
+            flux_modifier = 0.05 * (location_magic_profile.mana_flux_level.value - 2)  # MODERATE is baseline
+            corruption_modifier = 0.01 * caster_magic_profile.corruption_level
+            
+            final_backlash_chance = base_backlash_chance + flux_modifier + corruption_modifier
+            
+            if random.random() < final_backlash_chance:
+                backlash_occurred = True
+                # Apply backlash effects if any
+                for effect in spell.backlash_effects:
+                    result = effect.apply_to_target(caster, caster)
+                    backlash_results.append(result)
+                
+                # Increase corruption from backlash
+                caster_magic_profile.corruption_level += 1
         
         # Apply spell effects to targets
         effect_results = []
@@ -854,7 +934,8 @@ class CorruptionService:
                                    character_id: str, 
                                    ritual_id: str, 
                                    character_magic_profile: MagicUser,
-                                   ritual_service: RitualService) -> Tuple[bool, str, int]:
+                                   ritual_service: 'RitualService',
+                                   character: Optional['Character'] = None) -> Tuple[bool, str, int]:
         """
         Attempt to reduce corruption through a purification ritual
         Returns (success, message, amount_reduced)
@@ -868,19 +949,62 @@ class CorruptionService:
         if "purification" not in ritual.name.lower() and "cleansing" not in ritual.name.lower():
             return False, f"The ritual {ritual.name} is not a purification ritual", 0
         
-        # Determine amount of corruption reduction
-        # This would be more complex in a real implementation
-        base_reduction = 5
-        spirit_bonus = 0  # Would calculate from domain values
-        
-        total_reduction = base_reduction + spirit_bonus
-        
-        # Apply the reduction
-        original_corruption = character_magic_profile.corruption_level
-        character_magic_profile.corruption_level = max(0, character_magic_profile.corruption_level - total_reduction)
-        actual_reduction = original_corruption - character_magic_profile.corruption_level
-        
-        return True, f"Purification successful. Corruption reduced by {actual_reduction} points", actual_reduction
+        if character:
+            # Use enhanced roll system for purification ritual
+            base_difficulty = 10 + (character_magic_profile.corruption_level // 5)  # Harder with more corruption
+            
+            # Spirit is primary for purification, Mind secondary for focus
+            from backend.src.shared.models import DomainType
+            purification_result = character.roll_check_hybrid(
+                primary_domain=DomainType.SPIRIT,
+                secondary_domain=DomainType.MIND,
+                difficulty=base_difficulty,
+                context=f"performing {ritual.name}"
+            )
+            
+            if purification_result['success']:
+                # Base reduction modified by success margin
+                base_reduction = 3
+                margin_bonus = min(purification_result['margin_of_success'] // 3, 5)
+                critical_bonus = 3 if purification_result['is_critical_success'] else 0
+                
+                total_reduction = base_reduction + margin_bonus + critical_bonus
+                
+                # Apply the reduction
+                original_corruption = character_magic_profile.corruption_level
+                character_magic_profile.corruption_level = max(0, character_magic_profile.corruption_level - total_reduction)
+                actual_reduction = original_corruption - character_magic_profile.corruption_level
+                
+                success_message = f"Purification successful. Corruption reduced by {actual_reduction} points"
+                if purification_result['is_critical_success']:
+                    success_message += " (Exceptional purification achieved!)"
+                
+                return True, success_message, actual_reduction
+            else:
+                # Failure - no reduction, possible complications
+                failure_message = f"Purification ritual failed"
+                
+                if purification_result['is_critical_failure']:
+                    # Critical failure might increase corruption or have other consequences
+                    character_magic_profile.corruption_level += 1
+                    failure_message += " (The ritual backfired, increasing corruption!)"
+                else:
+                    failure_message += " (No purification occurred)"
+                
+                return False, failure_message, 0
+        else:
+            # Fallback to simple success for backward compatibility
+            base_reduction = 5
+            spirit_bonus = 0  # Would calculate from domain values
+            
+            total_reduction = base_reduction + spirit_bonus
+            
+            # Apply the reduction
+            original_corruption = character_magic_profile.corruption_level
+            character_magic_profile.corruption_level = max(0, character_magic_profile.corruption_level - total_reduction)
+            actual_reduction = original_corruption - character_magic_profile.corruption_level
+            
+            return True, f"Purification successful. Corruption reduced by {actual_reduction} points", actual_reduction
 
 
 class MagicalPhenomenaService:
@@ -1622,9 +1746,17 @@ class MagicSystem:
     
     def learn_spell_from_study(self, character_id: str, spell_id: str, character_magic: MagicUser) -> Dict[str, Any]:
         """
-        Learn a spell through study
+        Learn a spell through study using enhanced roll system
         Returns a result dictionary
         """
+        # Get the character object for enhanced rolls
+        character = get_character(character_id)
+        if not character:
+            return {
+                "success": False,
+                "message": f"Character {character_id} not found"
+            }
+        
         # Get the spell
         spell = self.casting_service.get_spell(spell_id)
         if not spell:
@@ -1647,32 +1779,97 @@ class MagicSystem:
                 "message": f"You need a developed Mana Heart to learn Tier 1 Arcane Mastery spells"
             }
         
-        # Check domain requirements
+        # Determine learning difficulty based on spell tier and requirements
+        base_difficulty = 10
+        if spell.tier == MagicTier.ARCANE_MASTERY:
+            base_difficulty = 15
+        elif spell.tier == MagicTier.MANA_INFUSION:
+            base_difficulty = 12
+        
+        # Add difficulty based on domain requirements
+        required_domains = []
         for req in spell.domain_requirements:
-            domain_value = 0
-            # In a real implementation, we would get the domain value from the character
-            # For now, we assume a simplified check
-            if not req.is_met(None):  # This would be the actual character
+            required_domains.append(req.domain)
+            if req.minimum_value > 3:
+                base_difficulty += 2
+        
+        # Choose primary domain for the learning check
+        primary_domain = DomainType.MIND  # Default to Mind for spell learning
+        if required_domains:
+            # Use the highest required domain if available
+            primary_domain = required_domains[0]
+        
+        # Create learning context
+        context = {
+            "action_type": "spell_learning",
+            "spell_name": spell.name,
+            "spell_tier": spell.tier.name,
+            "study_environment": "focused",
+            "magical_theory": True
+        }
+        
+        # Use enhanced roll system for learning check
+        learning_result = character.roll_check_hybrid(
+            domain=primary_domain,
+            tag_name="arcane_theory",  # Use arcane theory tag if available
+            difficulty=base_difficulty,
+            context=context
+        )
+        
+        if learning_result["success"]:
+            # Successfully learned the spell
+            success, message = self.casting_service.learn_spell(character_id, spell_id, character_magic)
+            
+            if success:
+                # Generate detailed narrative based on roll result
+                narrative = f"After hours of study and practice, you finally grasp the essence of {spell.name}. "
+                
+                if learning_result.get("critical_success"):
+                    narrative += "The magical formulae click into place with remarkable clarity, and you find yourself understanding not just the spell, but deeper principles of magic itself. "
+                elif learning_result.get("margin", 0) > 5:
+                    narrative += "The complex magical theory gradually becomes clear as you work through each component methodically. "
+                else:
+                    narrative += "Through persistent effort and careful study, the spell's secrets finally reveal themselves to you. "
+                
+                narrative += "The magical formulae and gestures become second nature to you."
+                
+                return {
+                    "success": True,
+                    "message": message,
+                    "spell_name": spell.name,
+                    "spell_tier": spell.tier.name,
+                    "narrative": narrative,
+                    "roll_result": learning_result,
+                    "learning_time": "several hours" if learning_result.get("margin", 0) < 5 else "a few hours"
+                }
+            else:
                 return {
                     "success": False,
-                    "message": f"You need a higher {req.domain.name} domain to learn this spell"
+                    "message": message
                 }
-        
-        # Learn the spell
-        success, message = self.casting_service.learn_spell(character_id, spell_id, character_magic)
-        
-        if success:
-            return {
-                "success": True,
-                "message": message,
-                "spell_name": spell.name,
-                "spell_tier": spell.tier.name,
-                "narrative": f"After hours of study and practice, you finally grasp the essence of {spell.name}. The magical formulae and gestures become second nature to you."
-            }
         else:
+            # Failed to learn the spell
+            failure_narrative = f"Despite your best efforts to understand {spell.name}, the magical concepts remain elusive. "
+            
+            if learning_result.get("critical_failure"):
+                failure_narrative += "Your misunderstanding of a key principle causes a minor magical mishap, leaving you mentally exhausted. "
+                # Apply minor corruption or fatigue
+                if character_magic.corruption_level < 100:
+                    character_magic.corruption_level = min(100, character_magic.corruption_level + 1)
+            elif learning_result.get("margin", 0) < -5:
+                failure_narrative += "The advanced magical theory proves too complex for your current understanding. "
+            else:
+                failure_narrative += "You make some progress but cannot quite piece together the complete picture. "
+            
+            failure_narrative += "Perhaps with more experience or a different approach, you might succeed."
+            
             return {
                 "success": False,
-                "message": message
+                "message": learning_result.get("explanation", "Failed to learn the spell"),
+                "narrative": failure_narrative,
+                "roll_result": learning_result,
+                "can_retry": True,
+                "suggested_improvement": "Consider improving your Mind domain or finding a tutor"
             }
     
     def get_corruption_status(self, character_magic: MagicUser) -> Dict[str, Any]:

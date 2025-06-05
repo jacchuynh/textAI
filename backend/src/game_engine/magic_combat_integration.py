@@ -18,6 +18,9 @@ from game_engine.magic_system import (
     DamageType, EffectType, MagicTier
 )
 
+# Import for enhanced domain integration
+from shared.models import Character, DomainType
+
 
 class CombatantType(Enum):
     """Types of combatants in the combat system."""
@@ -765,7 +768,7 @@ class MagicalCombatManager:
         game_time: float
     ) -> Dict[str, Any]:
         """
-        Cast a spell during combat.
+        Cast a spell during combat using enhanced domain-based roll system.
         
         Args:
             combat_id: ID of the combat encounter
@@ -836,10 +839,114 @@ class MagicalCombatManager:
                 "message": "No valid targets specified"
             }
         
+        # Enhanced Domain-Based Spell Casting Resolution
+        # ===================================================
+        
+        # Check if caster has enhanced Character model for domain integration
+        caster_character = None
+        if hasattr(caster, 'character_model') and isinstance(caster.character_model, Character):
+            caster_character = caster.character_model
+        
+        # Perform spell casting roll using enhanced domain system
+        spell_success = True
+        casting_roll_result = None
+        
+        if caster_character:
+            # Determine primary domain for spell casting
+            primary_domain = self._determine_spell_domain(spell)
+            
+            # Find relevant magic tags
+            magic_tag = self._find_best_magic_tag(caster_character, spell)
+            
+            # Calculate spell difficulty based on tier and complexity
+            base_difficulty = self._calculate_spell_difficulty(spell, targets[0] if targets else None)
+            
+            # Prepare action data for spell casting
+            spell_action_data = {
+                "label": f"Cast {spell.name}",
+                "action_type": "spell_cast",
+                "spell_id": spell_id,
+                "spell_tier": spell.tier.value if hasattr(spell.tier, 'value') else str(spell.tier),
+                "tags": [magic_tag] if magic_tag else [],
+                "domains": [primary_domain.value],
+                "difficulty_modifier": 0
+            }
+            
+            # Add target data for resistance calculations
+            target_data = None
+            if targets:
+                target_data = {
+                    "level": targets[0].level,
+                    "resistances": list(targets[0].resistances.keys()) if targets[0].resistances else [],
+                    "weaknesses": list(targets[0].weaknesses.keys()) if targets[0].weaknesses else []
+                }
+            
+            # Perform enhanced spell casting roll
+            casting_roll_result = caster_character.roll_check_hybrid(
+                domain_type=primary_domain,
+                tag_name=magic_tag,
+                difficulty=base_difficulty,
+                action_data=spell_action_data,
+                target=target_data,
+                combat_state={"status": "active", "round": combat_data.get("round_number", 1)}
+            )
+            
+            spell_success = casting_roll_result["success"]
+            
+            # Log enhanced spell casting attempt
+            log_entry = {
+                "timestamp": datetime.now().isoformat(),
+                "type": "SPELL_CASTING_ROLL",
+                "message": f"{caster.name} attempts to cast {spell.name}",
+                "data": {
+                    "caster_id": caster_id,
+                    "spell_id": spell_id,
+                    "method": casting_roll_result.get("method", "dice"),
+                    "method_reason": casting_roll_result.get("method_reason", ""),
+                    "breakdown": casting_roll_result.get("breakdown", ""),
+                    "total": casting_roll_result.get("total", 0),
+                    "difficulty": casting_roll_result.get("difficulty", base_difficulty),
+                    "success": spell_success,
+                    "domains_used": casting_roll_result.get("domains_used", []),
+                    "tags_used": casting_roll_result.get("tags_used", [])
+                }
+            }
+            self.combat_logs[combat_id].append(log_entry)
+        
+        # If spell casting failed, handle failure
+        if not spell_success:
+            # Still consume some mana for the failed attempt
+            if caster.magic_profile and spell.mana_cost:
+                mana_consumed = max(1, spell.mana_cost // 2)  # Half mana for failed cast
+                caster.magic_profile.use_mana(mana_consumed)
+            
+            failure_log = {
+                "timestamp": datetime.now().isoformat(),
+                "type": "SPELL_CAST_FAILED",
+                "message": f"{caster.name} failed to cast {spell.name}",
+                "data": {
+                    "caster_id": caster_id,
+                    "spell_id": spell_id,
+                    "reason": "casting_roll_failed",
+                    "mana_consumed": mana_consumed if 'mana_consumed' in locals() else 0
+                }
+            }
+            self.combat_logs[combat_id].append(failure_log)
+            
+            return {
+                "success": False,
+                "message": f"{caster.name} failed to cast {spell.name}",
+                "casting_roll_result": casting_roll_result,
+                "combat_narration": f"{caster.name} attempts to cast {spell.name}, but the magic fizzles and fails to take hold."
+            }
+        
+        # Spell casting succeeded - continue with original spell resolution
+        # ================================================================
+        
         # Get location
         location_id = combat_data.get("location_id")
         
-        # Cast the spell
+        # Cast the spell using original magic system
         equipped_items = caster.equipped_items if hasattr(caster, "equipped_items") else None
         
         # Use the magic system to cast the spell
@@ -851,6 +958,17 @@ class MagicalCombatManager:
             current_time=game_time,
             equipped_items=equipped_items
         )
+        
+        # Enhance cast result with domain integration info
+        if casting_roll_result:
+            cast_result["enhanced_casting"] = {
+                "method": casting_roll_result.get("method", "dice"),
+                "domains_used": casting_roll_result.get("domains_used", []),
+                "tags_used": casting_roll_result.get("tags_used", []),
+                "total_roll": casting_roll_result.get("total", 0),
+                "difficulty": casting_roll_result.get("difficulty", 0),
+                "breakdown": casting_roll_result.get("breakdown", "")
+            }
         
         if not cast_result["success"]:
             return cast_result
@@ -1304,3 +1422,92 @@ class MagicalCombatManager:
             "generated_spells": [spell.to_dict() for spell in spells],
             "mana_pool": enhanced_monster.magic_profile.mana_max if enhanced_monster.magic_profile else 0
         }
+    
+    def _determine_spell_domain(self, spell) -> DomainType:
+        """Determine the primary domain for casting a spell."""
+        # Map spell schools/types to domains
+        if hasattr(spell, 'school'):
+            school_domain_map = {
+                'evocation': DomainType.MIND,      # Raw magical power and theory
+                'illusion': DomainType.SOCIAL,    # Deception and manipulation  
+                'enchantment': DomainType.SOCIAL, # Mental influence
+                'necromancy': DomainType.SPIRIT,  # Death and life force
+                'divination': DomainType.AWARENESS, # Information gathering
+                'abjuration': DomainType.SPIRIT,  # Protection and warding
+                'transmutation': DomainType.CRAFT, # Changing and making
+                'conjuration': DomainType.MIND    # Summoning and creation
+            }
+            
+            school_str = str(spell.school).lower()
+            for school, domain in school_domain_map.items():
+                if school in school_str:
+                    return domain
+        
+        # Default based on spell effects
+        if hasattr(spell, 'effects'):
+            for effect in spell.effects:
+                if hasattr(effect, 'effect_type'):
+                    if 'DAMAGE' in str(effect.effect_type):
+                        return DomainType.MIND  # Destructive magic
+                    elif 'HEAL' in str(effect.effect_type):
+                        return DomainType.SPIRIT  # Healing magic
+                    elif 'BUFF' in str(effect.effect_type) or 'DEBUFF' in str(effect.effect_type):
+                        return DomainType.SOCIAL  # Enhancement/weakening
+                    elif 'SUMMON' in str(effect.effect_type):
+                        return DomainType.MIND  # Conjuration
+                    elif 'CROWD_CONTROL' in str(effect.effect_type):
+                        return DomainType.AUTHORITY  # Control magic
+        
+        # Default to Mind for magical theory and raw power
+        return DomainType.MIND
+    
+    def _find_best_magic_tag(self, character: Character, spell) -> Optional[str]:
+        """Find the best magic-related tag for the character."""
+        magic_related_tags = []
+        
+        # Look for general magic tags
+        for tag_name, tag in character.tags.items():
+            tag_name_lower = tag_name.lower()
+            if any(keyword in tag_name_lower for keyword in ['magic', 'spell', 'arcane', 'mana', 'enchant']):
+                magic_related_tags.append((tag_name, tag.rank))
+        
+        # Look for specific spell school tags if spell has a school
+        if hasattr(spell, 'school'):
+            school_str = str(spell.school).lower()
+            for tag_name, tag in character.tags.items():
+                if school_str in tag_name.lower():
+                    magic_related_tags.append((tag_name, tag.rank))
+        
+        # Return the highest ranked magic tag
+        if magic_related_tags:
+            return max(magic_related_tags, key=lambda x: x[1])[0]
+        
+        return None
+    
+    def _calculate_spell_difficulty(self, spell, target=None) -> int:
+        """Calculate the difficulty for casting a spell."""
+        base_difficulty = 10
+        
+        # Adjust for spell tier
+        if hasattr(spell, 'tier'):
+            tier_adjustments = {
+                'CANTRIP': 0,
+                'BASIC': 2,
+                'INTERMEDIATE': 4,
+                'ADVANCED': 6,
+                'ARCANE_MASTERY': 8
+            }
+            tier_str = str(spell.tier)
+            base_difficulty += tier_adjustments.get(tier_str, 2)
+        
+        # Adjust for spell complexity (mana cost as proxy)
+        if hasattr(spell, 'mana_cost') and spell.mana_cost:
+            complexity_modifier = min(spell.mana_cost // 10, 5)  # Max +5 for very expensive spells
+            base_difficulty += complexity_modifier
+        
+        # Adjust for target resistances
+        if target and hasattr(target, 'resistances'):
+            resistance_count = len(target.resistances) if target.resistances else 0
+            base_difficulty += resistance_count  # Each resistance adds +1 difficulty
+        
+        return base_difficulty

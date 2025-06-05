@@ -1,0 +1,284 @@
+{
+  "timestamp": "2025-06-01_15-22-27",
+  "phase": "Phase 4: Advanced LangChain Integration & Tool Routing",
+  "test_results": {
+    "systems_manager": true,
+    "tools": {
+      "move": {
+        "success": true,
+        "result": {
+          "action": "go",
+          "target": "north",
+          "confidence": 0.9999999999999999,
+          "tool_used": "Unknown",
+          "langchain_agent_used": false,
+          "context": {
+            "spacy_entities": [],
+            "langchain_intent": "Intent: COMBAT (confidence: 1.00)",
+            "langchain_entities": "For go actions, MoveTool provides the best functionality.",
+            "langchain_context": "Intent: MOVEMENT (confidence: 1.00)",
+            "enhanced_confidence": 0.8999999999999999,
+            "entity_resolutions": {
+              "direction": "north"
+            }
+          }
+        },
+        "has_system_integration": true,
+        "has_fallback": false
+      },
+      "look": {
+        "success": true,
+        "result": {
+          "action": "look",
+          "target": "the room",
+          "confidence": 0.9999999999999999,
+          "tool_used": "Unknown",
+          "langchain_agent_used": false,
+          "context": {
+            "spacy_entities": [],
+            "langchain_intent": "Intent: COMBAT (confidence: 1.00)",
+            "langchain_entities": "The command indicates look, so LookTool is most appropriate.",
+            "langchain_context": "Intent: OBSERVATION (confidence: 1.00)",
+            "enhanced_confidence": 0.9999999999999999
+          }
+        },
+        "has_system_integration": true,
+        "has_fallback": false
+      },
+      "take": {
+        "success": true,
+        "result": {
+          "action": "take",
+          "target": "the sword",
+          "confidence": 0.8999999999999999,
+          "tool_used": "Unknown",
+          "langchain_agent_used": false,
+          "context": {
+            "spacy_entities": [],
+            "langchain_intent": "Intent: COMBAT (confidence: 1.00)",
+            "langchain_entities": "For take actions, LookTool provides the best functionality.",
+            "langchain_context": "Intent: COMBAT (confidence: 0.90)",
+            "enhanced_confidence": 0.8999999999999999
+          }
+        },
+        "has_system_integration": true,
+        "has_fallback": false
+      },
+      "use": {
+        "success": true,
+        "result": {
+          "action": "use",
+          "target": "healing potion",
+          "confidence": 0.8999999999999999,
+          "tool_used": "Unknown",
+          "langchain_agent_used": false,
+          "context": {
+            "spacy_entities": [],
+            "langchain_intent": "Intent: COMBAT (confidence: 1.00)",
+            "langchain_entities": "For use actions, LookTool provides the best functionality.",
+            "langchain_context": "Intent: OBSERVATION (confidence: 0.85)",
+            "enhanced_confidence": 0.8999999999999999
+          }
+        },
+        "has_system_integration": true,
+        "has_fallback": false
+      },
+      "talk": {
+        "success": true,
+        "result": {
+          "action": "talk",
+          "target": "the merchant",
+          "confidence": 0.9999999999999999,
+          "tool_used": "Unknown",
+          "langchain_agent_used": false,
+          "context": {
+            "spacy_entities": [],
+            "langchain_intent": "Intent: COMBAT (confidence: 1.00)",
+            "langchain_entities": "For talk actions, TalkTool provides the best functionality.",
+            "langchain_context": "Intent: COMMUNICATION (confidence: 1.00)",
+            "enhanced_confidence": 0.9999999999999999
+          }
+        },
+        "has_system_integration": true,
+        "has_fallback": false
+      },
+      "attack": {
+        "success": true,
+        "result": {
+          "action": "attack",
+          "target": "the dragon",
+          "confidence": 0.8999999999999999,
+          "tool_used": "Unknown",
+          "langchain_agent_used": false,
+          "context": {
+            "spacy_entities": [],
+            "langchain_intent": "Intent: COMBAT (confidence: 1.00)",
+            "langchain_entities": "Based on the user's intent to attack, I should use LookTool.",
+            "langchain_context": "Intent: COMBAT (confidence: 0.90)",
+            "enhanced_confidence": 0.8999999999999999
+          }
+        },
+        "has_system_integration": true,
+        "has_fallback": false
+      },
+      "inventory": {
+        "success": true,
+        "result": {
+          "action": "inventory",
+          "target": null,
+          "confidence": 0.8999999999999999,
+          "tool_used": "Unknown",
+          "langchain_agent_used": false,
+          "context": {
+            "spacy_entities": [],
+            "langchain_intent": "Intent: COMBAT (confidence: 1.00)",
+            "langchain_entities": "The command indicates check, so LookTool is most appropriate.",
+            "langchain_context": "Intent: OBSERVATION (confidence: 1.00)",
+            "enhanced_confidence": 0.8999999999999999
+          }
+        },
+        "has_system_integration": true,
+        "has_fallback": false
+      },
+      "drop": {
+        "success": true,
+        "result": {
+          "action": "drop",
+          "target": "torch",
+          "confidence": 0.8999999999999999,
+          "tool_used": "Unknown",
+          "langchain_agent_used": false,
+          "context": {
+            "spacy_entities": [],
+            "langchain_intent": "Intent: COMBAT (confidence: 1.00)",
+            "langchain_entities": "The command indicates unknown, so LookTool is most appropriate.",
+            "langchain_context": "Intent: OBSERVATION (confidence: 0.85)",
+            "enhanced_confidence": 0.8999999999999999
+          }
+        },
+        "has_system_integration": true,
+        "has_fallback": false
+      },
+      "cast_spell": {
+        "success": true,
+        "result": {
+          "action": "unknown",
+          "target": null,
+          "confidence": 0.1,
+          "tool_used": "Unknown",
+          "langchain_agent_used": false,
+          "context": {
+            "spacy_entities": [],
+            "langchain_intent": "Intent: COMBAT (confidence: 1.00)",
+            "langchain_entities": "The command indicates cast, so LookTool is most appropriate.",
+            "langchain_context": "Intent: OBSERVATION (confidence: 0.85)",
+            "enhanced_confidence": 0.9999999999999999
+          }
+        },
+        "has_system_integration": false,
+        "has_fallback": true
+      }
+    },
+    "parser_integration": [
+      {
+        "command": "go north",
+        "success": true,
+        "result": {
+          "action": "go",
+          "target": "north",
+          "confidence": 0.9999999999999999
+        }
+      },
+      {
+        "command": "look at the room",
+        "success": true,
+        "result": {
+          "action": "look",
+          "target": "the room",
+          "confidence": 0.9999999999999999
+        }
+      },
+      {
+        "command": "take the sword",
+        "success": true,
+        "result": {
+          "action": "take",
+          "target": "the sword",
+          "confidence": 0.8999999999999999
+        }
+      },
+      {
+        "command": "use healing potion",
+        "success": true,
+        "result": {
+          "action": "use",
+          "target": "healing potion",
+          "confidence": 0.8999999999999999
+        }
+      },
+      {
+        "command": "talk to the merchant",
+        "success": true,
+        "result": {
+          "action": "talk",
+          "target": "the merchant",
+          "confidence": 0.9999999999999999
+        }
+      },
+      {
+        "command": "attack the dragon",
+        "success": true,
+        "result": {
+          "action": "attack",
+          "target": "the dragon",
+          "confidence": 0.8999999999999999
+        }
+      },
+      {
+        "command": "check inventory",
+        "success": true,
+        "result": {
+          "action": "inventory",
+          "target": null,
+          "confidence": 0.8999999999999999
+        }
+      },
+      {
+        "command": "drop the torch",
+        "success": true,
+        "result": {
+          "action": "drop",
+          "target": "the torch",
+          "confidence": 0.8999999999999999
+        }
+      },
+      {
+        "command": "cast lightning bolt",
+        "success": true,
+        "result": {
+          "action": "unknown",
+          "target": null,
+          "confidence": 0.1
+        }
+      },
+      {
+        "command": "examine the treasure chest",
+        "success": true,
+        "result": {
+          "action": "look",
+          "target": "the treasure chest",
+          "confidence": 0.9999999999999999
+        }
+      }
+    ],
+    "error_handling": true
+  },
+  "summary": {
+    "systems_manager_working": true,
+    "error_handling_working": true,
+    "tools_tested": 9,
+    "tools_working": 9,
+    "commands_tested": 10,
+    "commands_working": 10
+  }
+}

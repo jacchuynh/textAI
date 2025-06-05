@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Player } from '@shared/schema';
+import { PlayerWithMagicProfile } from '@shared/schema';
 import { 
   ScrollArea, 
   ScrollBar 
@@ -23,7 +23,7 @@ import {
 
 export default function PlayerView() {
   const { userId } = useParams();
-  const [player, setPlayer] = useState<Player | null>(null);
+  const [player, setPlayer] = useState<PlayerWithMagicProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [command, setCommand] = useState('');
   const [gameLog, setGameLog] = useState<Array<{type: 'system' | 'player' | 'response', content: string}>>([
@@ -80,10 +80,10 @@ export default function PlayerView() {
     
     try {
       // Send command to server
-      const response = await axios.post('/api/command', { userId, command });
+      const response = await axios.post(`/api/player/${userId}/command`, { command });
       
       // Add response to game log
-      setGameLog(prev => [...prev, { type: 'response', content: response.data.result }]);
+      setGameLog(prev => [...prev, { type: 'response', content: response.data.message }]);
     } catch (error) {
       console.error('Error processing command:', error);
       setGameLog(prev => [
@@ -144,7 +144,7 @@ export default function PlayerView() {
           <div className="flex items-center gap-3 text-sm text-gray-400">
             <div>Level: {player.level}</div>
             <div>HP: {player.healthCurrent}/{player.healthMax}</div>
-            <div>MP: {player.magicProfile?.manaCurrent || 0}/{player.magicProfile?.manaMax || 0}</div>
+            <div>MP: {player.magicProfile?.manaCurrent || 0}/{player.magicProfile?.manaCapacity || 0}</div>
             <div>Gold: {player.gold}</div>
           </div>
         </div>
@@ -293,7 +293,7 @@ export default function PlayerView() {
                     <div className="rounded bg-gray-800/40 p-2">
                       <span className="text-sm text-gray-400">Mana:</span>
                       <div className="font-medium text-gray-200">
-                        {player.magicProfile?.manaCurrent || 0}/{player.magicProfile?.manaMax || 0}
+                        {player.magicProfile?.manaCurrent || 0}/{player.magicProfile?.manaCapacity || 0}
                       </div>
                     </div>
                   </div>
@@ -308,8 +308,8 @@ export default function PlayerView() {
                         <div className="font-medium text-gray-200">{player.magicProfile.magicAffinity}</div>
                       </div>
                       <div className="rounded bg-gray-800/40 p-2">
-                        <span className="text-sm text-gray-400">Magic Level:</span>
-                        <div className="font-medium text-gray-200">{player.magicProfile.magicLevel}</div>
+                        <span className="text-sm text-gray-400">Spell Mastery:</span>
+                        <div className="font-medium text-gray-200">{player.magicProfile.spellMastery}</div>
                       </div>
                       <div className="rounded bg-gray-800/40 p-2">
                         <span className="text-sm text-gray-400">Known Aspects:</span>
@@ -318,8 +318,8 @@ export default function PlayerView() {
                         </div>
                       </div>
                       <div className="rounded bg-gray-800/40 p-2">
-                        <span className="text-sm text-gray-400">Ritual Capacity:</span>
-                        <div className="font-medium text-gray-200">{player.magicProfile.ritualCapacity}</div>
+                        <span className="text-sm text-gray-400">Spell Power:</span>
+                        <div className="font-medium text-gray-200">{player.magicProfile.spellPower}</div>
                       </div>
                     </div>
                   ) : (

@@ -17,12 +17,36 @@ from backend.src.crafting.db.crud import crafting_log as crud_crafting_log
 from backend.src.crafting.models.pydantic_models import Recipe, CraftingResult
 from backend.src.crafting.services.recipe_service import recipe_service
 
+# Import Celery integration for async processing
+try:
+    from backend.src.narrative_engine.celery_integration import NarrativeEngineCeleryIntegration
+    from backend.src.narrative_engine.event_bus import get_event_bus, Event
+    ASYNC_FEATURES_AVAILABLE = True
+except ImportError:
+    ASYNC_FEATURES_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 class CraftingService:
     """
     Service for handling crafting operations in the game.
     """
+    
+    def __init__(self):
+        """Initialize the crafting service."""
+        # Initialize async features if available
+        if ASYNC_FEATURES_AVAILABLE:
+            self.event_bus = get_event_bus()
+            self.celery_integration = NarrativeEngineCeleryIntegration()
+            
+            # Subscribe to relevant events
+            self.event_bus.subscribe("crafting_started", self._handle_crafting_started)
+            self.event_bus.subscribe("crafting_completed", self._handle_crafting_completed)
+            self.event_bus.subscribe("crafting_failed", self._handle_crafting_failed)
+            self.event_bus.subscribe("recipe_discovered", self._handle_recipe_discovered)
+        else:
+            self.event_bus = None
+            self.celery_integration = None
     
     def can_character_craft_recipe(
         self, 

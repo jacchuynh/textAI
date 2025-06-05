@@ -313,3 +313,82 @@ class PacingIntegration:
             enhanced_combat['combat_pace_modifier'] = 'standard'
             
         return enhanced_combat
+
+    def update_pacing_state(self, player_input, response_data):
+        """
+        Update the pacing state based on player input and response.
+        
+        Args:
+            player_input: The player's input text
+            response_data: The response data from the AI GM
+            
+        Returns:
+            Dict containing pacing update information
+        """
+        try:
+            # Simple pacing logic based on input patterns
+            if "quickly" in player_input.lower() or "hurry" in player_input.lower():
+                current_state = "ACCELERATED"
+            elif "slowly" in player_input.lower() or "careful" in player_input.lower():
+                current_state = "DELIBERATE"
+            else:
+                current_state = "NORMAL"
+            
+            # Update the pacing manager's state
+            if hasattr(self.pacing_manager, 'set_current_state'):
+                self.pacing_manager.set_current_state(current_state)
+            
+            self.logger.debug(f"Updated pacing state to: {current_state}")
+            
+            return {
+                "success": True,
+                "pacing_state": current_state,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error updating pacing state: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.utcnow().isoformat()
+            }
+
+    def check_for_ambient_content(self):
+        """
+        Check if ambient content should be triggered based on current pacing state.
+        
+        Returns:
+            Dict containing ambient content information or None
+        """
+        try:
+            # Get time since last input
+            time_since_input = self.get_time_since_last_input()
+            
+            # Check if enough time has passed for ambient content
+            if time_since_input > timedelta(minutes=1):
+                # Use pacing manager to check for ambient triggers
+                if hasattr(self.pacing_manager, 'check_ambient_triggers'):
+                    ambient_triggers = self.pacing_manager.check_ambient_triggers()
+                    if ambient_triggers:
+                        return {
+                            "success": True,
+                            "content": ambient_triggers.get("text", "The world continues around you..."),
+                            "type": "ambient",
+                            "timestamp": datetime.utcnow().isoformat()
+                        }
+                
+                # Fallback ambient content based on time
+                if time_since_input > timedelta(minutes=3):
+                    return {
+                        "success": True,
+                        "content": "Time passes quietly...",
+                        "type": "time_passage",
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Error checking for ambient content: {e}")
+            return None

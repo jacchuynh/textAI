@@ -2,14 +2,19 @@
 Domain progression system for the game engine.
 
 This module handles domain checks, growth, and progression.
+DEPRECATED: This system is being replaced by the UnifiedProgressionSystem.
+Some methods are maintained for backward compatibility.
 """
+import warnings
 from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime
 
 from ..shared.models import (
-    Domain, DomainType, GrowthTier, GrowthLogEntry, Character, Tag, TagCategory
+    Domain, DomainType, GrowthTier, GrowthLogEntry, Character, Tag, TagCategory,
+    ResolutionMethod
 )
 from ..events.event_bus import event_bus, GameEvent, EventType
+from .unified_progression_system import unified_progression_system
 
 
 class DomainSystem:
@@ -82,6 +87,9 @@ class DomainSystem:
         """
         Perform a domain check roll.
         
+        DEPRECATED: This method is deprecated. Use process_action() instead,
+        which utilizes the new UnifiedProgressionSystem.
+        
         Args:
             character: The character performing the check
             domain_type: The domain being used
@@ -91,6 +99,12 @@ class DomainSystem:
         Returns:
             Dictionary with roll results
         """
+        warnings.warn(
+            "roll_check is deprecated. Use process_action() which utilizes the UnifiedProgressionSystem.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        
         import random
         
         # Roll a d20
@@ -148,6 +162,72 @@ class DomainSystem:
         
         return result
     
+    def process_action(self, 
+                      character: Character, 
+                      domain_type: DomainType,
+                      action_description: str,
+                      tag_name: Optional[str] = None,
+                      action_data: Optional[Dict[str, Any]] = None,
+                      target: Optional[Dict[str, Any]] = None,
+                      combat_state: Optional[Dict[str, Any]] = None,
+                      player_declared_goal_alignment: Optional[str] = None,
+                      player_approach_description: Optional[str] = None,
+                      force_resolution_method: Optional[ResolutionMethod] = None) -> Dict[str, Any]:
+        """
+        Process a player action using the new UnifiedProgressionSystem.
+        
+        This is the new recommended method for handling all character actions,
+        replacing the old roll_check method with much more sophisticated
+        progression tracking and resolution methods.
+        
+        Args:
+            character: The character performing the action
+            domain_type: The primary domain being used
+            action_description: Description of the action being performed
+            tag_name: Optional tag/skill that applies
+            action_data: Optional dictionary with action modifiers and metadata
+            target: Optional target information (for social actions, etc.)
+            combat_state: Optional combat state information
+            player_declared_goal_alignment: Player's stated goal alignment
+            player_approach_description: Player's description of their approach
+            force_resolution_method: Force a specific resolution method
+            
+        Returns:
+            Dictionary with comprehensive action results including progression data
+        """
+        result = unified_progression_system.process_player_action(
+            character=character,
+            domain_type=domain_type,
+            action_description=action_description,
+            tag_name=tag_name,
+            action_data=action_data,
+            target=target,
+            combat_state=combat_state,
+            player_declared_goal_alignment=player_declared_goal_alignment,
+            player_approach_description=player_approach_description,
+            force_resolution_method=force_resolution_method
+        )
+        
+        # Publish appropriate events for backward compatibility
+        event = GameEvent(
+            type=EventType.DOMAIN_CHECK,
+            actor=str(character.id),
+            context={
+                "domain": domain_type.value,
+                "tag": tag_name,
+                "action": action_description,
+                "success": result.get("success", False),
+                "method": result.get("method", "unknown"),
+                "growth_points": result.get("growth_points_awarded", 0),
+                "insight_points": result.get("insight_points_gained", 0)
+            },
+            tags=["check", domain_type.value.lower(), result.get("method", "unknown")],
+            game_id=getattr(character, "game_id", None)
+        )
+        event_bus.publish(event)
+        
+        return result
+    
     def log_domain_use(self, 
                       character_id: str, 
                       domain_type: DomainType, 
@@ -155,6 +235,10 @@ class DomainSystem:
                       success: bool) -> Tuple[bool, bool]:
         """
         Log domain usage and check for growth.
+        
+        DEPRECATED: This method is deprecated. Domain usage and progression
+        are now handled automatically by the UnifiedProgressionSystem when
+        using the process_action() method.
         
         Args:
             character_id: ID of the character
@@ -165,6 +249,12 @@ class DomainSystem:
         Returns:
             Tuple of (usage_recorded, level_up_occurred)
         """
+        warnings.warn(
+            "log_domain_use is deprecated. Use process_action() which handles progression automatically.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        
         from ..storage.character_storage import get_character
         
         # Get character from storage

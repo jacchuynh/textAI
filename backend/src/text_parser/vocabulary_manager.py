@@ -5,8 +5,12 @@ This module maintains dictionaries of known verbs, nouns, adjectives, etc.
 to help the parser engine recognize and process player commands effectively.
 """
 
-from typing import Dict, List, Set, Optional
+from typing import Dict, List, Set, Optional, TYPE_CHECKING
 import logging
+
+# Type checking import to avoid circular imports
+if TYPE_CHECKING:
+    from .parser_engine import ParserEngine
 
 logger = logging.getLogger("text_parser.vocabulary")
 
@@ -24,6 +28,19 @@ class VocabularyManager:
         self.character_synonyms = {}  # Will be populated with NPCs discovered
         self.location_synonyms = {}  # Will be populated with locations discovered
         
+        # Parser engine reference for spaCy EntityRuler integration
+        self._parser_engine: Optional['ParserEngine'] = None
+
+    def set_parser_engine(self, parser_engine: 'ParserEngine') -> None:
+        """
+        Set the parser engine reference for spaCy EntityRuler integration.
+        
+        Args:
+            parser_engine: The ParserEngine instance to integrate with
+        """
+        self._parser_engine = parser_engine
+        logger.info("VocabularyManager connected to ParserEngine for spaCy integration")
+
     def _init_action_synonyms(self) -> Dict[str, List[str]]:
         """Initialize a dictionary of action synonyms."""
         return {
@@ -76,6 +93,12 @@ class VocabularyManager:
             
         self.item_synonyms[item_id] = synonyms
         logger.debug(f"Registered item {item_id} with names: {', '.join(synonyms)}")
+        
+        # Add to spaCy EntityRuler if parser engine is connected
+        if self._parser_engine:
+            # Add primary name and all synonyms to spaCy EntityRuler
+            for synonym in synonyms:
+                self._parser_engine.add_world_entity(synonym, "FANTASY_ITEM", f"item_{item_id}_{synonym}")
     
     def register_character(self, char_id: str, name: str, synonyms: List[str] = None) -> None:
         """
@@ -98,6 +121,12 @@ class VocabularyManager:
             
         self.character_synonyms[char_id] = synonyms
         logger.debug(f"Registered character {char_id} with names: {', '.join(synonyms)}")
+        
+        # Add to spaCy EntityRuler if parser engine is connected
+        if self._parser_engine:
+            # Add primary name and all synonyms to spaCy EntityRuler
+            for synonym in synonyms:
+                self._parser_engine.add_world_entity(synonym, "FANTASY_NPC", f"npc_{char_id}_{synonym}")
     
     def register_location(self, loc_id: str, name: str, synonyms: List[str] = None) -> None:
         """
@@ -120,6 +149,12 @@ class VocabularyManager:
             
         self.location_synonyms[loc_id] = synonyms
         logger.debug(f"Registered location {loc_id} with names: {', '.join(synonyms)}")
+        
+        # Add to spaCy EntityRuler if parser engine is connected
+        if self._parser_engine:
+            # Add primary name and all synonyms to spaCy EntityRuler
+            for synonym in synonyms:
+                self._parser_engine.add_world_entity(synonym, "FANTASY_LOCATION", f"loc_{loc_id}_{synonym}")
     
     def get_canonical_action(self, action_text: str) -> Optional[str]:
         """

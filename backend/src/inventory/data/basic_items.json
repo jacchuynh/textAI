@@ -1,0 +1,309 @@
+{
+  "items": [
+    {
+      "item_id": "health_potion_small",
+      "name": "Small Health Potion",
+      "description": "A small vial of red liquid that restores health when consumed.",
+      "item_type": "CONSUMABLE",
+      "stackable": true,
+      "max_stack_size": 5,
+      "weight": 0.5,
+      "value": 25,
+      "rarity": "COMMON",
+      "properties": {
+        "effects": {
+          "heal": 25
+        },
+        "use_verb": "drink",
+        "flavor_text": "The potion tastes of bitter herbs and magic."
+      },
+      "synonyms": ["health potion", "healing potion", "red potion", "hp potion"],
+      "tags": ["consumable", "healing", "potion"]
+    },
+    {
+      "item_id": "mana_potion_small",
+      "name": "Small Mana Potion",
+      "description": "A small vial of blue liquid that restores magical energy.",
+      "item_type": "CONSUMABLE",
+      "stackable": true,
+      "max_stack_size": 5,
+      "weight": 0.5,
+      "value": 30,
+      "rarity": "COMMON",
+      "properties": {
+        "effects": {
+          "mana": 20
+        },
+        "use_verb": "drink",
+        "flavor_text": "The potion sparkles with arcane energy."
+      },
+      "synonyms": ["mana potion", "magic potion", "blue potion", "mp potion"],
+      "tags": ["consumable", "mana", "potion"]
+    },
+    {
+      "item_id": "iron_sword",
+      "name": "Iron Sword",
+      "description": "A well-crafted sword made of sturdy iron.",
+      "item_type": "WEAPON",
+      "stackable": false,
+      "weight": 3.5,
+      "value": 150,
+      "rarity": "COMMON",
+      "properties": {
+        "damage": 15,
+        "damage_type": "slashing",
+        "weapon_type": "sword",
+        "durability": 100,
+        "requirements": {
+          "strength": 10
+        }
+      },
+      "synonyms": ["sword", "blade", "iron blade"],
+      "tags": ["weapon", "sword", "iron", "melee"]
+    },
+    {
+      "item_id": "leather_armor",
+      "name": "Leather Armor",
+      "description": "A set of leather armor that provides basic protection.",
+      "item_type": "ARMOR",
+      "stackable": false,
+      "weight": 8.0,
+      "value": 80,
+      "rarity": "COMMON",
+      "properties": {
+        "armor": 5,
+        "armor_type": "light",
+        "durability": 80,
+        "slots": ["chest"]
+      },
+      "synonyms": ["armor", "leather", "chest armor"],
+      "tags": ["armor", "leather", "light_armor"]
+    },
+    {
+      "item_id": "iron_ore",
+      "name": "Iron Ore",
+      "description": "A chunk of raw iron ore, useful for blacksmithing.",
+      "item_type": "MATERIAL_CRAFTING",
+      "material_type": "ORE",
+      "stackable": true,
+      "max_stack_size": 50,
+      "weight": 2.0,
+      "value": 5,
+      "rarity": "COMMON",
+      "properties": {
+        "crafting_properties": {
+          "hardness": 7,
+          "purity": 0.8
+        },
+        "smelts_into": "iron_ingot"
+      },
+      "synonyms": ["ore", "iron", "raw iron"],
+      "tags": ["material", "ore", "iron", "crafting"]
+    },
+    {
+      "item_id": "iron_ingot",
+      "name": "Iron Ingot",
+      "description": "A refined bar of iron, ready for crafting weapons and armor.",
+      "item_type": "MATERIAL_CRAFTING",
+      "material_type": "METAL",
+      "stackable": true,
+      "max_stack_size": 25,
+      "weight": 1.5,
+      "value": 15,
+      "rarity": "COMMON",
+      "properties": {
+        "crafting_properties": {
+          "hardness": 8,
+          "malleability": 0.7
+        }
+      },
+      "synonyms": ["ingot", "iron bar", "metal bar"],
+      "tags": ["material", "metal", "iron", "crafting"]
+    },
+    {
+      "item_id": "gold_coin",
+      "name": "Gold Coin",
+      "description": "A standard gold coin used as currency throughout the realm.",
+      "item_type": "CURRENCY",
+      "stackable": true,
+      "max_stack_size": 1000,
+      "weight": 0.01,
+      "value": 1,
+      "rarity": "COMMON",
+      "properties": {
+        "currency_type": "standard",
+        "denomination": 1
+      },
+      "synonyms": ["coin", "gold", "money", "currency"],
+      "tags": ["currency", "gold"]
+    },
+    {
+      "item_id": "magic_crystal",
+      "name": "Magic Crystal",
+      "description": "A shimmering crystal infused with magical energy.",
+      "item_type": "MATERIAL_MAGICAL",
+      "material_type": "MAGICAL",
+      "stackable": true,
+      "max_stack_size": 10,
+      "weight": 0.2,
+      "value": 100,
+      "rarity": "UNCOMMON",
+      "properties": {
+        "magical_affinity": ["arcane"],
+        "leyline_resonance": 1.5,
+        "corruption_resistance": 0.8,
+        "enchanting_power": 15
+      },
+      "synonyms": ["crystal", "magic stone", "arcane crystal"],
+      "tags": ["material", "magical", "crystal", "enchanting"]
+    },
+    {
+      "item_id": "wooden_pickaxe",
+      "name": "Wooden Pickaxe",
+      "description": "A basic pickaxe made of wood, suitable for mining soft materials.",
+      "item_type": "TOOL",
+      "stackable": false,
+      "weight": 2.0,
+      "value": 10,
+      "rarity": "COMMON",
+      "properties": {
+        "tool_type": "pickaxe",
+        "mining_power": 1,
+        "durability": 50,
+        "can_mine": ["stone", "coal_ore", "copper_ore"]
+      },
+      "synonyms": ["pickaxe", "pick", "mining tool"],
+      "tags": ["tool", "pickaxe", "mining", "wooden"]
+    },
+    {
+      "item_id": "bread",
+      "name": "Bread",
+      "description": "A loaf of freshly baked bread that satisfies hunger.",
+      "item_type": "FOOD",
+      "stackable": true,
+      "max_stack_size": 10,
+      "weight": 0.3,
+      "value": 2,
+      "rarity": "COMMON",
+      "properties": {
+        "effects": {
+          "hunger": 20,
+          "health": 5
+        },
+        "perishable": true,
+        "spoil_time": 72
+      },
+      "synonyms": ["loaf", "food"],
+      "tags": ["food", "consumable", "hunger"]
+    },
+    {
+      "item_id": "brass_key",
+      "name": "Brass Key",
+      "description": "A small brass key with intricate engravings. It looks like it might open something important.",
+      "item_type": "KEY",
+      "stackable": false,
+      "weight": 0.1,
+      "value": 50,
+      "rarity": "UNCOMMON",
+      "properties": {
+        "unlocks": ["wooden_chest", "brass_locked_container"],
+        "key_type": "brass",
+        "durability": 100
+      },
+      "synonyms": ["key", "brass key", "small key"],
+      "tags": ["key", "unlock", "tool", "brass"]
+    },
+    {
+      "item_id": "iron_key",
+      "name": "Iron Key",
+      "description": "A sturdy iron key with a simple design. It appears well-made and functional.",
+      "item_type": "KEY",
+      "stackable": false,
+      "weight": 0.2,
+      "value": 75,
+      "rarity": "COMMON",
+      "properties": {
+        "unlocks": ["iron_strongbox", "iron_locked_door"],
+        "key_type": "iron",
+        "durability": 150
+      },
+      "synonyms": ["key", "iron key", "metal key"],
+      "tags": ["key", "unlock", "tool", "iron"]
+    },
+    {
+      "item_id": "silver_key",
+      "name": "Silver Key",
+      "description": "An elegant silver key with delicate craftsmanship. It seems to be for something valuable.",
+      "item_type": "KEY",
+      "stackable": false,
+      "weight": 0.15,
+      "value": 150,
+      "rarity": "RARE",
+      "properties": {
+        "unlocks": ["silver_jewelry_box", "noble_chest"],
+        "key_type": "silver",
+        "durability": 200
+      },
+      "synonyms": ["key", "silver key", "elegant key"],
+      "tags": ["key", "unlock", "tool", "silver", "valuable"]
+    },
+    {
+      "item_id": "ancient_key",
+      "name": "Ancient Key",
+      "description": "A mysterious key made of an unknown dark metal, covered in ancient runes. It radiates a faint magical aura.",
+      "item_type": "KEY",
+      "stackable": false,
+      "weight": 0.3,
+      "value": 500,
+      "rarity": "EPIC",
+      "properties": {
+        "unlocks": ["ancient_vault", "magical_seal"],
+        "key_type": "ancient",
+        "durability": 1000,
+        "magical": true,
+        "rune_inscriptions": "unlock_ancient_seals"
+      },
+      "synonyms": ["key", "ancient key", "runic key", "magic key"],
+      "tags": ["key", "unlock", "tool", "ancient", "magical", "runic"]
+    },
+    {
+      "item_id": "lockpick",
+      "name": "Lockpick",
+      "description": "A set of thin metal tools used for picking locks. Requires skill to use effectively.",
+      "item_type": "TOOL",
+      "stackable": true,
+      "max_stack_size": 5,
+      "weight": 0.1,
+      "value": 25,
+      "rarity": "COMMON",
+      "properties": {
+        "tool_type": "lockpicking",
+        "durability": 50,
+        "skill_required": "lockpicking",
+        "break_chance": 0.1
+      },
+      "synonyms": ["picks", "lock picks", "thieves tools"],
+      "tags": ["tool", "lockpicking", "unlock", "thief"]
+    },
+    {
+      "item_id": "master_lockpick",
+      "name": "Master Lockpick Set",
+      "description": "A professional set of lockpicking tools made from high-quality steel. Much more durable and effective than basic lockpicks.",
+      "item_type": "TOOL",
+      "stackable": true,
+      "max_stack_size": 3,
+      "weight": 0.3,
+      "value": 150,
+      "rarity": "UNCOMMON",
+      "properties": {
+        "tool_type": "lockpicking",
+        "durability": 200,
+        "skill_required": "lockpicking",
+        "break_chance": 0.02,
+        "skill_bonus": 2
+      },
+      "synonyms": ["master picks", "professional lockpicks", "quality picks"],
+      "tags": ["tool", "lockpicking", "unlock", "professional", "master"]
+    }
+  ]
+}

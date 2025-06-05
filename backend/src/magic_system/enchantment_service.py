@@ -5,17 +5,20 @@ Handles applying magical enchantments to crafted items
 
 import random
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, TYPE_CHECKING
 import uuid
 import logging
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, Float, Integer
 
 from .magic_crafting_models import Enchantment, EnchantedItem, MagicalMaterial, MagicalCraftingEvent
 from .magic_system import MagicSystem, MagicUser
 from .advanced_magic_features import DomainMagicSynergy, EnvironmentalMagicResonance
-from ..db.database import SessionLocal
+# from ..db.database import SessionLocal  # TODO: Fix import path when database is available
+
+if TYPE_CHECKING:
+    from backend.src.shared.models import Character
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -41,8 +44,9 @@ class EnchantmentService:
         self.environmental_resonance = EnvironmentalMagicResonance()
         
     def get_db_session(self) -> Session:
-        """Get a database session"""
-        return SessionLocal()
+        """Get a database session - placeholder implementation"""
+        # TODO: Implement proper database session when database is available
+        return None  # Placeholder - replace with actual SessionLocal() when available
     
     def get_enchantment(self, enchantment_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -146,7 +150,8 @@ class EnchantmentService:
             session.close()
     
     def apply_enchantment(self, player_id: str, item_id: str, enchantment_id: str, 
-                        materials: List[Dict[str, Any]], location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                        materials: List[Dict[str, Any]], location: Optional[Dict[str, Any]] = None,
+                        character: Optional['Character'] = None) -> Dict[str, Any]:
         """
         Apply an enchantment to a crafted item
         
@@ -156,6 +161,7 @@ class EnchantmentService:
             enchantment_id: ID of the enchantment to apply
             materials: List of materials being used
             location: Optional location data for environmental bonuses
+            character: Optional character object for enhanced rolls
             
         Returns:
             Result of the enchantment attempt
@@ -211,40 +217,79 @@ class EnchantmentService:
             # Calculate domain synergy bonus if available
             domain_bonus = 0.0
             if hasattr(magic_profile, "domains"):
-                character = {"domains": magic_profile.domains}
-                domain_bonus = self.domain_synergy.calculate_synergy_bonus(character, {
+                character_data = {"domains": magic_profile.domains}
+                domain_bonus = self.domain_synergy.calculate_synergy_bonus(character_data, {
                     "school": enchantment_data["magic_school"],
                     "tier": enchantment_data["tier"]
                 })
-            
-            # Calculate base success chance
-            base_chance = enchantment_data["base_success_chance"]
-            
-            # Apply bonuses
-            success_chance = min(0.95, base_chance + 
-                              (material_quality_bonus * 0.1) + 
-                              (environmental_bonus * 0.05) +
-                              (domain_bonus * 0.1) +
-                              (magic_profile.arcane_mastery * 0.02))
             
             # Deduct mana cost
             mana_cost = enchantment_data["min_mana_cost"]
             magic_profile.use_mana(mana_cost)
             
-            # Determine success
-            success = random.random() < success_chance
-            
-            # Calculate enchantment quality if successful
-            quality = 1.0
-            if success:
-                # Base quality based on success margin
-                quality_base = 0.8 + ((success_chance - random.random()) * 0.4)
+            if character:
+                # Use enhanced roll system for enchantment success
+                base_difficulty = 8 + (enchantment_data["tier"] * 2)
                 
-                # Add bonuses
-                quality = min(2.0, quality_base + 
-                           (material_quality_bonus * 0.2) + 
-                           (environmental_bonus * 0.1) +
-                           (domain_bonus * 0.1))
+                # Apply bonuses as difficulty reductions
+                difficulty_reduction = int(
+                    (material_quality_bonus * 3) + 
+                    (environmental_bonus * 2) +
+                    (domain_bonus * 3) +
+                    (magic_profile.arcane_mastery * 0.5)
+                )
+                final_difficulty = max(5, base_difficulty - difficulty_reduction)
+                
+                # Use Mind as primary (focus/precision) and Spirit as secondary (magical power)
+                from backend.src.shared.models import DomainType
+                enchantment_result = character.roll_check_hybrid(
+                    primary_domain=DomainType.MIND,
+                    secondary_domain=DomainType.SPIRIT,
+                    difficulty=final_difficulty,
+                    context=f"enchanting item with {enchantment_data['name']}"
+                )
+                
+                success = enchantment_result['success']
+                
+                # Calculate enchantment quality based on roll success
+                quality = 1.0
+                if success:
+                    # Base quality from success margin
+                    margin_bonus = min(enchantment_result['margin_of_success'] / 10, 0.5)
+                    critical_bonus = 0.5 if enchantment_result['is_critical_success'] else 0
+                    
+                    quality = 1.0 + margin_bonus + critical_bonus + \
+                             (material_quality_bonus * 0.2) + \
+                             (environmental_bonus * 0.1) + \
+                             (domain_bonus * 0.1)
+                    
+                    quality = min(2.0, quality)
+                
+            else:
+                # Fallback to original probability system
+                base_chance = enchantment_data["base_success_chance"]
+                
+                # Apply bonuses
+                success_chance = min(0.95, base_chance + 
+                                  (material_quality_bonus * 0.1) + 
+                                  (environmental_bonus * 0.05) +
+                                  (domain_bonus * 0.1) +
+                                  (magic_profile.arcane_mastery * 0.02))
+                
+                # Determine success
+                success = random.random() < success_chance
+                
+                # Calculate enchantment quality if successful
+                quality = 1.0
+                if success:
+                    # Base quality based on success margin
+                    quality_base = 0.8 + ((success_chance - random.random()) * 0.4)
+                    
+                    # Add bonuses
+                    quality = min(2.0, quality_base + 
+                               (material_quality_bonus * 0.2) + 
+                               (environmental_bonus * 0.1) +
+                               (domain_bonus * 0.1))
             
             # Create enchantment result data
             result_data = {

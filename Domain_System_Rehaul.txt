@@ -1,0 +1,733 @@
+
+
+Here's a phased implementation plan to help you rehaul your domain system:
+
+**Phase 1: Update Core Data Models (models.py)**
+
+This phase focuses on updating your Pydantic models to store the new information required by the redesigned system.
+
+1. **Enhance `Domain` Model:**
+  * The current `Domain.growth_points`, `growth_required`, `level_ups_required`, and `add_growth_log_entry` will be superseded by the new `UnifiedProgressionSystem`. Consider whether to deprecate them or adapt them for a simpler, underlying point accumulation if the `UnifiedProgressionSystem` aggregates these. For now, we'll assume the new system takes over.
+  * The `GrowthTier` enum might need its thresholds adjusted based on the new "Domain Progression Tiers" (e.g., Novice 0-7, Skilled 8-12, etc., if points directly map to these). However, the design specifies point ranges for *advancement*, not current tier. The existing `get_tier` based on `value` might still be relevant for descriptive purposes.
+
+2. **Enhance `Character` Model:**
+  * **Player Profile Attributes:** Add fields to store player-declared intentions and observed behaviors.
+    ````python
+    // filepath: /Users/jacc/Downloads/TextRealmsAI/backend/src/shared/models.py
+    // ...existing code...
+    class Character(BaseModel):
+      """Character model with domains and tags"""
+      id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+      name: str
+      character_class: Optional[str] = "Adventurer"
+      background: Optional[str] = "Commoner"
+      created_at: datetime = Field(default_factory=datetime.now)
+      updated_at: datetime = Field(default_factory=datetime.now)
+       
+      # Core domains
+      domains: Dict[DomainType, Domain] = Field(default_factory=dict)
+       
+      # Character tags/skills
+      tags: Dict[str, Tag] = Field(default_factory=dict)
+       
+      # Track domain usage history for the "drift" mechanic
+      domain_history: Dict[DomainType, List[int]] = Field(default_factory=dict)
+
+      # --- New Player Profile Attributes ---
+      declared_goals: List[str] = Field(default_factory=list, description="Player-stated character development goals")
+      learning_approach_preferences: List[str] = Field(default_factory=list, description="Player-stated learning preferences")
+      value_system_preferences: List[str] = Field(default_factory=list, description="Player-stated value system")
+      relationship_priorities: List[str] = Field(default_factory=list, description="Player-stated relationship priorities")
+       
+      demonstrated_values: Dict[str, int] = Field(default_factory=dict, description="Track consistency of demonstrated values (e.g., 'mercy': 5)")
+      relationship_investments: Dict[str, int] = Field(default_factory=dict, description="Track investment with NPCs (e.g., 'npc_id_or_name': 10)")
+      risk_tolerance: Optional[str] = Field(default="moderate", description="Player's general risk tolerance (e.g., 'cautious', 'moderate', 'bold')")
+       
+      # --- New Progression System Attributes ---
+      insight_points: int = Field(default=0, description="Insight Points for alternative progression")
+      mastery_paths: List[Dict[str, Any]] = Field(default_factory=list, description="Unlocked/active mastery paths, e.g., [{'path_name': 'Tactical Spellsword', 'domain': 'mind', 'active': True}]")
+      growth_momentum: Dict[DomainType, float] = Field(default_factory=lambda: {domain: 1.0 for domain in DomainType}, description="Growth momentum multipliers per domain")
+      # --- End New Attributes ---
+       
+      @validator('domains', pre=True, always=True)
+    // ...existing code...
+    ````
+  * **Deprecate/Refactor Existing Roll Checks:**
+    * `roll_check`, `roll_check_advanced`, and `roll_check_hybrid` will be largely replaced by the `UnifiedProgressionSystem`. Keep them for now if other parts of your system rely on them, but mark them for eventual refactoring or removal. The logic within `roll_check_hybrid` for choosing a method is a good conceptual starting point for the new system.
+
+3. **Introduce New Enums/Data Structures (Optional, but Recommended):**
+  * Consider creating enums for `ActionSignificanceTier`, `ProbabilityModifierType`, etc., to make the `UnifiedProgressionSystem` cleaner.
+  ````python
+  # filepath: /Users/jacc/Downloads/TextRealmsAI/backend/src/shared/models.py
+  // ...existing code...
+  class GrowthLogEntry(BaseModel):
+  // ...existing code...
+
+  # --- New Enums for Progression System ---
+  class ActionSignificanceTier(str, Enum):
+    TRIVIAL = "trivial"
+    MINOR = "minor"
+    SIGNIFICANT = "significant"
+    MAJOR = "major"
+    LEGENDARY = "legendary"
+
+  class ResolutionMethod(str, Enum):
+    DICE = "dice"
+    PROBABILITY = "probability"
+  # --- End New Enums ---
+
+  class Domain(BaseModel):
+  // ...existing code...
+  ````
+
+**Phase 2: Implement `UnifiedProgressionSystem` - Core Structure & Resolution**
+
+Create a new file, e.g., `unified_progression_system.py`, for this central class.
+
+1. **`UnifiedProgressionSystem` Class Outline:**
+  ````python
+  # filepath: /Users/jacc/Downloads/TextRealmsAI/backend/src/game_engine/unified_progression_system.py
+  from typing import Dict, List, Optional, Any, Tuple
+  from enum import Enum
+  import random
+
+  from ..shared.models import (
+    Character, DomainType, Tag, ResolutionMethod, ActionSignificanceTier,
+    # Potentially import other enums/models as needed
+  )
+  # from ..events.event_bus import event_bus, GameEvent, EventType # For later integration
+
+  # Placeholder for PlayerProfile if you make it a separate Pydantic model
+  # from ..shared.player_profile import PlayerProfile 
+   
+  # --- Constants for Probability Assessment ---
+  BASE_SUCCESS_CHANCE = 50
+  DOMAIN_VALUE_MULTIPLIER = 5
+  TAG_RANK_MULTIPLIER = 8
+   
+  # --- Constants for Growth Point Tiers ---
+  GROWTH_POINTS_MAP = {
+    ActionSignificanceTier.TRIVIAL: (1, 2),
+    ActionSignificanceTier.MINOR: (3, 5),
+    ActionSignificanceTier.SIGNIFICANT: (6, 10),
+    ActionSignificanceTier.MAJOR: (12, 20),
+    ActionSignificanceTier.LEGENDARY: (25, 30) # Base range, bonuses separate
+  }
+  FAILURE_GROWTH_POINT_MULTIPLIER = 0.6
+   
+  # --- Constants for Insight Points ---
+  INSIGHT_POINTS_ON_FAILURE_MAP = {
+    ActionSignificanceTier.TRIVIAL: (1,2),
+    ActionSignificanceTier.MINOR: (2,3),
+    ActionSignificanceTier.SIGNIFICANT: (3,4),
+    ActionSignificanceTier.MAJOR: (4,5),
+    ActionSignificanceTier.LEGENDARY: (5,6),
+  }
+
+  class UnifiedProgressionSystem:
+    def __init__(self):
+      # Initialize any necessary state or configurations
+      pass
+
+    def _analyze_player_intent(self, character: Character, action_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+      """
+      Analyzes player intent based on Character profile and action.
+      Placeholder: Initially, this might just pull from character.declared_goals.
+      """
+      # TODO: Implement more sophisticated intent analysis
+      analysis = {
+        "goals_aligned": [], # List of goals this action aligns with
+        "approach_novelty": 0, # Score for creative approach
+        "value_consistent": False # If action aligns with demonstrated_values
+      }
+      if action_data and action_data.get("aligns_with_goal"):
+        if action_data["aligns_with_goal"] in character.declared_goals:
+          analysis["goals_aligned"].append(action_data["aligns_with_goal"])
+       
+      # Example: Check if action description suggests novelty
+      if action_data and "creative" in action_data.get("description", "").lower():
+        analysis["approach_novelty"] = 1 # Simple flag for now
+
+      return analysis
+
+    def _determine_resolution_method(self, 
+                    character: Character, 
+                    domain_type: DomainType,
+                    action_data: Optional[Dict[str, Any]] = None,
+                    target: Optional[Dict[str, Any]] = None,
+                    combat_state: Optional[Dict[str, Any]] = None,
+                    force_dice: bool = False,
+                    force_probability: bool = False) -> Tuple[ResolutionMethod, str]:
+      """
+      Determines whether to use dice or probability assessment.
+      This will adapt logic from your Character.roll_check_hybrid and the new framework.
+      """
+      if force_dice:
+        return ResolutionMethod.DICE, "Dice roll forced by caller."
+      if force_probability:
+        return ResolutionMethod.PROBABILITY, "Probability assessment forced by caller."
+
+      action_type = action_data.get("action_type") if action_data else "general"
+       
+      # Rule mapping based on your framework:
+      if domain_type == DomainType.BODY or action_type in ["combat_attack", "physical_challenge", "environmental_hazard"]:
+        return ResolutionMethod.DICE, f"{domain_type.value} or {action_type} typically uses dice."
+       
+      if domain_type in [DomainType.AUTHORITY, DomainType.SOCIAL]:
+        # Simplified: use probability unless it's a "contested action" or high stakes
+        if action_type == "contested_social" or (action_data and action_data.get("high_stakes")):
+          return ResolutionMethod.DICE, f"Contested/high-stakes {domain_type.value} uses dice."
+        return ResolutionMethod.PROBABILITY, f"{domain_type.value} typically uses probability."
+
+      if domain_type == DomainType.CRAFT:
+        if action_type in ["combat_craft", "experimental_craft", "rushed_craft"] or (combat_state and combat_state.get("active")):
+          return ResolutionMethod.DICE, f"Special circumstance {domain_type.value} uses dice."
+        return ResolutionMethod.PROBABILITY, f"Routine {domain_type.value} uses probability."
+
+      if domain_type in [DomainType.AWARENESS, DomainType.MIND]:
+        if action_type in ["active_search_combat", "mental_contest"] or (combat_state and combat_state.get("active")):
+           return ResolutionMethod.DICE, f"Active/contested {domain_type.value} uses dice."
+        return ResolutionMethod.PROBABILITY, f"Passive/routine {domain_type.value} uses probability."
+
+      if domain_type == DomainType.SPIRIT:
+        return ResolutionMethod.DICE, f"{domain_type.value} typically uses dice for resistance/willpower."
+
+      # Default or fallback
+      if action_data and action_data.get("is_external_challenge", False):
+         return ResolutionMethod.DICE, "Defaulting to dice for external challenge."
+      return ResolutionMethod.PROBABILITY, "Defaulting to probability for internal/creative action."
+
+
+    def _resolve_dice_check(self, 
+                character: Character, 
+                domain_type: DomainType, 
+                tag_name: Optional[str] = None, 
+                difficulty: int = 10,
+                action_data: Optional[Dict[str, Any]] = None,
+                target: Optional[Dict[str, Any]] = None,
+                combat_state: Optional[Dict[str, Any]] = None,
+                multiple_domains: Optional[List[DomainType]] = None,
+                multiple_tags: Optional[List[str]] = None) -> Dict[str, Any]:
+      """
+      Performs a dice roll. Adapts logic from Character.roll_check_advanced.
+      """
+      # This can largely reuse the logic from your existing Character.roll_check_advanced
+      # Ensure it returns a dictionary with at least:
+      # { "success": bool, "roll": int, "total": int, "difficulty": int, "margin": int, 
+      # "critical_success": bool, "critical_failure": bool, "breakdown": str, 
+      # "domains_used": List[DomainType], "tags_used": List[str] }
+       
+      # For brevity, assuming you'll move/adapt Character.roll_check_advanced here.
+      # Make sure to call character.domains[domain].use() and character.tags[tag].gain_xp()
+      # or defer that to the growth point calculation phase.
+      # For now, let's assume this method handles the immediate mechanics of the roll
+      # and the `process_player_action` will handle XP/GP.
+
+      # --- Simplified adaptation ---
+      if domain_type not in character.domains:
+         raise ValueError(f"Domain {domain_type} not found for character {character.name}")
+       
+      domain_obj = character.domains[domain_type]
+      d20_roll = random.randint(1, 20)
+      domain_bonus = domain_obj.value
+      total = d20_roll + domain_bonus
+      roll_breakdown_parts = [f"d20({d20_roll})", f"{domain_type.value}({domain_bonus})"]
+      tags_used_for_roll = []
+      tag_bonus = 0
+
+      primary_tag_obj = None
+      if tag_name and tag_name in character.tags:
+        primary_tag_obj = character.tags[tag_name]
+        tag_bonus += primary_tag_obj.rank
+        roll_breakdown_parts.append(f"{tag_name}({primary_tag_obj.rank})")
+        tags_used_for_roll.append(tag_name)
+
+      if multiple_tags:
+        for mt_name in multiple_tags:
+          if mt_name in character.tags and mt_name not in tags_used_for_roll:
+            mt_obj = character.tags[mt_name]
+            tag_bonus += mt_obj.rank
+            roll_breakdown_parts.append(f"{mt_name}({mt_obj.rank})")
+            tags_used_for_roll.append(mt_name)
+      total += tag_bonus
+       
+      # Simplified difficulty for this example
+      final_difficulty = difficulty 
+      if action_data and action_data.get("difficulty_modifier"):
+        final_difficulty += action_data["difficulty_modifier"]
+       
+      success = total >= final_difficulty
+      margin = total - final_difficulty
+      crit_success = d20_roll == 20
+      crit_failure = d20_roll == 1
+
+      if crit_success and not success: success = True # Nat 20 often succeeds
+      if crit_failure and success: success = False # Nat 1 often fails
+
+      return {
+        "success": success, "roll": d20_roll, "total": total, "final_difficulty": final_difficulty, 
+        "margin": margin, "critical_success": crit_success, "critical_failure": crit_failure,
+        "breakdown": " + ".join(roll_breakdown_parts) + f" vs DC {final_difficulty}",
+        "domains_used": [domain_type] + (multiple_domains or []), # Ensure unique if necessary
+        "tags_used": tags_used_for_roll,
+        "method": ResolutionMethod.DICE.value
+      }
+
+    def _assess_probability_outcome(self, 
+                    character: Character, 
+                    domain_type: DomainType,
+                    tag_name: Optional[str] = None,
+                    action_data: Optional[Dict[str, Any]] = None,
+                    target: Optional[Dict[str, Any]] = None,
+                    # intent_analysis: Dict[str, Any] # Pass this from process_player_action
+                    ) -> Dict[str, Any]:
+      """
+      Assesses outcome based on probability.
+      Success Chance = Base(50%) + Domain Value(×5) + Tag Rank(×8) + Modifiers
+      """
+      if domain_type not in character.domains:
+        raise ValueError(f"Domain {domain_type} not found for character {character.name}")
+
+      domain_obj = character.domains[domain_type]
+       
+      success_chance = BASE_SUCCESS_CHANCE
+      success_chance += domain_obj.value * DOMAIN_VALUE_MULTIPLIER
+       
+      tag_bonus_calc = 0
+      tags_used_for_calc = []
+      primary_tag_obj = None
+      if tag_name and tag_name in character.tags:
+        primary_tag_obj = character.tags[tag_name]
+        tag_bonus_calc += primary_tag_obj.rank * TAG_RANK_MULTIPLIER
+        tags_used_for_calc.append(tag_name)
+       
+      # Consider multiple tags if your design implies they contribute here
+      # For now, focusing on primary tag for probability assessment simplicity
+
+      success_chance += tag_bonus_calc
+
+      # Modifiers (placeholders, expand based on action_data, target, intent)
+      # - Preparation Quality: -20 to +30
+      # - Approach Effectiveness: -30 to +25 
+      # - NPC Disposition: -40 to +20
+      # - Relationship History: -25 to +25
+      # - Intent Alignment: +10 to +20
+      modifiers_applied = []
+      if action_data:
+        prep_quality = action_data.get("preparation_quality_modifier", 0) # Expecting a value from -20 to 30
+        success_chance += prep_quality
+        if prep_quality != 0: modifiers_applied.append(f"Prep({prep_quality}%)")
+
+        approach_eff = action_data.get("approach_effectiveness_modifier", 0) # -30 to 25
+        success_chance += approach_eff
+        if approach_eff != 0: modifiers_applied.append(f"Approach({approach_eff}%)")
+       
+      if target:
+        npc_disposition = target.get("disposition_modifier", 0) # -40 to 20
+        success_chance += npc_disposition
+        if npc_disposition != 0: modifiers_applied.append(f"NPC Disposition({npc_disposition}%)")
+         
+        # Relationship history could come from character.relationship_investments
+        # For now, let's assume it's part of target or action_data
+        relationship_mod = target.get("relationship_modifier", 0) # -25 to 25
+        success_chance += relationship_mod
+        if relationship_mod != 0: modifiers_applied.append(f"Relationship({relationship_mod}%)")
+
+      # Intent Alignment (example)
+      # intent_analysis = self._analyze_player_intent(character, action_data) # Call if not passed
+      # if intent_analysis.get("goals_aligned"):
+      #  success_chance += 15 # Example +15 for alignment
+      #  modifiers_applied.append("Intent Align(+15%)")
+
+
+      success_chance = max(0, min(100, success_chance)) # Clamp to 0-100%
+
+      # Determine outcome based on probability ranges
+      # 90-100%: Automatic success
+      # 0-14%: Automatic failure
+      # Otherwise, roll percentile dice against success_chance
+       
+      roll_percentile = random.randint(1, 100)
+      success = False
+      outcome_description = ""
+
+      if success_chance >= 90:
+        success = True
+        outcome_description = "Automatic Success (Excellent Alignment/Prep)"
+      elif success_chance <= 14:
+        success = False
+        outcome_description = "Automatic Failure (Overwhelming Obstacles/Poor Prep)"
+      else:
+        if roll_percentile <= success_chance:
+          success = True
+          outcome_description = f"Success (Rolled {roll_percentile} <= {success_chance}%)"
+        else:
+          success = False
+          outcome_description = f"Failure (Rolled {roll_percentile} > {success_chance}%)"
+       
+      # Determine "likely", "uncertain", "risky" based on success_chance for feedback
+      if success_chance >= 70 and success_chance < 90: likelihood = "Very Likely"
+      elif success_chance >= 40 and success_chance < 70: likelihood = "Uncertain"
+      elif success_chance > 14 and success_chance < 40: likelihood = "Risky"
+      elif success_chance >= 90: likelihood = "Almost Certain Success"
+      else: likelihood = "Almost Certain Failure"
+
+
+      return {
+        "success": success,
+        "success_chance": success_chance,
+        "roll_percentile": roll_percentile if 14 < success_chance < 90 else None,
+        "outcome_description": outcome_description,
+        "likelihood_category": likelihood,
+        "breakdown": f"Base(50) + Domain({domain_obj.value*DOMAIN_VALUE_MULTIPLIER}) + Tag({tag_bonus_calc}) + Modifiers({' '.join(modifiers_applied)}) = {success_chance}%",
+        "domains_used": [domain_type],
+        "tags_used": tags_used_for_calc,
+        "method": ResolutionMethod.PROBABILITY.value
+      }
+
+    # --- Placeholder for process_player_action ---
+    def process_player_action(self, 
+                 character: Character, 
+                 domain_type: DomainType,
+                 action_description: str, # e.g., "Persuade the guard", "Craft a healing potion"
+                 tag_name: Optional[str] = None,
+                 action_data: Optional[Dict[str, Any]] = None, # For difficulty, modifiers, type, etc.
+                 target: Optional[Dict[str, Any]] = None,
+                 combat_state: Optional[Dict[str, Any]] = None,
+                 # Player inputs for intent:
+                 player_declared_goal_alignment: Optional[str] = None, 
+                 player_approach_description: Optional[str] = None,
+                 force_resolution_method: Optional[ResolutionMethod] = None
+                 ) -> Dict[str, Any]:
+      """
+      Main entry point to process a player action.
+      """
+      # 1. Analyze player intent (simplified for now)
+      # In a real scenario, action_data might contain structured intent from UI
+      current_action_data = action_data.copy() if action_data else {}
+      if player_declared_goal_alignment:
+        current_action_data["aligns_with_goal"] = player_declared_goal_alignment
+      if player_approach_description:
+        current_action_data.setdefault("description", "")
+        current_action_data["description"] += " " + player_approach_description
+
+      intent_analysis = self._analyze_player_intent(character, current_action_data)
+
+      # 2. Determine resolution method
+      difficulty = current_action_data.get("difficulty", 10) # Base difficulty if applicable
+       
+      resolution_type, reason = self._determine_resolution_method(
+        character, domain_type, current_action_data, target, combat_state,
+        force_dice=(force_resolution_method == ResolutionMethod.DICE),
+        force_probability=(force_resolution_method == ResolutionMethod.PROBABILITY)
+      )
+       
+      # 3. Calculate outcome
+      outcome_result = {}
+      if resolution_type == ResolutionMethod.DICE:
+        outcome_result = self._resolve_dice_check(
+          character, domain_type, tag_name, difficulty, current_action_data, target, combat_state
+        )
+      else: # PROBABILITY
+        outcome_result = self._assess_probability_outcome(
+          character, domain_type, tag_name, current_action_data, target #, intent_analysis # Pass if needed by assess_probability
+        )
+       
+      outcome_result["resolution_reason"] = reason
+
+      # 4. Calculate growth points & insight points (Phase 3)
+      # growth_result = self._calculate_growth_and_insight(character, outcome_result, intent_analysis, current_action_data)
+       
+      # 5. Update character progression (Phase 3)
+      # self._apply_progression_changes(character, growth_result)
+       
+      # 6. Generate future opportunities (later phase)
+      # opportunities = self._create_aligned_opportunities(character, intent_analysis, outcome_result)
+
+      # For now, just return the outcome
+      # final_result = {**outcome_result, **growth_result, "opportunities": opportunities}
+      return outcome_result # Add growth_result later
+
+  # Global instance (or manage its lifecycle as appropriate for your application)
+  unified_progression_system = UnifiedProgressionSystem()
+  ````
+
+**Phase 3: Growth Point & Insight Point Calculation (in `UnifiedProgressionSystem`)**
+
+1. **`_determine_action_significance` Method:**
+  * This is crucial and complex. Start with heuristics.
+  ````python
+  # filepath: /Users/jacc/Downloads/TextRealmsAI/backend/src/game_engine/unified_progression_system.py
+  # ... (inside UnifiedProgressionSystem class) ...
+
+    def _determine_action_significance(self,
+                      character: Character,
+                      outcome_result: Dict[str, Any],
+                      intent_analysis: Dict[str, Any],
+                      action_data: Optional[Dict[str, Any]] = None
+                      ) -> Tuple[ActionSignificanceTier, float, List[str]]:
+      """
+      Determines the significance tier of an action and any multipliers.
+      Returns: (tier, risk_multiplier, reasons_for_significance)
+      """
+      base_tier = ActionSignificanceTier.MINOR # Default
+      reasons = []
+
+      # Player Intent Alignment
+      if intent_analysis.get("goals_aligned"):
+        base_tier = ActionSignificanceTier.SIGNIFICANT
+        reasons.append(f"Aligned with goal(s): {', '.join(intent_analysis['goals_aligned'])}")
+
+      # Narrative Impact (from action_data)
+      narrative_impact_level = action_data.get("narrative_impact", 0) # e.g., 0=none, 1=minor, 2=major, 3=pivot
+      if narrative_impact_level >= 3: # Major pivot
+        base_tier = ActionSignificanceTier.MAJOR
+        reasons.append("Major narrative pivot.")
+      elif narrative_impact_level == 2 and base_tier == ActionSignificanceTier.MINOR: # Story advancing
+        base_tier = ActionSignificanceTier.SIGNIFICANT
+        reasons.append("Story-advancing action.")
+       
+      # Creative Approach
+      if intent_analysis.get("approach_novelty", 0) > 0:
+        # Could upgrade tier or add bonus points later
+        reasons.append("Creative approach noted.")
+
+      # Risk Level (from action_data or inferred)
+      risk_level_input = action_data.get("risk_level", "medium") # e.g., low, medium, high, extreme
+      risk_multiplier = 1.0
+      if risk_level_input == "low": risk_multiplier = 0.75
+      elif risk_level_input == "high": risk_multiplier = 1.25
+      elif risk_level_input == "extreme": risk_multiplier = 1.5 
+      if risk_multiplier != 1.0: reasons.append(f"Risk level: {risk_level_input} (x{risk_multiplier})")
+       
+      # Explicit tier from action_data can override
+      if action_data and action_data.get("explicit_significance_tier"):
+        try:
+          base_tier = ActionSignificanceTier(action_data["explicit_significance_tier"])
+          reasons.append(f"Explicitly set to {base_tier.value}.")
+        except ValueError:
+          pass # Invalid tier ignored
+
+      # TODO: Consequence Weight - this is harder to quantify simply
+
+      return base_tier, risk_multiplier, reasons
+  ````
+2. **`_calculate_growth_and_insight` Method:**
+  ````python
+  # filepath: /Users/jacc/Downloads/TextRealmsAI/backend/src/game_engine/unified_progression_system.py
+  # ... (inside UnifiedProgressionSystem class) ...
+
+    def _calculate_growth_and_insight(self,
+                     character: Character,
+                     outcome_result: Dict[str, Any],
+                     intent_analysis: Dict[str, Any],
+                     action_data: Optional[Dict[str, Any]] = None
+                     ) -> Dict[str, Any]:
+      """
+      Calculates growth points for domains/tags and insight points.
+      """
+      significance_tier, risk_multiplier, sig_reasons = self._determine_action_significance(
+        character, outcome_result, intent_analysis, action_data
+      )
+
+      base_gp_min, base_gp_max = GROWTH_POINTS_MAP.get(significance_tier, (1,2))
+      base_gp = random.randint(base_gp_min, base_gp_max)
+       
+      final_gp = 0
+      insight_points_gained = 0
+      xp_for_tags = 0
+       
+      # Bonuses
+      creative_bonus_gp = 0
+      if intent_analysis.get("approach_novelty", 0) > 0:
+        creative_bonus_gp = random.randint(3,5) # Creative approach bonus
+
+      if outcome_result["success"]:
+        final_gp = int(base_gp * risk_multiplier) + creative_bonus_gp
+        # Apply momentum from character.growth_momentum for each domain used
+        # For simplicity, apply a general momentum or average if multiple domains
+        # This needs to be more granular if applying per domain.
+        # Example: if outcome_result["domains_used"]:
+        #  avg_momentum = sum(character.growth_momentum.get(d, 1.0) for d in outcome_result["domains_used"]) / len(outcome_result["domains_used"])
+        #  final_gp = int(final_gp * avg_momentum)
+         
+        xp_for_tags = final_gp # Or a fraction, e.g., 5-15 based on significance/success
+        if outcome_result.get("critical_success"):
+          xp_for_tags = int(xp_for_tags * 1.5)
+
+
+      else: # Failure
+        final_gp = int(base_gp * risk_multiplier * FAILURE_GROWTH_POINT_MULTIPLIER) + creative_bonus_gp
+         
+        # Insight Points
+        ip_min, ip_max = INSIGHT_POINTS_ON_FAILURE_MAP.get(significance_tier, (1,1))
+        insight_points_gained = random.randint(ip_min, ip_max)
+        if intent_analysis.get("approach_novelty", 0) > 0:
+          insight_points_gained += 2 # Creative attempt bonus IP
+        if risk_multiplier > 1.0: # Higher risk
+          insight_points_gained += random.randint(1,3)
+         
+        # TODO: Learning Moments bonus for Insight Points
+
+      # Anti-grinding: Diminishing returns (needs history tracking, complex)
+      # For now, this is a simplified calculation.
+
+      return {
+        "growth_points_awarded": final_gp,
+        "insight_points_gained": insight_points_gained,
+        "xp_for_tags_awarded": xp_for_tags,
+        "significance_tier_determined": significance_tier.value,
+        "significance_reasons": sig_reasons,
+        "risk_multiplier_applied": risk_multiplier,
+        "creative_bonus_gp": creative_bonus_gp,
+      }
+  ````
+3. **`_apply_progression_changes` Method:**
+  ````python
+  # filepath: /Users/jacc/Downloads/TextRealmsAI/backend/src/game_engine/unified_progression_system.py
+  # ... (inside UnifiedProgressionSystem class) ...
+
+    def _apply_progression_changes(self, 
+                    character: Character, 
+                    outcome_result: Dict[str, Any], 
+                    growth_result: Dict[str, Any]):
+      """
+      Applies calculated growth points, XP, and insight points to the character.
+      Handles domain level-ups and tag rank-ups.
+      """
+      # Apply Insight Points
+      character.insight_points += growth_result.get("insight_points_gained", 0)
+
+      # Apply Growth Points to Domains
+      # The new design is less about "domain.growth_points" and more about accumulating
+      # GP towards tiers. This part needs careful thought on how GP translates to `domain.value`.
+      # The "Domain Progression Tiers" section (Novice -> Skilled: 8-12 points) suggests
+      # a pool of points per tier.
+      # For now, let's assume GP directly contributes to `domain.value` after enough are collected,
+      # or that `domain.growth_points` is a temporary accumulator for the current tier.
+       
+      # This is a major change from your current Domain.add_growth_log_entry()
+      # Let's simplify: assume `growth_points_awarded` are generic and player allocates them,
+      # or they apply to the primary domain used.
+       
+      domains_affected = outcome_result.get("domains_used", [])
+      gp_awarded = growth_result.get("growth_points_awarded", 0)
+
+      if gp_awarded > 0 and domains_affected:
+        # Distribute GP (e.g., to primary, or equally, or based on contribution)
+        # For simplicity, apply to the first domain listed if multiple
+        primary_domain_type = domains_affected[0]
+        domain_obj = character.domains[primary_domain_type]
+         
+        # Log usage (simplified, replace old Domain.use)
+        domain_obj.usage_count += 1
+        # The old growth_log might be replaced by a more general action log
+        # or adapted. For now, let's assume the new system handles it.
+         
+        # How GP translates to domain.value needs to be defined by "Domain Progression Tiers"
+        # This is a placeholder for that logic.
+        # E.g., character.domain_progression_points[primary_domain_type] += gp_awarded
+        # then check if character.domain_progression_points[primary_domain_type] >= points_for_next_tier_level_up
+        print(f"Awarded {gp_awarded} GP to {primary_domain_type.value} (further logic needed for level-up)")
+
+
+      # Apply XP to Tags
+      xp_to_tags = growth_result.get("xp_for_tags_awarded", 0)
+      if xp_to_tags > 0:
+        for tag_name in outcome_result.get("tags_used", []):
+          if tag_name in character.tags:
+            if character.tags[tag_name].gain_xp(xp_to_tags):
+              print(f"Tag {tag_name} ranked up to {character.tags[tag_name].rank}!")
+              # TODO: Publish Tag_Increased event
+
+      # Update character's last updated time
+      character.updated_at = datetime.now()
+      # NOTE: Saving the character should happen outside, after all updates.
+  ````
+4. **Update `process_player_action` to call these new methods:**
+  ````python
+  # filepath: /Users/jacc/Downloads/TextRealmsAI/backend/src/game_engine/unified_progression_system.py
+  # ... (inside UnifiedProgressionSystem class, in process_player_action method) ...
+      # ... (after outcome_result is determined) ...
+       
+      # 4. Calculate growth points & insight points
+      growth_result = self._calculate_growth_and_insight(character, outcome_result, intent_analysis, current_action_data)
+       
+      # 5. Update character progression
+      self._apply_progression_changes(character, outcome_result, growth_result)
+       
+      # 6. Generate future opportunities (later phase)
+      # opportunities = self._create_aligned_opportunities(character, intent_analysis, outcome_result)
+
+      final_result = {**outcome_result, **growth_result} # "opportunities": opportunities
+      # Add character state changes if needed for the return, or assume caller has character ref
+      return final_result
+  ````
+
+**Phase 4: Player Agency & Mastery Paths**
+
+1. **Intent Declaration System:**
+  * This is largely about UI/input for the player to set `character.declared_goals`, etc.
+  * The `_analyze_player_intent` method will use these.
+2. **Intent-Driven Progression Bonuses:**
+  * Partially handled in `_determine_action_significance` and `_calculate_growth_and_insight`.
+  * "Consistency Rewards" (momentum) and "Value Integration" (mastery paths) are next.
+3. **Dynamic Mastery Path Creation:**
+  * This is a significant feature. Start by defining what a "Mastery Path" data structure looks like (e.g., in `character.mastery_paths`).
+  * Implement logic (perhaps in `_apply_progression_changes` or a dedicated method) that checks conditions (e.g., "EXPERT" tier reached, specific `demonstrated_values` thresholds) to unlock or propose paths.
+  ````python
+  # filepath: /Users/jacc/Downloads/TextRealmsAI/backend/src/game_engine/unified_progression_system.py
+  # ... (inside UnifiedProgressionSystem class) ...
+    def _check_and_offer_mastery_paths(self, character: Character, domain_type: DomainType):
+      """Checks if a character is eligible for new mastery paths and generates them."""
+      # Prerequisite: Character must be at EXPERT tier in the domain_type
+      # This requires defining how domain.value maps to tiers or how progression points map to tiers.
+      # For now, assume a function get_domain_tier(character, domain_type) -> GrowthTier exists.
+       
+      # Example:
+      # current_tier = get_domain_tier(character, domain_type) # You'll need to implement this
+      # if current_tier == GrowthTier.EXPERT and not any(p['domain'] == domain_type for p in character.mastery_paths if p.get('active')):
+      #  # Offer paths based on declared goals, demonstrated values
+      #  if "negotiator" in " ".join(character.declared_goals).lower() and domain_type == DomainType.SOCIAL:
+      #    new_path = {"path_name": "Master Diplomat", "domain": domain_type.value, "description": "...", "active": False, "unlocked_at": datetime.now()}
+      #    if not any(p['path_name'] == new_path['path_name'] for p in character.mastery_paths):
+      #      character.mastery_paths.append(new_path)
+      #      print(f"New mastery path available: {new_path['path_name']}")
+      #  # Add more logic for "Broad Specialist", "Deep Expert", "Adaptive Master"
+      pass # Implement further
+  ````
+
+**Phase 5: Insight Point Applications & Domain Progression Tiers**
+
+1. **Insight Point Applications:**
+  * Create methods on `Character` or `UnifiedProgressionSystem` that allow spending `character.insight_points`.
+  * Example: `spend_insight_for_domain_synergy(character, domain1, domain2)`.
+2. **Domain Progression Tiers & Advancement:**
+  * Define the GP thresholds for Novice -> Skilled, etc.
+  * The `_apply_progression_changes` needs to track accumulated GP per domain (perhaps in a new `character.domain_gp_progress: Dict[DomainType, int]`) and trigger tier advancements.
+  * "Growth Momentum System": Apply `character.growth_momentum` in `_calculate_growth_and_insight`. Implement logic for "Hot Streak," "Cross-Pollination," etc., to modify this momentum.
+
+**Phase 6: Refactor `DomainSystem.py` & Event Handling**
+
+* The existing `DomainSystem` class in domain_system.py will likely be significantly reduced or its responsibilities absorbed by `UnifiedProgressionSystem`.
+* The `roll_check` in `DomainSystem` is now redundant.
+* `log_domain_use` is replaced by the new growth calculation.
+* `add_tag_experience` is integrated.
+* Event publishing (`DOMAIN_INCREASED`, `TAG_INCREASED`) should be triggered from `_apply_progression_changes` in the new system when actual level-ups/rank-ups occur.
+
+**Phase 7: World Response, Anti-Grinding, Testing**
+
+* **World Response:** This is more about how other game systems react to character progression. The `UnifiedProgressionSystem` provides the data (domain levels, tags, reputation).
+* **Anti-Grinding:**
+  * "Diminishing Returns": Requires tracking action history. Modify `_calculate_growth_and_insight` to reduce GP for frequently repeated, low-variance actions.
+  * "Innovation Bonuses": Already partially in `creative_bonus_gp`.
+* **Testing:** Crucial at each phase. Test dice rolls, probability calculations, GP awards, IP awards, tier progression, etc.
+
+**Next Steps & Considerations:**
+
+1. **Start with models.py changes.**
+2. **Build the skeleton of `UnifiedProgressionSystem`** focusing on `_determine_resolution_method`, `_resolve_dice_check` (adapting existing), and `_assess_probability_outcome`.
+3. **Tackle `_calculate_growth_and_insight` and `_apply_progression_changes`**. This is the core of the new progression.
+4. **Storage:** Remember to save the `Character` object after `process_player_action` completes all modifications. Your existing `save_character` function will be useful.
+5. **Iterate:** This is a large system. Implement features incrementally and test thoroughly. The "AI-Driven Significance Detection" and "Dynamic Mastery Path Creation" will likely require the most iteration.
+6. **Configuration:** Many numbers (multipliers, thresholds, GP amounts) are now defined. Consider moving them to a configuration file or class for easier tuning.

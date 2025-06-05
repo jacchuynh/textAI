@@ -1,0 +1,38 @@
+{
+  "metadata": {
+    "game_id": "test_session_123",
+    "saved_at": "2025-06-02T21:50:05.510364",
+    "version": "1.0"
+  },
+  "world_state": {
+    "metadata": {
+      "serialized_at": "2025-06-02T21:50:05.509927",
+      "version": "1.0",
+      "serializer": "WorldStateSerializer"
+    },
+    "locations": {
+      "village": {
+        "location_id": "village",
+        "name": "Village Center",
+        "description": "A bustling village center",
+        "items": [],
+        "containers": {},
+        "visited": true
+      }
+    },
+    "containers": {},
+    "player": {
+      "test_player": {
+        "player_id": "test_player",
+        "current_location": "village",
+        "health": 100
+      }
+    },
+    "global_state": {
+      "metadata": {
+        "last_updated": "2025-06-02T21:50:05.509894",
+        "version": "1.0"
+      }
+    }
+  }
+}

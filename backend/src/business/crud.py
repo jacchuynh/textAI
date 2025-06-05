@@ -376,6 +376,46 @@ def get_businesses_by_player(db: Session, player_id: str) -> List[PlayerBusiness
         logger.error(f"Error retrieving businesses for player {player_id}: {str(e)}")
         raise
 
+def get_all_businesses(db: Session, 
+                      skip: int = 0, 
+                      limit: int = 100,
+                      business_type_filter: Optional[str] = None,
+                      location_filter: Optional[str] = None,
+                      active_only: bool = True) -> List[PlayerBusinessProfile]:
+    """
+    Get all businesses with optional filters.
+    
+    Args:
+        db: Database session
+        skip: Number of businesses to skip
+        limit: Maximum number of businesses to return
+        business_type_filter: Filter by business type
+        location_filter: Filter by location
+        active_only: Only return active businesses
+        
+    Returns:
+        List of PlayerBusinessProfile objects
+    """
+    try:
+        query = db.query(DBPlayerBusinessProfile)
+        
+        if active_only:
+            query = query.filter(DBPlayerBusinessProfile.is_active == True)
+            
+        if business_type_filter:
+            query = query.filter(DBPlayerBusinessProfile.business_type == business_type_filter)
+            
+        if location_filter:
+            query = query.filter(DBPlayerBusinessProfile.location_id == location_filter)
+            
+        db_businesses = query.offset(skip).limit(limit).all()
+        
+        return [db_to_pydantic_player_business(business) for business in db_businesses]
+        
+    except SQLAlchemyError as e:
+        logger.error(f"Error getting all businesses: {str(e)}")
+        raise
+
 def update_business(db: Session, business_id: str, update_data: Dict[str, Any]) -> Optional[PlayerBusinessProfile]:
     """Update a player business."""
     try:

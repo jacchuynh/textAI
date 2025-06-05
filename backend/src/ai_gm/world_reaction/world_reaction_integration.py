@@ -5,14 +5,15 @@ This module integrates the world reaction system with the AIGMBrain
 to provide dynamic storytelling capabilities.
 """
 
+import asyncio
 from typing import Dict, Any, Optional, List
 import logging
 from datetime import datetime
 
-from backend.src.ai_gm.ai_gm_brain import AIGMBrain
-from backend.src.ai_gm.world_reaction.enhanced_context_manager import EnhancedContextManager
-from backend.src.ai_gm.world_reaction.reaction_assessor import WorldReactionAssessor
-from backend.src.ai_gm.world_reaction.reputation_manager import ActionSignificance
+from ..ai_gm_brain import AIGMBrain
+from .enhanced_context_manager import EnhancedContextManager
+from .reaction_assessor import WorldReactionAssessor
+from .reputation_manager import ActionSignificance
 
 
 def extend_ai_gm_brain_with_world_reaction(ai_gm_brain: AIGMBrain) -> None:
@@ -29,8 +30,8 @@ def extend_ai_gm_brain_with_world_reaction(ai_gm_brain: AIGMBrain) -> None:
     if hasattr(ai_gm_brain, 'llm_manager'):
         llm_manager = ai_gm_brain.llm_manager
     else:
-        from backend.src.ai_gm.ai_gm_llm_manager import LLMManager
-        llm_manager = LLMManager(api_key=None)  # This would normally take an API key
+        from backend.src.ai_gm.ai_gm_llm_manager import LLMInteractionManager
+        llm_manager = LLMInteractionManager(ai_gm_brain)  # Pass the AI GM brain instance
     
     reaction_assessor = WorldReactionAssessor(
         llm_manager=llm_manager, 
@@ -41,8 +42,13 @@ def extend_ai_gm_brain_with_world_reaction(ai_gm_brain: AIGMBrain) -> None:
     ai_gm_brain.enhanced_context_manager = enhanced_context_manager
     ai_gm_brain.reaction_assessor = reaction_assessor
     
-    # Add new methods to AI GM Brain
-    ai_gm_brain.assess_world_reaction = lambda player_input, context, target_entity=None: _assess_world_reaction(
+    # Add async method to AI GM Brain
+    ai_gm_brain.assess_world_reaction_async = lambda player_input, context, target_entity=None: _assess_world_reaction(
+        ai_gm_brain, player_input, context, target_entity
+    )
+    
+    # Add synchronous wrapper method for compatibility
+    ai_gm_brain.assess_world_reaction = lambda player_input, context, target_entity=None: _assess_world_reaction_sync(
         ai_gm_brain, player_input, context, target_entity
     )
     
@@ -82,6 +88,62 @@ def extend_ai_gm_brain_with_world_reaction(ai_gm_brain: AIGMBrain) -> None:
     
     # Log the extension
     logging.getLogger("AIGMBrain").info("AI GM Brain extended with world reaction capabilities")
+
+
+def _assess_world_reaction_sync(
+    ai_gm_brain: AIGMBrain, 
+    player_input: str, 
+    context: Optional[Dict[str, Any]] = None, 
+    target_entity: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Synchronous wrapper for world reaction assessment.
+    
+    This provides backward compatibility for synchronous code while
+    still leveraging the async implementation underneath.
+    
+    Args:
+        ai_gm_brain: AI GM Brain instance
+        player_input: Player's input text
+        context: Optional context dictionary
+        target_entity: Optional specific entity to assess reaction from
+        
+    Returns:
+        World reaction assessment results
+    """
+    try:
+        # Check if we're already in an async context
+        loop = asyncio.get_running_loop()
+        # If we're in an async context, we need to schedule the coroutine properly
+        if loop.is_running():
+            # Create a new task for the async operation
+            future = asyncio.create_task(_assess_world_reaction(ai_gm_brain, player_input, context, target_entity))
+            # For sync compatibility, we'll return a simplified result immediately
+            # and let the actual assessment happen in the background
+            return {
+                'success': True,
+                'target_entity': target_entity or 'environment',
+                'reaction_data': {
+                    'perception_summary': f"The world takes notice of your action: {player_input[:50]}...",
+                    'suggested_reactive_dialogue_or_narration': "The environment responds subtly to your presence.",
+                    'subtle_attitude_shift_description': None
+                },
+                'note': 'Synchronous fallback response - full assessment processing asynchronously'
+            }
+    except RuntimeError:
+        # No event loop running - we can create one
+        pass
+    
+    # Run the async function in a new event loop
+    try:
+        return asyncio.run(_assess_world_reaction(ai_gm_brain, player_input, context, target_entity))
+    except Exception as e:
+        logging.getLogger("WorldReaction").error(f"Error in sync world reaction assessment: {e}")
+        return {
+            'success': False,
+            'error': f'Synchronous assessment failed: {str(e)}',
+            'target_entity': target_entity
+        }
 
 
 async def _assess_world_reaction(

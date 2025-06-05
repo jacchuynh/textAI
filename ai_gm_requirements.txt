@@ -1,0 +1,17 @@
+fastapi==0.110.0
+pydantic==2.7.1
+uvicorn==0.29.0
+python-multipart==0.0.7
+
+# AI/LLM Dependencies
+aiohttp>=3.8.0
+# Note: Using OpenRouter API directly - no need for openai or anthropic client libraries
+
+# Additional dependencies for AI GM
+asyncio-mqtt>=0.11.0
+python-dotenv>=1.0.0
+typing-extensions>=4.5.0
+spacy
+langchain
+# For spaCy model
+# en_core_web_sm

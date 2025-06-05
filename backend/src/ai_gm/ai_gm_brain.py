@@ -17,11 +17,152 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass
 
 # Import from our own modules
-from ..events.event_bus import event_bus, EventType, GameEvent
-from ..memory.memory_manager import memory_manager, MemoryTier, MemoryType
-
-# Import text parser components
-from ..text_parser import parse_input, ParsedCommand, parser_engine, vocabulary_manager, object_resolver
+try:
+    from ..events.event_bus import event_bus, EventType, GameEvent
+    from ..memory.memory_manager import memory_manager, MemoryTier, MemoryType
+    from ..text_parser import parse_input, ParsedCommand, parser_engine, vocabulary_manager, object_resolver
+except (ImportError, ValueError):
+    try:
+        from events.event_bus import event_bus, EventType, GameEvent
+        from memory.memory_manager import memory_manager, MemoryTier, MemoryType
+        from text_parser import parse_input, ParsedCommand, parser_engine, vocabulary_manager, object_resolver
+    except ImportError:
+        try:
+            from backend.src.events.event_bus import event_bus, EventType, GameEvent
+            from backend.src.memory.memory_manager import memory_manager, MemoryTier, MemoryType
+            from backend.src.text_parser import parse_input, ParsedCommand, parser_engine, vocabulary_manager, object_resolver
+        except ImportError:
+            # Create stub objects if imports fail
+            import logging
+            logging.warning("Failed to import required modules, using stubs")
+            from enum import Enum, auto
+            from dataclasses import dataclass
+            from typing import Dict, Any, List, Set, Optional, Callable
+            from datetime import datetime
+            
+            # Create stub event system
+            class EventType(Enum):
+                PLAYER_JOINED = auto()
+                PLAYER_LEFT = auto()
+                LOCATION_ENTERED = auto()
+                LOCATION_EXITED = auto()
+                NPC_INTERACTION = auto()
+                ITEM_ACQUIRED = auto()
+                COMBAT_STARTED = auto()
+                COMBAT_ENDED = auto()
+                QUEST_STARTED = auto()
+                QUEST_PROGRESSED = auto()
+                QUEST_COMPLETED = auto()
+                DOMAIN_ADVANCED = auto()
+            
+            @dataclass
+            class GameEvent:
+                type: EventType
+                timestamp: datetime
+                source_id: str
+                context: Dict[str, Any]
+                tags: List[str] = None
+                
+                def __post_init__(self):
+                    if self.tags is None:
+                        self.tags = []
+            
+            class EventBus:
+                def __init__(self):
+                    self.subscribers = {et: set() for et in EventType}
+                
+                def subscribe(self, event_type, callback):
+                    self.subscribers[event_type].add(callback)
+                
+                def unsubscribe(self, event_type, callback):
+                    if callback in self.subscribers[event_type]:
+                        self.subscribers[event_type].remove(callback)
+                
+                def publish(self, event):
+                    for callback in self.subscribers[event.type]:
+                        try:
+                            callback(event)
+                        except Exception as e:
+                            print(f"Error in event handler: {e}")
+            
+            event_bus = EventBus()
+            
+            # Create stub memory system
+            class MemoryTier(Enum):
+                SHORT_TERM = "short_term"
+                MEDIUM_TERM = "medium_term"
+                LONG_TERM = "long_term"
+            
+            class MemoryType(Enum):
+                NARRATIVE = "narrative"
+                MECHANICAL = "mechanical"
+                PLAYER = "player"
+                NPC = "npc"
+                WORLD = "world"
+                SYSTEM = "system"
+            
+            class MemoryManager:
+                def __init__(self):
+                    self.memories = {}
+                
+                def add_memory(self, memory_type, content, importance=0.5, tags=None, tier=None):
+                    memory_id = f"{memory_type.value}_{datetime.utcnow().timestamp()}"
+                    return memory_id
+                
+                def get_memory(self, memory_id):
+                    return None
+                
+                def query_memories(self, memory_type=None, tags=None, min_importance=0.0, limit=10, sort_by_importance=True):
+                    return []
+            
+            memory_manager = MemoryManager()
+            
+            # Create stub parser components
+            @dataclass
+            class ParsedCommand:
+                action: str
+                direct_object: Optional[str] = None
+                indirect_object: Optional[str] = None
+                modifiers: Dict[str, Any] = None
+                original_input: str = ""
+                confidence: float = 1.0
+                alternative_parses: List[Dict[str, Any]] = None
+            
+            def parse_input(input_text: str) -> ParsedCommand:
+                parts = input_text.strip().lower().split(maxsplit=1)
+                action = parts[0] if parts else ""
+                direct_object = parts[1] if len(parts) > 1 else None
+                return ParsedCommand(
+                    action=action,
+                    direct_object=direct_object,
+                    original_input=input_text
+                )
+            
+            parser_engine = parse_input
+            
+            class VocabularyManager:
+                def __init__(self):
+                    self.verb_map = {}
+                
+                def is_verb(self, word: str) -> bool:
+                    return False
+                
+                def get_canonical_verb(self, word: str) -> str:
+                    return word
+            
+            vocabulary_manager = VocabularyManager()
+            
+            class ObjectResolver:
+                def __init__(self):
+                    pass
+                
+                def resolve_object(self, object_reference: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
+                    return []
+                
+                def needs_disambiguation(self, matches: List[Dict[str, Any]]) -> bool:
+                    return False
+            
+            object_resolver = ObjectResolver()
 # LLM integration will be added later
 # from ..llm_integration import LLMInteractionManager, LLMProvider, PromptMode
 

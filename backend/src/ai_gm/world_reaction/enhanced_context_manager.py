@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 import logging
 
-from backend.src.ai_gm.world_reaction.reputation_manager import ReputationManager, ActionSignificance
+from .reputation_manager import ReputationManager, ActionSignificance
 
 
 class EnhancedContextManager:

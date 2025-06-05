@@ -10,7 +10,7 @@ import logging
 import random
 from typing import Dict, List, Any, Optional, Tuple
 
-from backend.src.ai_gm.ai_gm_brain_integrated import AIGMBrain
+from backend.src.ai_gm.ai_gm_brain import AIGMBrain
 from backend.src.crafting.services.crafting_integration_service import create_crafting_integration_service
 
 logger = logging.getLogger(__name__)

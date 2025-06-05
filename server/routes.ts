@@ -684,4 +684,40 @@ router.get('/api/player/:userId/crafting/recipes', async (req, res) => {
   }
 });
 
+// Get all regions
+router.get('/api/regions', async (req, res) => {
+  try {
+    const allRegions = await db.query.regions.findMany({
+      orderBy: (regions, { asc }) => [asc(regions.name)]
+    });
+    
+    res.json(allRegions);
+  } catch (error) {
+    console.error('Error fetching regions:', error);
+    res.status(500).json({ error: 'Failed to fetch regions' });
+  }
+});
+
+// Get areas for a specific region
+router.get('/api/regions/:regionId/areas', async (req, res) => {
+  try {
+    const { regionId } = req.params;
+    const regionIdNumber = parseInt(regionId, 10);
+    
+    if (isNaN(regionIdNumber)) {
+      return res.status(400).json({ error: 'Invalid region ID' });
+    }
+    
+    const areasInRegion = await db.query.areas.findMany({
+      where: eq(areas.regionId, regionIdNumber),
+      orderBy: (areas, { asc }) => [asc(areas.name)]
+    });
+    
+    res.json(areasInRegion);
+  } catch (error) {
+    console.error(`Error fetching areas for region ${req.params.regionId}:`, error);
+    res.status(500).json({ error: 'Failed to fetch areas' });
+  }
+});
+
 export default router;

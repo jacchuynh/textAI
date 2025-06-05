@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "game_id": "test_session_123",
+    "saved_at": "2025-06-02T21:44:29.476153",
+    "version": "1.0"
+  },
+  "world_state": {
+    "metadata": {
+      "serialized_at": "2025-06-02T21:44:29.474973",
+      "version": "1.0",
+      "serializer": "WorldStateSerializer"
+    },
+    "player": {
+      "test_player": {
+        "player_id": "test_player",
+        "current_location": "village",
+        "health": 100
+      }
+    },
+    "global_state": {
+      "metadata": {
+        "last_updated": "2025-06-02T21:44:29.474934",
+        "version": "1.0"
+      }
+    }
+  }
+}

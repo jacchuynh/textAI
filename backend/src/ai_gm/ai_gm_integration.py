@@ -16,8 +16,8 @@ from backend.src.ai_gm.ai_gm_brain import AIGMBrain, ProcessingMode, InputComple
 from backend.src.ai_gm.ai_gm_brain_ooc_handler import OOCCommandHandler
 
 # Import integration modules 
-from backend.src.ai_gm.world_reaction_integration import WorldReactionIntegration, attach_to_brain as attach_world_reaction
-from backend.src.ai_gm.pacing_integration import PacingIntegration, attach_to_brain as attach_pacing
+from backend.src.ai_gm.world_reaction.world_reaction_integration import WorldReactionIntegration, attach_to_brain as attach_world_reaction
+from backend.src.ai_gm.pacing.pacing_integration import PacingIntegration, attach_to_brain as attach_pacing
 from backend.src.ai_gm.output_integration import (
     OutputGenerationIntegration, 
     OutputType, 

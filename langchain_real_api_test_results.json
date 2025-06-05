@@ -1,0 +1,56 @@
+{
+  "test_type": "langchain_tools_real_api",
+  "timestamp": "2025-06-01 16:49:10.768003",
+  "summary": {
+    "total_commands": 5,
+    "langchain_triggered": 5,
+    "successful_executions": 5
+  },
+  "results": [
+    {
+      "command": "summon the ancient dragon of wisdom from the ethereal realm",
+      "action": "cast",
+      "confidence": 0.8,
+      "langchain_used": true,
+      "tool_used": "cast_magic",
+      "system_response": "You attempt to move in that direction, but find yourself still in the test environment.\n\nThe world takes minimal notice of your action.",
+      "success": true
+    },
+    {
+      "command": "transmute my copper coins into golden treasures using alchemy",
+      "action": "cast",
+      "confidence": 0.8,
+      "langchain_used": true,
+      "tool_used": "cast_magic",
+      "system_response": "You attempt to move in that direction, but find yourself still in the test environment.\n\nThe world takes minimal notice of your action.",
+      "success": true
+    },
+    {
+      "command": "cast a spell to reveal the hidden secrets of this mysterious artifact",
+      "action": "cast",
+      "confidence": 0.8,
+      "langchain_used": true,
+      "tool_used": "cast_magic",
+      "system_response": "The AI GM system processes your input: 'cast reveal hidden secrets of mysterious artifact' and prepares an appropriate response based on the context.\n\nThe world takes minimal notice of your action.",
+      "success": true
+    },
+    {
+      "command": "negotiate a trade deal between the neighboring kingdoms",
+      "action": "talk",
+      "confidence": 0.95,
+      "langchain_used": true,
+      "tool_used": "talk",
+      "system_response": "",
+      "success": true
+    },
+    {
+      "command": "investigate the strange magical phenomena occurring in the forest",
+      "action": "look",
+      "confidence": 0.95,
+      "langchain_used": true,
+      "tool_used": "look",
+      "system_response": "",
+      "success": true
+    }
+  ]
+}

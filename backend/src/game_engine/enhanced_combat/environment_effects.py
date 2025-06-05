@@ -4,7 +4,13 @@ Enhanced environment effects for combat system.
 This module provides more sophisticated environmental interactions and effects
 that can dynamically alter combat conditions and create tactical opportunities.
 """
-from typing import Dict, List, Any, Callable, Optional, TypeGuard
+from typing import Dict, List, Any, Callable, Optional
+try:
+    from typing import TypeGuard
+except ImportError:
+    # For Python < 3.10 compatibility
+    def TypeGuard(x):
+        return bool
 import random
 
 from .combat_system_core import Combatant, Domain, Status

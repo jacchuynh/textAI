@@ -1,0 +1,150 @@
+{
+  "langchain_activation_test": [
+    {
+      "command": "blargify the glompnoodle",
+      "success": true,
+      "action": "unknown",
+      "target": null,
+      "confidence": 0.1,
+      "langchain_used": false,
+      "tool_used": "None",
+      "context_keys": [
+        "spacy_entities",
+        "langchain_intent",
+        "langchain_entities",
+        "langchain_context",
+        "enhanced_confidence"
+      ]
+    },
+    {
+      "command": "xyz abc def",
+      "success": true,
+      "action": "unknown",
+      "target": null,
+      "confidence": 0.1,
+      "langchain_used": false,
+      "tool_used": "None",
+      "context_keys": [
+        "spacy_entities",
+        "langchain_intent",
+        "langchain_entities",
+        "langchain_context",
+        "enhanced_confidence"
+      ]
+    },
+    {
+      "command": "do the thing with stuff",
+      "success": true,
+      "action": "unknown",
+      "target": null,
+      "confidence": 0.1,
+      "langchain_used": false,
+      "tool_used": "None",
+      "context_keys": [
+        "spacy_entities",
+        "langchain_intent",
+        "langchain_entities",
+        "langchain_context",
+        "enhanced_confidence"
+      ]
+    },
+    {
+      "command": "make it happen now",
+      "success": true,
+      "action": "unknown",
+      "target": null,
+      "confidence": 0.1,
+      "langchain_used": false,
+      "tool_used": "None",
+      "context_keys": [
+        "spacy_entities",
+        "langchain_intent",
+        "langchain_entities",
+        "langchain_context",
+        "enhanced_confidence"
+      ]
+    },
+    {
+      "command": "process the thingy",
+      "success": true,
+      "action": "unknown",
+      "target": null,
+      "confidence": 0.1,
+      "langchain_used": false,
+      "tool_used": "None",
+      "context_keys": [
+        "spacy_entities",
+        "langchain_intent",
+        "langchain_entities",
+        "langchain_context",
+        "enhanced_confidence"
+      ]
+    }
+  ],
+  "confidence_threshold_test": [
+    {
+      "command": "go north",
+      "action": "go",
+      "target": "north",
+      "confidence": 0.9999999999999999,
+      "langchain_used": false,
+      "tool_used": "None"
+    },
+    {
+      "command": "look at sword",
+      "action": "look",
+      "target": "sword",
+      "confidence": 0.8999999999999999,
+      "langchain_used": false,
+      "tool_used": "None"
+    },
+    {
+      "command": "take the potion",
+      "action": "take",
+      "target": "the potion",
+      "confidence": 0.8999999999999999,
+      "langchain_used": false,
+      "tool_used": "None"
+    },
+    {
+      "command": "examine the mysterious object",
+      "action": "look",
+      "target": "the mysterious object",
+      "confidence": 0.9999999999999999,
+      "langchain_used": false,
+      "tool_used": "None"
+    },
+    {
+      "command": "use the strange device",
+      "action": "use",
+      "target": "the strange device",
+      "confidence": 0.9999999999999999,
+      "langchain_used": false,
+      "tool_used": "None"
+    },
+    {
+      "command": "do something weird",
+      "action": "unknown",
+      "target": null,
+      "confidence": 0.1,
+      "langchain_used": false,
+      "tool_used": "None"
+    },
+    {
+      "command": "handle the situation",
+      "action": "unknown",
+      "target": null,
+      "confidence": 0.1,
+      "langchain_used": false,
+      "tool_used": "None"
+    },
+    {
+      "command": "make it work",
+      "action": "unknown",
+      "target": null,
+      "confidence": 0.1,
+      "langchain_used": false,
+      "tool_used": "None"
+    }
+  ]
+}

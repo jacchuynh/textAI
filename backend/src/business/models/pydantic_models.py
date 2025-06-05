@@ -409,3 +409,19 @@ class DailyBusinessSummary(BaseModel):
     inventory_changes: Dict[str, int] = Field(default_factory=dict)  # item_id: quantity_change
     notable_interactions: List[str] = Field(default_factory=list)
     custom_data: Dict[str, Any] = Field(default_factory=dict)
+
+class BusinessFoundingRequest(BaseModel):
+    """Request to found a new business."""
+    player_character_id: str
+    business_name_player_chosen: str
+    business_type: str  # BusinessType enum value
+    founding_capital: float
+    location_id: str
+    founding_inventory: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    business_plan: Optional[str] = None
+    request_id: str = Field(default_factory=lambda: f"founding-{uuid4().hex}")
+    request_date: datetime = Field(default_factory=datetime.utcnow)
+    approval_status: str = "pending"  # pending, approved, rejected
+    approval_authority_npc_id: Optional[str] = None
+    rejection_reason: Optional[str] = None
+    custom_data: Dict[str, Any] = Field(default_factory=dict)

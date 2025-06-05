@@ -16,54 +16,54 @@ async function seed() {
       return;
     }
 
-    // Seed game regions
+    // Seed game regions based on your Crimson Accord world
     const regionData = [
       {
-        name: 'Arcadia',
-        description: 'A majestic city-state centered around the Grand Academy of Magic. Its alabaster towers rise high into the clouds, surrounded by a patchwork of gardens, libraries, and magical workshops.',
+        name: 'Skarport',
+        description: 'The Harmonized Capital - Built at the delta convergence of three rivers as neutral ground to house the Crimson Accord. The diplomatic heart and economic nerve center of the continent, where all races coexist under the watchful governance of the Accord Council.',
+        climate: 'temperate',
+        dangerLevel: 1,
+        dominantMagicAspect: 'balance',
+        magicalProperties: {
+          leylineStrength: 'high',
+          naturalManaFlow: 'stable',
+          magicalPhenomena: ['leyline stabilization zones', 'neutral magic fields', 'harmonic resonance']
+        }
+      },
+      {
+        name: 'Stonewake',
+        description: 'The Industrial Heart of the Accord - A dwarven-dominated fortress city built into mountain slopes, where the great forges never sleep. Steam and magical energy power massive foundries that supply weapons and tools to the entire continent.',
+        climate: 'temperate',
+        dangerLevel: 3,
+        dominantMagicAspect: 'earth',
+        magicalProperties: {
+          leylineStrength: 'high',
+          naturalManaFlow: 'channeled',
+          magicalPhenomena: ['forge-fire elementals', 'metal resonance', 'earth tremors']
+        }
+      },
+      {
+        name: 'Lethandrel',
+        description: 'The Living Archive - An elven city built into and with nature itself, where towering trees are braided with crystal canopies and knowledge is preserved in living memory. The premier center of magical learning and lore preservation.',
         climate: 'temperate',
         dangerLevel: 2,
-        dominantMagicAspect: 'arcane',
-        magicalProperties: {
-          leylineStrength: 'high',
-          naturalManaFlow: 'very high',
-          magicalPhenomena: ['floating islands', 'spontaneous enchantments', 'time anomalies']
-        }
-      },
-      {
-        name: 'Shadowvale',
-        description: 'Dense, ancient forests where sunlight barely penetrates the thick canopy. Home to ancient spirits and mysterious ruins from a forgotten civilization.',
-        climate: 'temperate',
-        dangerLevel: 4,
         dominantMagicAspect: 'nature',
         magicalProperties: {
-          leylineStrength: 'medium',
-          naturalManaFlow: 'high',
-          magicalPhenomena: ['talking trees', 'sentient shadows', 'reality distortions']
+          leylineStrength: 'very high',
+          naturalManaFlow: 'abundant',
+          magicalPhenomena: ['singing trees', 'memory groves', 'temporal echoes']
         }
       },
       {
-        name: 'Emberhold',
-        description: 'A volcanic mountain range with molten rivers of lava and ash-covered slopes. Home to hardy inhabitants who have learned to harvest the immense heat energy.',
-        climate: 'arid',
-        dangerLevel: 5,
-        dominantMagicAspect: 'fire',
-        magicalProperties: {
-          leylineStrength: 'high',
-          naturalManaFlow: 'high',
-          magicalPhenomena: ['eternal flames', 'fire elementals', 'heat mirages']
-        }
-      },
-      {
-        name: 'Crystalshore',
-        description: 'A coastal region lined with magnificent crystal formations that reflect the ocean waves in a dazzling display of light and color.',
-        climate: 'tropical',
-        dangerLevel: 3,
-        dominantMagicAspect: 'water',
+        name: 'Rivemark',
+        description: 'The Grainward Bastion - A fortified agricultural settlement along a massive river delta, surrounded by rich farmlands. Born from wartime necessity, it now feeds much of the continent while maintaining strong military traditions.',
+        climate: 'temperate',
+        dangerLevel: 4,
+        dominantMagicAspect: 'growth',
         magicalProperties: {
           leylineStrength: 'medium',
-          naturalManaFlow: 'medium',
-          magicalPhenomena: ['water crystals', 'singing tides', 'dimensional pools']
+          naturalManaFlow: 'fertile',
+          magicalPhenomena: ['blessing fields', 'river spirits', 'border ward-lines']
         }
       }
     ];
@@ -75,268 +75,269 @@ async function seed() {
     // Seed areas within regions
     console.log('Seeding areas...');
     const areaData = [
-      // Arcadia areas
+      // Skarport areas
       {
-        regionId: regionMap.get('Arcadia'),
-        name: 'Novice_Quarter',
-        description: 'Where apprentice mages begin their studies. Small academies and student housing cover the district.',
+        regionId: regionMap.get('Skarport'),
+        name: 'Accord_Ring',
+        description: 'Center of governance and diplomacy, housing the Accord chambers and embassies. Towering spire of glass-inlaid stone with floating archives and neutral negotiation halls.',
         terrain: 'urban',
         points_of_interest: [
-          { name: 'Apprentice Tower', type: 'academy', description: 'The central training facility for new mages' },
-          { name: 'Scribe\'s Alley', type: 'marketplace', description: 'A bustling market for magical scrolls and books' }
-        ],
-        magicalFeatures: {
-          ambientMana: 'high',
-          wardProtections: 'strong',
-          notableEnchantments: 'self-repairing architecture'
-        }
-      },
-      {
-        regionId: regionMap.get('Arcadia'),
-        name: 'Grand_Academy',
-        description: 'The heart of magical learning in the known world. Towering spires of ivory and gold house the greatest arcane minds.',
-        terrain: 'urban',
-        points_of_interest: [
-          { name: 'Archmage\'s Sanctum', type: 'landmark', description: 'The personal chambers of the Academy\'s leader' },
-          { name: 'Great Library', type: 'landmark', description: 'Contains thousands of magical tomes and scrolls' }
+          { name: 'Accord Chambers', type: 'government', description: 'The heart of continental diplomacy where the Crimson Accord Council meets' },
+          { name: 'Floating Archives', type: 'library', description: 'Magical repositories of treaties and diplomatic records' }
         ],
         magicalFeatures: {
           ambientMana: 'very high',
           wardProtections: 'exceptional',
-          notableEnchantments: 'animated statues, self-sorting books'
+          notableEnchantments: 'diplomatic neutrality fields, truth detection wards'
         }
       },
-      // Shadowvale areas
       {
-        regionId: regionMap.get('Shadowvale'),
-        name: 'Twilight_Entrance',
-        description: 'The edge of the dark forest where the trees begin to block out the sun and strange sounds echo.',
-        terrain: 'forest',
+        regionId: regionMap.get('Skarport'),
+        name: 'Bridgeport_Commons',
+        description: 'Multicultural public marketplace and residential district where bridges span over canals, featuring layered homes and open-air eateries representing all races.',
+        terrain: 'urban',
         points_of_interest: [
-          { name: 'Warden\'s Post', type: 'settlement', description: 'A small outpost guarding the main path into Shadowvale' },
-          { name: 'Whispering Stones', type: 'landmark', description: 'Ancient monoliths that seem to speak to those who listen carefully' }
+          { name: 'Unity Market', type: 'marketplace', description: 'Where traders from all races conduct business under Accord protection' },
+          { name: 'Cultural Bridge', type: 'landmark', description: 'Symbol of racial unity spanning the three rivers' }
         ],
         magicalFeatures: {
           ambientMana: 'medium',
-          wardProtections: 'minimal',
-          notableEnchantments: 'illusion detection wards'
+          wardProtections: 'moderate',
+          notableEnchantments: 'translation enchantments, peace-keeping wards'
+        }
+      },
+      // Stonewake areas
+      {
+        regionId: regionMap.get('Stonewake'),
+        name: 'Anvilring',
+        description: 'The heart of Stonewake\'s industrial might, where the greatest forges and workshops create weapons and tools for the entire continent.',
+        terrain: 'industrial',
+        points_of_interest: [
+          { name: 'Great Forge', type: 'workshop', description: 'Massive magical forge that never sleeps, powered by earth elementals' },
+          { name: 'Mastersmith Hall', type: 'guild', description: 'Where the Forgecouncil meets and master craftsmen are honored' }
+        ],
+        magicalFeatures: {
+          ambientMana: 'high',
+          wardProtections: 'fire and heat resistance',
+          notableEnchantments: 'eternal flames, metal-shaping enchantments'
         }
       },
       {
-        regionId: regionMap.get('Shadowvale'),
-        name: 'Heart_of_Shadows',
-        description: 'The deepest part of the forest where ancient magic pulses through the very soil and trees.',
-        terrain: 'dense forest',
+        regionId: regionMap.get('Stonewake'),
+        name: 'Hammerdeep',
+        description: 'Underground residential district carved deep into the mountain, home to dwarven families and ancestral vaults dating back centuries.',
+        terrain: 'underground',
         points_of_interest: [
-          { name: 'Elder Tree', type: 'landmark', description: 'A massive tree said to be as old as the world itself' },
-          { name: 'Forgotten Temple', type: 'ruin', description: 'Crumbling stone structures with indecipherable carvings' }
+          { name: 'Ancestral Vaults', type: 'tomb', description: 'Sacred burial chambers of great dwarven smiths and warriors' },
+          { name: 'Deep Halls', type: 'residential', description: 'Traditional dwarven family compounds built into living rock' }
+        ],
+        magicalFeatures: {
+          ambientMana: 'medium',
+          wardProtections: 'structural integrity, earth communion',
+          notableEnchantments: 'stone-speaking, ancestral memory crystals'
+        }
+      },
+      // Lethandrel areas
+      {
+        regionId: regionMap.get('Lethandrel'),
+        name: 'Verdant_Ring',
+        description: 'Central district with council chambers, great archive halls, and philosophical forums, built among singing trees and luminous moss paths.',
+        terrain: 'forest',
+        points_of_interest: [
+          { name: 'Conclave of Vines', type: 'government', description: 'Living council chambers where the elven leadership meets among ancient trees' },
+          { name: 'Archive Groves', type: 'library', description: 'Knowledge stored in living memory trees and crystal repositories' }
         ],
         magicalFeatures: {
           ambientMana: 'very high',
-          wardProtections: 'ancient and unpredictable',
-          notableEnchantments: 'time dilation, spatial distortion'
+          wardProtections: 'nature harmony, temporal stability',
+          notableEnchantments: 'memory preservation, living architecture'
         }
       },
-      // Emberhold areas
       {
-        regionId: regionMap.get('Emberhold'),
-        name: 'Ash_Roads',
-        description: 'The main path through the lower volcanic slopes, constantly covered in a fine layer of ash.',
-        terrain: 'mountain',
+        regionId: regionMap.get('Lethandrel'),
+        name: 'Leyroot_Grove',
+        description: 'Sacred convergence of leyline magic, protected for study and meditation. Only trained mages may enter due to wild magic risks.',
+        terrain: 'sacred grove',
         points_of_interest: [
-          { name: 'Cinder Trading Post', type: 'settlement', description: 'A hardy outpost where travelers can rest and trade' },
-          { name: 'Obsidian Outcrop', type: 'landmark', description: 'A massive formation of black volcanic glass' }
+          { name: 'Leyline Nexus', type: 'magical', description: 'Convergence point of multiple magical leylines requiring careful study' },
+          { name: 'Spirit Trees', type: 'sacred', description: 'Ancient trees that serve as conduits for communion with nature spirits' }
+        ],
+        magicalFeatures: {
+          ambientMana: 'extreme',
+          wardProtections: 'wild magic containment, unauthorized access prevention',
+          notableEnchantments: 'leyline channeling, spirit communication'
+        }
+      },
+      // Rivemark areas
+      {
+        regionId: regionMap.get('Rivemark'),
+        name: 'Grainreach',
+        description: 'Agricultural core with massive silos, seedhouses, and food distribution centers connected by irrigation canals.',
+        terrain: 'agricultural',
+        points_of_interest: [
+          { name: 'Grand Silos', type: 'storage', description: 'Massive magical storage facilities that preserve grain for the continent' },
+          { name: 'Harvest Halls', type: 'market', description: 'Where agricultural guilds coordinate food distribution across the Accord' }
         ],
         magicalFeatures: {
           ambientMana: 'medium',
-          wardProtections: 'heat resistance',
-          notableEnchantments: 'fire resistance enchantments'
+          wardProtections: 'preservation magic, pest control',
+          notableEnchantments: 'growth enhancement, weather prediction'
         }
       },
       {
-        regionId: regionMap.get('Emberhold'),
-        name: 'Molten_Core',
-        description: 'The heart of the volcanic region where rivers of lava flow and fire elementals roam freely.',
-        terrain: 'volcanic',
+        regionId: regionMap.get('Rivemark'),
+        name: 'Border_Watch',
+        description: 'Fortified district facing the dangerous eastern borderlands, where the Marshal\'s forces maintain vigilance against threats.',
+        terrain: 'fortified',
         points_of_interest: [
-          { name: 'Forge of the Ancients', type: 'landmark', description: 'A legendary blacksmithing site that harnesses the volcano\'s power' },
-          { name: 'Flamekeepers\' Temple', type: 'landmark', description: 'A temple dedicated to fire magic and elemental summoning' }
-        ],
-        magicalFeatures: {
-          ambientMana: 'high',
-          wardProtections: 'extreme heat shielding',
-          notableEnchantments: 'eternal flames, lava manipulation'
-        }
-      },
-      // Crystalshore areas
-      {
-        regionId: regionMap.get('Crystalshore'),
-        name: 'Harbor_District',
-        description: 'A bustling port town built around natural crystal formations that refract sunlight across the water.',
-        terrain: 'coastal',
-        points_of_interest: [
-          { name: 'Trader\'s Wharf', type: 'marketplace', description: 'Exotic goods from across the seas are bought and sold here' },
-          { name: 'Lighthouse Crystal', type: 'landmark', description: 'A massive crystal that serves as a magical lighthouse' }
+          { name: 'Marshal\'s Tower', type: 'military', description: 'Command center for Rivemark\'s military operations and border defense' },
+          { name: 'Watch Gates', type: 'fortification', description: 'Heavily defended entry points monitoring the dangerous eastern approaches' }
         ],
         magicalFeatures: {
           ambientMana: 'medium',
-          wardProtections: 'storm wards',
-          notableEnchantments: 'water breathing, weather prediction'
-        }
-      },
-      {
-        regionId: regionMap.get('Crystalshore'),
-        name: 'Crystal_Caverns',
-        description: 'An extensive network of underwater and coastal caves filled with luminescent crystals.',
-        terrain: 'cavern',
-        points_of_interest: [
-          { name: 'Tidepool Grotto', type: 'landmark', description: 'Magical pools that reveal visions when gazed into' },
-          { name: 'Crystal Chorus', type: 'landmark', description: 'A chamber where crystals resonate with musical tones' }
-        ],
-        magicalFeatures: {
-          ambientMana: 'high',
-          wardProtections: 'water pressure adaptation',
-          notableEnchantments: 'sound amplification, light manipulation'
+          wardProtections: 'early warning systems, defensive barriers',
+          notableEnchantments: 'scrying networks, magical fortifications'
         }
       }
     ];
 
-    await db.insert(schema.areas).values(areaData);
+    // Validate all areas have valid regionIds and cast to proper type
+    const validAreaData = areaData
+      .filter((area): area is typeof area & { regionId: number } => {
+        const hasValidRegionId = area.regionId !== undefined;
+        if (!hasValidRegionId) {
+          console.warn(`Skipping area ${area.name} - no valid regionId found`);
+        }
+        return hasValidRegionId;
+      });
+    
+    await db.insert(schema.areas).values(validAreaData);
 
     // Seed spells
     console.log('Seeding spells...');
     const spellData = [
       {
-        name: 'Arcane Missile',
-        description: 'Conjures a bolt of pure magical energy that seeks out a target.',
-        aspect: 'arcane',
-        manaCost: 10,
-        castTime: 1.5,
-        cooldown: 3.0,
+        name: 'Accord Binding',
+        description: 'A diplomatic spell that creates a temporary zone of peaceful negotiation, preventing hostile actions.',
+        aspect: 'balance',
+        manaCost: 15,
+        castTime: '2.0',
+        cooldown: '30.0',
         effects: {
-          damageType: 'arcane',
-          baseDamage: 15,
-          scaling: 'spell power',
-          properties: ['projectile', 'seeking']
-        },
-        requiredLevel: 1
-      },
-      {
-        name: 'Fireball',
-        description: 'Hurls a sphere of flame that explodes on impact, damaging all enemies in an area.',
-        aspect: 'fire',
-        manaCost: 25,
-        castTime: 2.0,
-        cooldown: 8.0,
-        effects: {
-          damageType: 'fire',
-          baseDamage: 30,
+          type: 'utility',
+          duration: 300,
           areaOfEffect: 'medium',
-          scaling: 'spell power',
-          properties: ['projectile', 'area damage', 'burning']
+          properties: ['peace zone', 'diplomatic enhancement', 'conflict prevention']
         },
         requiredLevel: 3
       },
       {
-        name: 'Frost Nova',
-        description: 'Releases a burst of cold energy, freezing nearby enemies in place.',
-        aspect: 'water',
-        manaCost: 30,
-        castTime: 0.5,
-        cooldown: 15.0,
-        effects: {
-          damageType: 'ice',
-          baseDamage: 15,
-          areaOfEffect: 'medium',
-          scaling: 'spell power',
-          properties: ['instant', 'area damage', 'crowd control', 'freezing']
-        },
-        requiredLevel: 5
-      },
-      {
-        name: 'Stone Skin',
-        description: 'Hardens the caster\'s skin, providing protection from physical attacks.',
+        name: 'Forgefire Blast',
+        description: 'Channels the power of Stonewake\'s great forges into a concentrated blast of superheated energy.',
         aspect: 'earth',
-        manaCost: 20,
-        castTime: 1.0,
-        cooldown: 30.0,
+        manaCost: 25,
+        castTime: '1.5',
+        cooldown: '8.0',
         effects: {
-          type: 'buff',
-          duration: 60,
-          properties: ['armor increase', 'damage reduction'],
-          values: {
-            armorIncrease: 50,
-            damageReduction: 0.2
-          }
+          damageType: 'fire',
+          baseDamage: 35,
+          scaling: 'spell power',
+          properties: ['projectile', 'armor piercing', 'metal heating']
         },
         requiredLevel: 4
       },
       {
-        name: 'Healing Light',
-        description: 'Channels healing energy to restore health to the caster or an ally.',
-        aspect: 'light',
-        manaCost: 35,
-        castTime: 2.5,
-        cooldown: 5.0,
+        name: 'Memory Grove Communion',
+        description: 'Taps into Lethandrel\'s living archives to gain insight from stored memories and knowledge.',
+        aspect: 'nature',
+        manaCost: 20,
+        castTime: '3.0',
+        cooldown: '60.0',
         effects: {
-          type: 'healing',
-          baseHealing: 40,
-          scaling: 'spell power',
-          properties: ['targeted', 'channeled']
+          type: 'divination',
+          properties: ['knowledge seeking', 'memory access', 'wisdom enhancement'],
+          duration: 60
         },
-        requiredLevel: 2
+        requiredLevel: 5
       },
       {
-        name: 'Wind Gust',
-        description: 'Summons a powerful gust of wind that pushes enemies away.',
-        aspect: 'air',
-        manaCost: 15,
-        castTime: 1.0,
-        cooldown: 12.0,
-        effects: {
-          type: 'utility',
-          properties: ['knockback', 'crowd control'],
-          values: {
-            knockbackDistance: 10,
-            stunDuration: 1.5
-          }
-        },
-        requiredLevel: 2
-      },
-      {
-        name: 'Mana Shield',
-        description: 'Creates a protective barrier that absorbs damage at the cost of mana.',
+        name: 'Crimson Ward',
+        description: 'A protective spell developed during the Crimson Dissonance, creating barriers against war magic.',
         aspect: 'arcane',
-        manaCost: 40,
-        castTime: 0.5,
-        cooldown: 25.0,
+        manaCost: 30,
+        castTime: '2.5',
+        cooldown: '45.0',
         effects: {
           type: 'buff',
-          duration: 120,
-          properties: ['damage absorption', 'mana drain'],
+          duration: 180,
+          properties: ['magic resistance', 'war magic protection', 'stability enhancement'],
           values: {
-            damageAbsorption: 100,
-            manaDrainRatio: 2 // 2 mana per 1 damage absorbed
+            magicResistance: 0.3,
+            warMagicResistance: 0.5
           }
         },
         requiredLevel: 6
       },
       {
-        name: 'Nature\'s Grasp',
-        description: 'Summons vines from the ground to entangle enemies, rooting them in place.',
-        aspect: 'nature',
-        manaCost: 25,
-        castTime: 1.5,
-        cooldown: 18.0,
+        name: 'Grain Blessing',
+        description: 'Enhances crop growth and fertility, a staple magic used throughout Rivemark\'s agricultural districts.',
+        aspect: 'growth',
+        manaCost: 12,
+        castTime: '4.0',
+        cooldown: '120.0',
         effects: {
-          damageType: 'nature',
-          baseDamage: 10,
-          damageOverTime: 5,
-          duration: 8,
-          areaOfEffect: 'small',
-          properties: ['targeted', 'area damage', 'crowd control', 'root']
+          type: 'enhancement',
+          areaOfEffect: 'large',
+          properties: ['growth acceleration', 'disease resistance', 'yield increase'],
+          duration: 3600
+        },
+        requiredLevel: 2
+      },
+      {
+        name: 'Racial Harmony',
+        description: 'Reduces racial tensions and promotes understanding between different peoples, often used in Skarport.',
+        aspect: 'balance',
+        manaCost: 18,
+        castTime: '1.0',
+        cooldown: '20.0',
+        effects: {
+          type: 'social',
+          areaOfEffect: 'medium',
+          properties: ['empathy enhancement', 'prejudice reduction', 'communication clarity'],
+          duration: 1800
+        },
+        requiredLevel: 3
+      },
+      {
+        name: 'Leyline Tap',
+        description: 'Safely draws energy from nearby leylines, a technique mastered by Lethandrel\'s mages.',
+        aspect: 'arcane',
+        manaCost: 5,
+        castTime: '1.5',
+        cooldown: '15.0',
+        effects: {
+          type: 'restoration',
+          properties: ['mana restoration', 'leyline connection', 'energy channeling'],
+          values: {
+            manaRestored: 40
+          }
         },
         requiredLevel: 4
+      },
+      {
+        name: 'Border Sentinel',
+        description: 'Creates a magical watchtower that alerts defenders to approaching threats, used along Rivemark\'s borders.',
+        aspect: 'earth',
+        manaCost: 35,
+        castTime: '5.0',
+        cooldown: '300.0',
+        effects: {
+          type: 'summoning',
+          duration: 7200,
+          properties: ['detection', 'early warning', 'threat assessment'],
+          areaOfEffect: 'very large'
+        },
+        requiredLevel: 7
       }
     ];
 
@@ -347,136 +348,143 @@ async function seed() {
     console.log('Seeding items...');
     const itemData = [
       {
-        name: 'Apprentice\'s Wand',
-        description: 'A basic wand given to new magic students. It helps focus magical energy more efficiently.',
-        type: 'weapon',
-        rarity: 'common',
-        value: 50,
-        stats: {
-          spellPower: 5,
-          manaRegeneration: 1
-        },
-        magicProperties: {
-          aspects: ['arcane'],
-          enchantments: ['mana efficiency']
-        },
-        requiredLevel: 1
-      },
-      {
-        name: 'Spellbook of Fundamentals',
-        description: 'Contains basic magical theory and simple spell diagrams. A starting point for any aspiring mage.',
-        type: 'offhand',
+        name: 'Accord Sigil Ring',
+        description: 'A ring bearing the seal of the Crimson Accord, granting the wearer recognition and basic diplomatic immunity.',
+        type: 'accessory',
         rarity: 'common',
         value: 75,
         stats: {
-          spellPower: 3,
-          manaCapacity: 10
+          diplomacy: 5,
+          reputation: 10
         },
         magicProperties: {
-          aspects: ['arcane'],
-          enchantments: ['knowledge retention']
+          aspects: ['balance'],
+          enchantments: ['diplomatic recognition', 'peaceful aura']
         },
         requiredLevel: 1
       },
       {
-        name: 'Embercloth Robes',
-        description: 'Robes woven with fire-resistant thread from the Emberhold region.',
-        type: 'armor',
+        name: 'Diplomatic Seal',
+        description: 'An official seal allowing the bearer to conduct minor diplomatic business on behalf of the Accord.',
+        type: 'document',
+        rarity: 'common',
+        value: 50,
+        stats: {},
+        magicProperties: {
+          effects: ['diplomatic authority', 'document authentication'],
+          duration: 'permanent'
+        },
+        requiredLevel: 1
+      },
+      {
+        name: 'Forgemaster\'s Hammer',
+        description: 'A masterwork hammer imbued with the essence of Stonewake\'s great forges, excellent for both crafting and combat.',
+        type: 'weapon',
         rarity: 'uncommon',
-        value: 120,
+        value: 200,
         stats: {
-          armor: 5,
+          damage: 25,
+          craftingBonus: 15,
           fireResistance: 20
         },
         magicProperties: {
-          aspects: ['fire'],
-          enchantments: ['heat dissipation']
+          aspects: ['earth', 'fire'],
+          enchantments: ['forge-fire channeling', 'metal shaping']
         },
         requiredLevel: 3
       },
       {
-        name: 'Crystal Focus',
-        description: 'A clear crystal from Crystalshore that helps channel water magic more efficiently.',
-        type: 'focus',
-        rarity: 'uncommon',
-        value: 150,
-        stats: {
-          waterSpellPower: 8,
-          waterSpellCostReduction: 0.1
-        },
-        magicProperties: {
-          aspects: ['water'],
-          enchantments: ['clarity', 'flow']
-        },
-        requiredLevel: 3
-      },
-      {
-        name: 'Shadowveil Cloak',
-        description: 'A cloak that seems to absorb light, making the wearer harder to detect in shadows.',
+        name: 'Heat-Resistant Gear',
+        description: 'Protective equipment designed for working near the intense heat of magical forges and foundries.',
         type: 'armor',
-        rarity: 'rare',
-        value: 300,
+        rarity: 'common',
+        value: 120,
         stats: {
           armor: 8,
-          stealth: 15
+          fireResistance: 35,
+          heatResistance: 50
         },
         magicProperties: {
-          aspects: ['shadow'],
-          enchantments: ['light absorption', 'sound dampening']
+          aspects: ['earth'],
+          enchantments: ['heat dissipation', 'forge protection']
+        },
+        requiredLevel: 2
+      },
+      {
+        name: 'Living Wood Staff',
+        description: 'A staff carved from one of Lethandrel\'s memory trees, still alive and connected to the forest\'s knowledge.',
+        type: 'weapon',
+        rarity: 'rare',
+        value: 350,
+        stats: {
+          spellPower: 20,
+          natureMagicBonus: 25,
+          memoryAccess: 15
+        },
+        magicProperties: {
+          aspects: ['nature', 'memory'],
+          enchantments: ['living wood growth', 'ancestral wisdom']
         },
         requiredLevel: 5
       },
       {
-        name: 'Mana Potion',
-        description: 'A blue potion that restores magical energy when consumed.',
+        name: 'Memory Crystal',
+        description: 'A crystal that can store and replay memories, knowledge, and experiences for later study.',
         type: 'consumable',
-        rarity: 'common',
-        value: 25,
-        stats: {},
-        magicProperties: {
-          effects: ['restore 50 mana'],
-          duration: 'instant'
-        },
-        requiredLevel: 1
-      },
-      {
-        name: 'Health Potion',
-        description: 'A red potion that restores health when consumed.',
-        type: 'consumable',
-        rarity: 'common',
-        value: 25,
-        stats: {},
-        magicProperties: {
-          effects: ['restore 50 health'],
-          duration: 'instant'
-        },
-        requiredLevel: 1
-      },
-      {
-        name: 'Arcane Dust',
-        description: 'Crystallized magical energy used in enchanting and spellcrafting.',
-        type: 'material',
-        rarity: 'common',
-        value: 15,
-        stats: {},
-        magicProperties: {
-          aspects: ['arcane'],
-          usages: ['enchanting', 'spellcrafting']
-        },
-        requiredLevel: 1
-      },
-      {
-        name: 'Fire Essence',
-        description: 'Bottled fire elemental energy that burns eternally.',
-        type: 'material',
         rarity: 'uncommon',
-        value: 45,
+        value: 100,
         stats: {},
         magicProperties: {
-          aspects: ['fire'],
-          usages: ['enchanting', 'potion brewing']
+          effects: ['memory storage', 'knowledge transfer', 'experience replay'],
+          duration: 'single use'
         },
         requiredLevel: 1
+      },
+      {
+        name: 'Scout\'s Cloak',
+        description: 'A practical cloak worn by Rivemark\'s border scouts, enchanted for stealth and environmental protection.',
+        type: 'armor',
+        rarity: 'uncommon',
+        value: 180,
+        stats: {
+          armor: 6,
+          stealth: 20,
+          weatherResistance: 15
+        },
+        magicProperties: {
+          aspects: ['air', 'earth'],
+          enchantments: ['environmental adaptation', 'sound dampening']
+        },
+        requiredLevel: 4
+      },
+      {
+        name: 'Border Map',
+        description: 'A detailed map of Rivemark\'s eastern borderlands, updated with current threat assessments and patrol routes.',
+        type: 'document',
+        rarity: 'common',
+        value: 60,
+        stats: {
+          navigation: 10,
+          borderKnowledge: 15
+        },
+        magicProperties: {
+          effects: ['location tracking', 'threat awareness'],
+          duration: 'permanent'
+        },
+        requiredLevel: 1
+      },
+      {
+        name: 'Crimson Dissonance Relic',
+        description: 'A fragment from the great war, carefully stabilized and studied. Contains immense but dangerous power.',
+        type: 'material',
+        rarity: 'legendary',
+        value: 1000,
+        stats: {},
+        magicProperties: {
+          aspects: ['war magic', 'chaos'],
+          usages: ['powerful enchantments', 'historical research', 'dangerous experiments']
+        },
+        requiredLevel: 10
       }
     ];
 
@@ -487,83 +495,82 @@ async function seed() {
     console.log('Seeding quests...');
     const questData = [
       {
-        title: 'Apprentice\'s First Steps',
-        description: 'Complete your basic training at the Arcadia Academy by demonstrating your magical abilities.',
-        region: 'Arcadia',
+        title: 'Welcome to the Accord',
+        description: 'Complete your orientation in Skarport by learning about the Crimson Accord and the delicate balance between the races.',
+        region: 'Skarport',
         requiredLevel: 1,
         rewards: {
           experience: 100,
           gold: 50,
           items: [
-            { id: itemMap.get('Apprentice\'s Wand'), quantity: 1 },
-            { id: itemMap.get('Mana Potion'), quantity: 2 }
+            { id: itemMap.get('Accord Sigil Ring'), quantity: 1 },
+            { id: itemMap.get('Diplomatic Seal'), quantity: 1 }
           ]
         },
         objectives: [
-          { type: 'cast_spell', target: 'training_dummy', count: 5, description: 'Practice your spells on the training dummies' },
-          { type: 'collect', target: 'arcane_essence', count: 3, description: 'Collect arcane essence from the practice grounds' },
-          { type: 'speak_to', target: 'professor_lumina', description: 'Report back to Professor Lumina' }
+          { type: 'speak_to', target: 'accord_clerk', description: 'Report to the Accord Registry for orientation' },
+          { type: 'visit', target: 'unity_crest', description: 'Tour the multicultural Unity Crest district' },
+          { type: 'speak_to', target: 'racial_ambassador', description: 'Meet with representatives from each major race' }
         ]
       },
       {
-        title: 'Troublesome Fire Sprites',
-        description: 'Fire sprites from Emberhold have been spotted in Arcadia\'s gardens. Investigate and resolve the situation.',
-        region: 'Arcadia',
-        requiredLevel: 2,
+        title: 'Forge Troubles',
+        description: 'The great forges of Stonewake are experiencing mysterious malfunctions. Investigate the cause and restore normal operations.',
+        region: 'Stonewake',
+        requiredLevel: 3,
         rewards: {
-          experience: 200,
-          gold: 100,
+          experience: 250,
+          gold: 150,
           items: [
-            { id: itemMap.get('Fire Essence'), quantity: 1 },
-            { id: itemMap.get('Health Potion'), quantity: 1 }
+            { id: itemMap.get('Forgemaster\'s Hammer'), quantity: 1 },
+            { id: itemMap.get('Heat-Resistant Gear'), quantity: 1 }
           ]
         },
         objectives: [
-          { type: 'defeat', target: 'fire_sprite', count: 8, description: 'Defeat fire sprites in the gardens' },
-          { type: 'collect', target: 'sprite_essence', count: 5, description: 'Collect essence from defeated sprites' },
-          { type: 'find', target: 'portal', description: 'Locate the source of the sprites' invasion' },
-          { type: 'cast_spell', target: 'portal', spell: 'frost_nova', description: 'Close the portal with frost magic' }
+          { type: 'speak_to', target: 'forgemaster', description: 'Consult with the Forgemaster about the malfunctions' },
+          { type: 'investigate', target: 'great_forge', description: 'Examine the Great Forge for signs of sabotage' },
+          { type: 'collect', target: 'corrupted_ore', count: 3, description: 'Gather samples of the corrupted metal' },
+          { type: 'cast_spell', target: 'forge_fire', spell: 'purification', description: 'Cleanse the forge fires of corruption' }
         ]
       },
       {
-        title: 'Shadows in the Vale',
-        description: 'Strange occurrences have been reported in Shadowvale. Investigate the mysterious sightings.',
-        region: 'Shadowvale',
+        title: 'Memory Grove Awakening',
+        description: 'The ancient memory trees in Lethandrel\'s Leyroot Grove have begun showing disturbing visions. Help the Conclave of Vines understand what they\'re trying to communicate.',
+        region: 'Lethandrel',
+        requiredLevel: 5,
+        rewards: {
+          experience: 400,
+          gold: 200,
+          items: [
+            { id: itemMap.get('Living Wood Staff'), quantity: 1 },
+            { id: itemMap.get('Memory Crystal'), quantity: 2 }
+          ]
+        },
+        objectives: [
+          { type: 'speak_to', target: 'conclave_elder', description: 'Seek audience with the Conclave of Vines' },
+          { type: 'commune', target: 'memory_tree', description: 'Commune with the ancient memory trees' },
+          { type: 'interpret', target: 'vision_fragments', count: 5, description: 'Interpret the fragmented visions from the trees' },
+          { type: 'speak_to', target: 'dreamroot_shaman', description: 'Consult with a Dreamroot Pact shaman about the meanings' }
+        ]
+      },
+      {
+        title: 'Border Incursion',
+        description: 'Unknown forces have been spotted near Rivemark\'s eastern borders. The Marshal needs scouts to investigate and determine the threat level.',
+        region: 'Rivemark',
         requiredLevel: 4,
         rewards: {
           experience: 350,
-          gold: 200,
+          gold: 180,
           items: [
-            { id: itemMap.get('Shadowveil Cloak'), quantity: 1 }
+            { id: itemMap.get('Scout\'s Cloak'), quantity: 1 },
+            { id: itemMap.get('Border Map'), quantity: 1 }
           ]
         },
         objectives: [
-          { type: 'speak_to', target: 'forest_warden', description: 'Speak with the Forest Warden at Twilight Entrance' },
-          { type: 'explore', target: 'whispering_stones', description: 'Investigate the Whispering Stones' },
-          { type: 'defeat', target: 'shadow_entity', count: 3, description: 'Defeat the shadow entities' },
-          { type: 'collect', target: 'corrupted_crystal', count: 1, description: 'Retrieve the corrupted crystal' },
-          { type: 'speak_to', target: 'elder_druid', description: 'Bring the crystal to the Elder Druid' }
-        ]
-      },
-      {
-        title: 'Crystal Resonance',
-        description: 'The Lighthouse Crystal in Crystalshore has stopped functioning. Help restore its power.',
-        region: 'Crystalshore',
-        requiredLevel: 3,
-        rewards: {
-          experience: 300,
-          gold: 150,
-          items: [
-            { id: itemMap.get('Crystal Focus'), quantity: 1 },
-            { id: itemMap.get('Mana Potion'), quantity: 3 }
-          ]
-        },
-        objectives: [
-          { type: 'speak_to', target: 'lighthouse_keeper', description: 'Speak with the Lighthouse Keeper' },
-          { type: 'explore', target: 'crystal_caverns', description: 'Enter the Crystal Caverns' },
-          { type: 'collect', target: 'resonance_shard', count: 5, description: 'Collect resonance shards from the caverns' },
-          { type: 'defeat', target: 'crystal_guardian', count: 1, description: 'Defeat the Crystal Guardian' },
-          { type: 'use_item', target: 'lighthouse_crystal', item: 'resonance_shard', description: 'Restore the Lighthouse Crystal' }
+          { type: 'speak_to', target: 'marshal', description: 'Receive orders from the Marshal at the command tower' },
+          { type: 'patrol', target: 'eastern_border', description: 'Scout the eastern borderlands for signs of incursion' },
+          { type: 'track', target: 'unknown_forces', description: 'Follow the tracks of the mysterious intruders' },
+          { type: 'report', target: 'findings', description: 'Return to the Marshal with intelligence on the threat' }
         ]
       }
     ];
@@ -574,68 +581,68 @@ async function seed() {
     console.log('Seeding magical materials...');
     const materialData = [
       {
-        name: 'Arcane Crystal',
-        description: 'A crystal infused with pure magical energy. Glows with an inner light.',
-        aspect: 'arcane',
+        name: 'Accord Harmony Crystal',
+        description: 'A stabilized crystal found in Skarport\'s diplomatic chambers, resonating with peaceful energy and magical balance.',
+        aspect: 'balance',
         rarity: 'uncommon',
         potency: 2,
-        usages: ['enchanting', 'spellcrafting', 'focus creation']
+        usages: ['diplomatic enchantments', 'conflict resolution magic', 'peace ward creation']
       },
       {
-        name: 'Emberroot',
-        description: 'A root that grows in volcanic soil. Perpetually warm to the touch.',
-        aspect: 'fire',
-        rarity: 'common',
-        potency: 1,
-        usages: ['potion brewing', 'enchanting', 'cooking']
-      },
-      {
-        name: 'Shadowleaf',
-        description: 'A plant that grows only in the darkest parts of Shadowvale. Absorbs light around it.',
-        aspect: 'shadow',
-        rarity: 'uncommon',
-        potency: 2,
-        usages: ['potion brewing', 'illusion magic', 'stealth enchantments']
-      },
-      {
-        name: 'Tidal Pearl',
-        description: 'A pearl infused with water magic, found in the depths of Crystalshore\'s waters.',
-        aspect: 'water',
-        rarity: 'uncommon',
-        potency: 2,
-        usages: ['water magic', 'healing potions', 'weather enchantments']
-      },
-      {
-        name: 'Whisperwind Feather',
-        description: 'A feather that moves as if constantly touched by a gentle breeze.',
-        aspect: 'air',
-        rarity: 'common',
-        potency: 1,
-        usages: ['air magic', 'levitation enchantments', 'speed potions']
-      },
-      {
-        name: 'Living Stone',
-        description: 'A small rock that seems to pulse with inner life. Warm to the touch.',
+        name: 'Forgeheart Iron',
+        description: 'Metal infused with the eternal flames of Stonewake\'s great forges. Perpetually warm and incredibly durable.',
         aspect: 'earth',
         rarity: 'common',
-        potency: 1,
-        usages: ['earth magic', 'strengthening enchantments', 'defensive wards']
+        potency: 2,
+        usages: ['weapon crafting', 'heat enchantments', 'structural reinforcement']
       },
       {
-        name: 'Moonlit Flower',
-        description: 'A flower that only blooms under moonlight and stores its magical essence.',
+        name: 'Memory Tree Bark',
+        description: 'Bark from Lethandrel\'s living archive trees, containing fragments of stored knowledge and memories.',
         aspect: 'nature',
         rarity: 'uncommon',
-        potency: 2,
-        usages: ['nature magic', 'healing potions', 'growth enchantments']
+        potency: 3,
+        usages: ['memory magic', 'knowledge preservation', 'wisdom enchantments']
       },
       {
-        name: 'Dragon Scale',
-        description: 'A rare scale from an ancient dragon, infused with powerful magic.',
-        aspect: 'various',
+        name: 'Riverdelta Silt',
+        description: 'Magically enriched soil from Rivemark\'s fertile deltas, blessed by generations of agricultural magic.',
+        aspect: 'growth',
+        rarity: 'common',
+        potency: 1,
+        usages: ['agricultural magic', 'healing potions', 'growth enchantments']
+      },
+      {
+        name: 'Leyline Resonance Stone',
+        description: 'A crystallized fragment of leyline energy, found where multiple magical currents converge.',
+        aspect: 'arcane',
         rarity: 'rare',
         potency: 4,
-        usages: ['powerful enchantments', 'artifact creation', 'magical armor']
+        usages: ['mana restoration', 'leyline manipulation', 'powerful spellcrafting']
+      },
+      {
+        name: 'Crimson Dissonance Shard',
+        description: 'A dangerous fragment of war magic from the great conflict, carefully contained and studied.',
+        aspect: 'war magic',
+        rarity: 'legendary',
+        potency: 5,
+        usages: ['forbidden research', 'war relic study', 'extremely dangerous enchantments']
+      },
+      {
+        name: 'Post-War Bloom Petal',
+        description: 'Petals from flowers that grew in the aftermath of the Crimson Dissonance, symbolizing hope and renewal.',
+        aspect: 'healing',
+        rarity: 'uncommon',
+        potency: 2,
+        usages: ['healing magic', 'purification rituals', 'renewal enchantments']
+      },
+      {
+        name: 'Racial Unity Gem',
+        description: 'A rare multi-colored gem that forms when representatives of all races work together in magical harmony.',
+        aspect: 'harmony',
+        rarity: 'rare',
+        potency: 3,
+        usages: ['diplomatic magic', 'racial cooperation spells', 'unity enchantments']
       }
     ];
 
@@ -649,7 +656,7 @@ async function seed() {
 }
 
 // Run the seed function if this file is executed directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   seed()
     .then(() => {
       console.log('Seed completed successfully');

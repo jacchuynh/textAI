@@ -187,3 +187,6 @@ class GameContext:
     def clear_disambiguation(self) -> None:
         """Clear disambiguation options."""
         self.disambiguation_options = []
+
+# Create a global game context instance for use throughout the system
+game_context = GameContext(player_id="default_player")

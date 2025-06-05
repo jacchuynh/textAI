@@ -12,15 +12,15 @@ from sqlalchemy.orm import Session
 
 from backend.src.database.session import SessionLocal
 from backend.src.crafting.models.db_models import (
-    DBMaterial, DBRecipe, DBRecipeIngredient, DBRecipeOutput
+    DBMaterial, DBRecipe, DBRecipeIngredient, DBRecipeOutput, DBSkillRequirement
 )
 from backend.src.crafting.models.pydantic_models import (
     Material, Recipe, Rarity, MaterialType, CraftingResult
 )
 
 # Import AI GM Brain components
-from backend.src.ai_gm.ai_gm_brain_config_integrated import AIGMBrainConfig
-from backend.src.ai_gm.ai_gm_brain_integrated import AIGMBrain
+from backend.src.ai_gm.ai_gm_brain_config_integrated import IntegratedAIGMConfig
+# from backend.src.ai_gm.ai_gm_unified_integration import create_unified_gm  # Temporarily disabled
 
 logger = logging.getLogger(__name__)
 
@@ -473,7 +473,7 @@ class CraftingIntegrationService:
             logger.error(f"Error getting recipe info for AI GM: {e}")
             return {}
     
-    def integrate_with_ai_gm_brain(self, ai_gm_brain: AIGMBrain) -> None:
+    def integrate_with_ai_gm_brain(self, ai_gm_brain: Any) -> None:
         """
         Integrate crafting system data with the AI GM Brain.
         

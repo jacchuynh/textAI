@@ -1,352 +1,277 @@
 """
-Output Generation System Integration for AI GM Brain
+Output Generation Integration for AI GM Brain
 
-This module integrates the output generation system with the AI GM Brain,
-controlling how responses are formatted and delivered to the player.
+This module provides unified output generation and formatting for all AI GM responses,
+supporting multiple delivery channels and response types.
 """
 
-import os
-import sys
-import time
-from typing import Dict, Any, List, Optional, Tuple, Union
-from datetime import datetime
+import logging
+from typing import Dict, Any, List, Optional, Union
 from enum import Enum, auto
-
-# Add the assets directory to path to allow importing output generation components
-sys.path.insert(0, 'attached_assets')
-
-# Define enums for output generation
-class DeliveryChannel(Enum):
-    """Channels for delivering responses"""
-    CONSOLE = auto()       # Text console
-    VISUAL = auto()        # Visual display (images, UI elements)
-    AUDIO = auto()         # Audio output
-    SYSTEM = auto()        # System messages (OOC, meta information)
-
-
-class ResponsePriority(Enum):
-    """Priority levels for responses"""
-    IMMEDIATE = auto()     # Should be displayed right away
-    HIGH = auto()          # High priority message
-    NORMAL = auto()        # Normal priority message
-    LOW = auto()           # Low priority, can be delayed
-    BACKGROUND = auto()    # Background information, lowest priority
-
+from dataclasses import dataclass
+from datetime import datetime
 
 class OutputType(Enum):
-    """Types of output content"""
-    NARRATIVE = auto()     # Story narrative
-    DIALOGUE = auto()      # Character dialogue
-    DESCRIPTION = auto()   # Environmental descriptions
-    COMBAT = auto()        # Combat information
-    SYSTEM = auto()        # System information
-    AMBIENT = auto()       # Ambient/background information
+    """Types of output the AI GM can generate."""
+    NARRATIVE = auto()      # Story descriptions and narration
+    DIALOGUE = auto()       # NPC dialogue
+    SYSTEM = auto()         # Game system messages
+    ERROR = auto()          # Error messages
+    DEBUG = auto()          # Debug information
+    AMBIENT = auto()        # Ambient descriptions
+    ACTION_RESULT = auto()  # Results of player actions
 
+class DeliveryChannel(Enum):
+    """Channels through which output can be delivered."""
+    MAIN = auto()           # Main game output
+    WHISPER = auto()        # Private messages to player
+    BROADCAST = auto()      # Public announcements
+    LOG = auto()           # System logs
+    DEBUG_CONSOLE = auto()  # Debug console
+    CONSOLE = auto()        # Console output (compatibility)
+
+class ResponsePriority(Enum):
+    """Priority levels for responses."""
+    CRITICAL = auto()       # Critical system messages
+    HIGH = auto()          # Important game events
+    NORMAL = auto()        # Standard responses
+    LOW = auto()           # Background/ambient content
+    DEBUG = auto()         # Debug information
+
+@dataclass
+class FormattedResponse:
+    """A formatted response ready for delivery."""
+    content: str
+    output_type: OutputType
+    channel: DeliveryChannel
+    priority: ResponsePriority
+    metadata: Dict[str, Any]
+    timestamp: datetime
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary format."""
+        return {
+            "content": self.content,
+            "output_type": self.output_type.name,
+            "channel": self.channel.name,
+            "priority": self.priority.name,
+            "metadata": self.metadata,
+            "timestamp": self.timestamp.isoformat()
+        }
+
+class OutputFormatter:
+    """Handles formatting of different types of output."""
+    
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        
+    def format_narrative(self, content: str, context: Dict[str, Any] = None) -> str:
+        """Format narrative content."""
+        if context and context.get('location'):
+            return f"[{context['location']}] {content}"
+        return content
+    
+    def format_dialogue(self, speaker: str, content: str, context: Dict[str, Any] = None) -> str:
+        """Format dialogue content."""
+        mood = context.get('mood', '') if context else ''
+        if mood:
+            return f"{speaker} {mood}: \"{content}\""
+        return f"{speaker}: \"{content}\""
+    
+    def format_system(self, content: str, severity: str = "info") -> str:
+        """Format system messages."""
+        prefix = {
+            "error": "⚠️ ERROR:",
+            "warning": "⚠️ WARNING:",
+            "info": "ℹ️ INFO:",
+            "success": "✅ SUCCESS:"
+        }.get(severity, "ℹ️")
+        
+        return f"{prefix} {content}"
+    
+    def format_action_result(self, action: str, result: str, success: bool = True) -> str:
+        """Format action results."""
+        indicator = "✅" if success else "❌"
+        return f"{indicator} {action}: {result}"
 
 class OutputGenerationIntegration:
-    """Integration module for the output generation system with AI GM Brain."""
+    """Main integration class for output generation."""
     
-    def __init__(self, brain):
-        """
-        Initialize the output generation integration.
+    def __init__(self, game_id: str, player_id: str):
+        self.game_id = game_id
+        self.player_id = player_id
+        self.logger = logging.getLogger(__name__)
+        self.formatter = OutputFormatter()
+        self.response_history: List[FormattedResponse] = []
         
-        Args:
-            brain: The AI GM Brain instance to integrate with
-        """
-        self.brain = brain
-        self.enabled = True
-        
-        # Initialize message queue and history
-        self.message_queue = []
-        self.message_history = []
-        self.max_history = 100
-        
-        # Initialize styling configurations
-        self._init_styling()
+        self.logger.info(f"Output Generation Integration initialized for game {game_id} and player {player_id}")
     
-    def _init_styling(self):
-        """Initialize styling configurations for different output types."""
-        # Define styling for different output types (would be used for UI rendering)
-        self.styling = {
-            OutputType.NARRATIVE.value: {
-                "font_weight": "normal",
-                "font_style": "normal",
-                "color": "#FFFFFF",
-                "background": "none",
-                "border": "none",
-                "padding": "0.5em 0"
-            },
-            OutputType.DIALOGUE.value: {
-                "font_weight": "normal",
-                "font_style": "italic",
-                "color": "#E6E6FA",
-                "background": "none",
-                "border": "none",
-                "padding": "0.25em 0",
-                "quote_marks": True
-            },
-            OutputType.DESCRIPTION.value: {
-                "font_weight": "normal",
-                "font_style": "normal",
-                "color": "#ADD8E6",
-                "background": "none",
-                "border": "none",
-                "padding": "0.5em 0"
-            },
-            OutputType.COMBAT.value: {
-                "font_weight": "bold",
-                "font_style": "normal",
-                "color": "#FF6347",
-                "background": "rgba(255, 99, 71, 0.1)",
-                "border": "1px solid rgba(255, 99, 71, 0.3)",
-                "padding": "0.5em",
-                "border_radius": "0.25em"
-            },
-            OutputType.SYSTEM.value: {
-                "font_weight": "normal",
-                "font_style": "italic",
-                "color": "#7FFF00",
-                "background": "rgba(127, 255, 0, 0.1)",
-                "border": "none",
-                "padding": "0.25em 0",
-                "font_size": "0.9em"
-            },
-            OutputType.AMBIENT.value: {
-                "font_weight": "normal",
-                "font_style": "italic",
-                "color": "#D3D3D3",
-                "background": "none",
-                "border": "none",
-                "padding": "0.25em 0",
-                "font_size": "0.9em"
-            }
-        }
-    
-    def is_enabled(self) -> bool:
-        """Check if the output generation system is enabled."""
-        return self.enabled
-    
-    def format_response(self, 
-                       response_text: str, 
-                       output_type: Union[OutputType, str] = OutputType.NARRATIVE, 
-                       metadata: Dict[str, Any] = None) -> Dict[str, Any]:
-        """
-        Format a response with appropriate styling.
+    def generate_response(
+        self,
+        content: str,
+        output_type: OutputType = OutputType.NARRATIVE,
+        channel: DeliveryChannel = DeliveryChannel.MAIN,
+        priority: ResponsePriority = ResponsePriority.NORMAL,
+        context: Dict[str, Any] = None,
+        metadata: Dict[str, Any] = None
+    ) -> FormattedResponse:
+        """Generate a formatted response."""
         
-        Args:
-            response_text: The response text to format
-            output_type: The type of output content
-            metadata: Additional metadata for the response
-            
-        Returns:
-            Formatted response
-        """
-        if not self.enabled:
-            return {"text": response_text, "raw": True}
-            
-        # Convert string output_type to enum if needed
-        if isinstance(output_type, str):
-            try:
-                output_type = OutputType[output_type.upper()]
-            except KeyError:
-                output_type = OutputType.NARRATIVE
-                
-        # Get styling for output type
-        output_type_value = output_type.value if isinstance(output_type, OutputType) else output_type
-        style = self.styling.get(output_type_value, self.styling[OutputType.NARRATIVE.value])
-        
-        # Apply text transformations based on output type
-        if output_type == OutputType.DIALOGUE and style.get("quote_marks", False):
-            # Add quote marks to dialogue if not already present
-            if not response_text.strip().startswith('"') and not response_text.strip().startswith('"'):
-                response_text = f'"{response_text}"'
+        # Apply appropriate formatting based on output type
+        if output_type == OutputType.NARRATIVE:
+            formatted_content = self.formatter.format_narrative(content, context)
+        elif output_type == OutputType.DIALOGUE:
+            speaker = context.get('speaker', 'Unknown') if context else 'Unknown'
+            formatted_content = self.formatter.format_dialogue(speaker, content, context)
+        elif output_type == OutputType.SYSTEM:
+            severity = context.get('severity', 'info') if context else 'info'
+            formatted_content = self.formatter.format_system(content, severity)
+        elif output_type == OutputType.ACTION_RESULT:
+            action = context.get('action', 'Action') if context else 'Action'
+            success = context.get('success', True) if context else True
+            formatted_content = self.formatter.format_action_result(action, content, success)
+        else:
+            formatted_content = content
         
         # Create formatted response
-        formatted_response = {
-            "text": response_text,
-            "style": style,
-            "type": output_type_value if isinstance(output_type_value, str) else output_type_value.name.lower(),
-            "timestamp": datetime.now().isoformat(),
-            "metadata": metadata or {}
-        }
+        response = FormattedResponse(
+            content=formatted_content,
+            output_type=output_type,
+            channel=channel,
+            priority=priority,
+            metadata=metadata or {},
+            timestamp=datetime.utcnow()
+        )
         
-        return formatted_response
+        # Store in history
+        self.response_history.append(response)
+        
+        # Limit history size
+        if len(self.response_history) > 100:
+            self.response_history = self.response_history[-100:]
+        
+        self.logger.debug(f"Generated {output_type.name} response: {formatted_content[:100]}...")
+        
+        return response
     
-    def deliver_response(self, 
-                        response_text: str, 
-                        output_type: Union[OutputType, str] = OutputType.NARRATIVE,
-                        channels: List[Union[DeliveryChannel, str]] = None,
-                        priority: Union[ResponsePriority, str] = ResponsePriority.NORMAL,
-                        metadata: Dict[str, Any] = None) -> Dict[str, Any]:
+    def generate_error_response(self, error_message: str, context: Dict[str, Any] = None) -> FormattedResponse:
+        """Generate an error response."""
+        return self.generate_response(
+            content=error_message,
+            output_type=OutputType.ERROR,
+            channel=DeliveryChannel.MAIN,
+            priority=ResponsePriority.HIGH,
+            context={"severity": "error", **(context or {})}
+        )
+    
+    def generate_success_response(self, success_message: str, context: Dict[str, Any] = None) -> FormattedResponse:
+        """Generate a success response."""
+        return self.generate_response(
+            content=success_message,
+            output_type=OutputType.SYSTEM,
+            channel=DeliveryChannel.MAIN,
+            priority=ResponsePriority.NORMAL,
+            context={"severity": "success", **(context or {})}
+        )
+    
+    def generate_ambient_content(self, content: str, location: str = None) -> FormattedResponse:
+        """Generate ambient content."""
+        context = {"location": location} if location else None
+        return self.generate_response(
+            content=content,
+            output_type=OutputType.AMBIENT,
+            channel=DeliveryChannel.MAIN,
+            priority=ResponsePriority.LOW,
+            context=context
+        )
+    
+    def deliver_response(
+        self,
+        response_text: str,
+        output_type: OutputType = OutputType.NARRATIVE,
+        channels: List[DeliveryChannel] = None,
+        priority: ResponsePriority = ResponsePriority.NORMAL,
+        metadata: Dict[str, Any] = None
+    ) -> FormattedResponse:
         """
-        Deliver a response to the appropriate channels with the specified priority.
+        Deliver a formatted response through specified channels.
         
         Args:
             response_text: The response text to deliver
-            output_type: The type of output content
-            channels: The channels to deliver the response to
-            priority: The priority of the response
+            output_type: Type of output content
+            channels: List of delivery channels (uses MAIN if not specified)
+            priority: Response priority level
             metadata: Additional metadata for the response
             
         Returns:
-            Delivery result
+            FormattedResponse object with the delivered content
         """
-        if not self.enabled:
-            return {"status": "delivered", "text": response_text, "raw": True}
-            
-        # Set default channel if none provided
-        if not channels:
-            channels = [DeliveryChannel.CONSOLE]
-            
-        # Convert string channels to enum if needed
-        processed_channels = []
-        for channel in channels:
-            if isinstance(channel, str):
-                try:
-                    channel = DeliveryChannel[channel.upper()]
-                except KeyError:
-                    channel = DeliveryChannel.CONSOLE
-            processed_channels.append(channel)
-            
-        # Convert string priority to enum if needed
-        if isinstance(priority, str):
-            try:
-                priority = ResponsePriority[priority.upper()]
-            except KeyError:
-                priority = ResponsePriority.NORMAL
+        if channels is None:
+            channels = [DeliveryChannel.MAIN]
         
-        # Format the response
-        formatted_response = self.format_response(
-            response_text=response_text,
+        # Use the first channel for the primary response
+        primary_channel = channels[0] if channels else DeliveryChannel.MAIN
+        
+        # Generate the formatted response
+        formatted_response = self.generate_response(
+            content=response_text,
             output_type=output_type,
+            channel=primary_channel,
+            priority=priority,
             metadata=metadata
         )
         
-        # Add delivery information
-        delivery_info = {
-            "channels": [ch.name.lower() if isinstance(ch, DeliveryChannel) else ch 
-                        for ch in processed_channels],
-            "priority": priority.name.lower() if isinstance(priority, ResponsePriority) else priority,
-            "delivery_time": datetime.now().isoformat()
-        }
+        # If multiple channels specified, log that multi-channel delivery was requested
+        if len(channels) > 1:
+            self.logger.debug(f"Multi-channel delivery requested: {[c.name for c in channels]}")
+            # In a full implementation, you would deliver to each channel
+            # For now, we'll just use the primary channel
         
-        formatted_response["delivery"] = delivery_info
+        return formatted_response
+
+    def get_recent_responses(self, count: int = 10) -> List[FormattedResponse]:
+        """Get recent responses."""
+        return self.response_history[-count:] if count > 0 else self.response_history[:]
+    
+    def get_responses_by_type(self, output_type: OutputType) -> List[FormattedResponse]:
+        """Get responses of a specific type."""
+        return [r for r in self.response_history if r.output_type == output_type]
+    
+    def clear_history(self):
+        """Clear response history."""
+        self.response_history.clear()
+        self.logger.info("Response history cleared")
+    
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get output generation statistics."""
+        total_responses = len(self.response_history)
         
-        # Add to message queue and history
-        self.message_queue.append(formatted_response)
-        self.message_history.append(formatted_response)
+        type_counts = {}
+        channel_counts = {}
+        priority_counts = {}
         
-        # Trim history if needed
-        if len(self.message_history) > self.max_history:
-            self.message_history = self.message_history[-self.max_history:]
+        for response in self.response_history:
+            # Count by type
+            type_name = response.output_type.name
+            type_counts[type_name] = type_counts.get(type_name, 0) + 1
+            
+            # Count by channel
+            channel_name = response.channel.name
+            channel_counts[channel_name] = channel_counts.get(channel_name, 0) + 1
+            
+            # Count by priority
+            priority_name = response.priority.name
+            priority_counts[priority_name] = priority_counts.get(priority_name, 0) + 1
         
         return {
-            "status": "delivered",
-            "message_id": len(self.message_history) - 1,
-            "formatted_response": formatted_response
+            "total_responses": total_responses,
+            "responses_by_type": type_counts,
+            "responses_by_channel": channel_counts,
+            "responses_by_priority": priority_counts,
+            "history_size": len(self.response_history)
         }
-    
-    def get_message_queue(self) -> List[Dict[str, Any]]:
-        """
-        Get the current message queue.
-        
-        Returns:
-            List of queued messages
-        """
-        return self.message_queue.copy()
-    
-    def clear_message_queue(self) -> None:
-        """Clear the message queue."""
-        self.message_queue = []
-    
-    def get_message_history(self, limit: int = None) -> List[Dict[str, Any]]:
-        """
-        Get the message history.
-        
-        Args:
-            limit: Maximum number of messages to return (from most recent)
-            
-        Returns:
-            List of historical messages
-        """
-        if limit is None or limit >= len(self.message_history):
-            return self.message_history.copy()
-        
-        return self.message_history[-limit:].copy()
-    
-    def generate_combined_response(self, 
-                                 narrative_text: str, 
-                                 dialogue_text: Optional[str] = None,
-                                 system_text: Optional[str] = None,
-                                 combat_text: Optional[str] = None,
-                                 ambient_text: Optional[str] = None) -> List[Dict[str, Any]]:
-        """
-        Generate a combined response with multiple output types.
-        
-        Args:
-            narrative_text: Main narrative text
-            dialogue_text: Optional dialogue text
-            system_text: Optional system text
-            combat_text: Optional combat text
-            ambient_text: Optional ambient text
-            
-        Returns:
-            List of formatted responses
-        """
-        responses = []
-        
-        # Process narrative text (always required)
-        narrative_response = self.format_response(
-            response_text=narrative_text,
-            output_type=OutputType.NARRATIVE
-        )
-        responses.append(narrative_response)
-        
-        # Process dialogue text if provided
-        if dialogue_text:
-            dialogue_response = self.format_response(
-                response_text=dialogue_text,
-                output_type=OutputType.DIALOGUE
-            )
-            responses.append(dialogue_response)
-        
-        # Process system text if provided
-        if system_text:
-            system_response = self.format_response(
-                response_text=system_text,
-                output_type=OutputType.SYSTEM
-            )
-            responses.append(system_response)
-        
-        # Process combat text if provided
-        if combat_text:
-            combat_response = self.format_response(
-                response_text=combat_text,
-                output_type=OutputType.COMBAT
-            )
-            responses.append(combat_response)
-        
-        # Process ambient text if provided
-        if ambient_text:
-            ambient_response = self.format_response(
-                response_text=ambient_text,
-                output_type=OutputType.AMBIENT
-            )
-            responses.append(ambient_response)
-        
-        return responses
 
-
-def attach_to_brain(brain):
-    """
-    Attach the output generation system to the AI GM Brain.
-    
-    Args:
-        brain: The AI GM Brain instance
-        
-    Returns:
-        The created integration instance
-    """
-    integration = OutputGenerationIntegration(brain)
-    brain.register_extension("output_generation", integration)
-    return integration
+# Convenience function for easy integration
+def create_output_integration(game_id: str, player_id: str) -> OutputGenerationIntegration:
+    """Create and return an OutputGenerationIntegration instance."""
+    return OutputGenerationIntegration(game_id, player_id)

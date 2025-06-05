@@ -9,7 +9,7 @@ from datetime import datetime
 
 # Import LLM manager from your existing setup
 # This is a placeholder - update with your actual LLM manager import
-from backend.src.ai_gm.ai_gm_llm_manager import LLMManager
+from ..ai_gm_llm_manager import LLMInteractionManager
 
 
 class WorldReactionAssessor:
@@ -17,7 +17,7 @@ class WorldReactionAssessor:
     Assesses world and NPC reactions to player actions using LLM
     """
     
-    def __init__(self, llm_manager: LLMManager, db_service=None):
+    def __init__(self, llm_manager: LLMInteractionManager, db_service=None):
         """
         Initialize world reaction assessor.
         
@@ -65,10 +65,14 @@ class WorldReactionAssessor:
             prompt = self._build_world_reaction_prompt(player_input, context, target_entity)
             
             # Call LLM for reaction assessment
-            llm_result = await self.llm_manager.call_llm(
-                prompt=prompt,
-                prompt_mode="world_reaction_assessment",
-                temperature=0.7,  # Balanced creativity and consistency
+            llm_result = await self.llm_manager.generate_response(
+                input_text=player_input,
+                context={
+                    **context,
+                    'target_entity': target_entity,
+                    'assessment_prompt': prompt
+                },
+                response_type="world_reaction_assessment",
                 max_tokens=250
             )
             

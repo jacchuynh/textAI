@@ -79,6 +79,13 @@ class IntegratedAIGMConfig:
         ]
     }
     
+    # Disambiguation Templates
+    DISAMBIGUATION_TEMPLATES = {
+        "object_choice": "Which {object_type} do you mean?\n{options}\nEnter the number of your choice, or 'cancel' to abort.",
+        "action_choice": "How would you like to {action}?\n{options}\nEnter the number of your choice, or 'cancel' to abort.",
+        "direction_choice": "Which direction?\n{options}\nEnter the number of your choice, or 'cancel' to abort."
+    }
+    
     # Event Response Configuration
     EVENT_RESPONSE_TRIGGERS = {
         'LOCATION_ENTERED', 'NPC_INTERACTION', 'NARRATIVE_BRANCH_AVAILABLE',
@@ -126,22 +133,80 @@ class IntegratedAIGMConfig:
     
     @classmethod
     def get_config(cls) -> Dict[str, Any]:
-        """Get configuration as dictionary."""
+        """Get the default configuration dictionary."""
         return {
-            'parser_enabled': cls.PARSER_ENABLED,
-            'use_disambiguation': cls.USE_DISAMBIGUATION,
-            'max_disambiguation_options': cls.MAX_DISAMBIGUATION_OPTIONS,
-            'llm_cooldown_seconds': cls.LLM_COOLDOWN_SECONDS,
-            'max_recent_events': cls.MAX_RECENT_EVENTS,
-            'action_templates': cls.ACTION_TEMPLATES,
-            'conversational_keywords': cls.CONVERSATIONAL_KEYWORDS,
-            'event_response_triggers': cls.EVENT_RESPONSE_TRIGGERS,
-            'error_messages': cls.ERROR_MESSAGES,
-            'llm_trigger_conditions': cls.LLM_TRIGGER_CONDITIONS,
-            'pacing_settings': cls.PACING_SETTINGS,
-            'world_reaction_settings': cls.WORLD_REACTION_SETTINGS,
-            'domain_integration_settings': cls.DOMAIN_INTEGRATION_SETTINGS
+            "parser": {
+                "enabled": cls.PARSER_ENABLED,
+                "use_disambiguation": cls.USE_DISAMBIGUATION,
+                "max_disambiguation_options": cls.MAX_DISAMBIGUATION_OPTIONS,
+                "auto_resolve_single_match": cls.AUTO_RESOLVE_SINGLE_MATCH,
+                "enable_suggestions": cls.ENABLE_PARSER_SUGGESTIONS
+            },
+            "processing": {
+                "llm_cooldown_seconds": cls.LLM_COOLDOWN_SECONDS,
+                "max_recent_events": cls.MAX_RECENT_EVENTS,
+                "use_enhanced_templates": cls.USE_ENHANCED_TEMPLATES,
+                "enable_contextual_responses": cls.ENABLE_CONTEXTUAL_RESPONSES,
+                "include_parser_metadata": cls.INCLUDE_PARSER_METADATA
+            },
+            "templates": {
+                "action_templates": cls.ACTION_TEMPLATES,
+                "conversational_keywords": cls.CONVERSATIONAL_KEYWORDS,
+                "disambiguation_templates": cls.DISAMBIGUATION_TEMPLATES
+            },
+            "integration": {
+                "world_reaction_enabled": True,
+                "pacing_enabled": True,
+                "output_enabled": True,
+                "combat_enabled": True,
+                "llm_enabled": True
+            }
         }
+    
+    @classmethod
+    def get_development_config(cls) -> Dict[str, Any]:
+        """Get configuration optimized for development."""
+        config = cls.get_config()
+        config["processing"]["llm_cooldown_seconds"] = 1  # Faster for development
+        config["integration"]["debug_mode"] = True
+        config["logging"] = {
+            "level": "DEBUG",
+            "include_parser_details": True,
+            "include_integration_timing": True
+        }
+        return config
+    
+    @classmethod
+    def get_production_config(cls) -> Dict[str, Any]:
+        """Get configuration optimized for production."""
+        config = cls.get_config()
+        config["processing"]["llm_cooldown_seconds"] = 10  # More conservative for production
+        config["integration"]["debug_mode"] = False
+        config["logging"] = {
+            "level": "INFO",
+            "include_parser_details": False,
+            "include_integration_timing": False
+        }
+        config["performance"] = {
+            "enable_caching": True,
+            "cache_ttl_seconds": 300,
+            "max_concurrent_llm_requests": 5
+        }
+        return config
+    
+    @classmethod
+    def get_testing_config(cls) -> Dict[str, Any]:
+        """Get configuration optimized for testing."""
+        config = cls.get_config()
+        config["processing"]["llm_cooldown_seconds"] = 0  # No cooldown for testing
+        config["integration"]["debug_mode"] = True
+        config["integration"]["mock_mode"] = True  # Use mocks for external services
+        config["logging"] = {
+            "level": "DEBUG",
+            "include_parser_details": True,
+            "include_integration_timing": True
+        }
+        return config
     
     @classmethod
     def get_template_for_action(cls, action: str, context_key: str = "template") -> str:

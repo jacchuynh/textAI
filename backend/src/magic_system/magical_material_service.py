@@ -5,7 +5,7 @@ Handles gathering, processing, and managing magical materials
 
 import random
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, TYPE_CHECKING
 import uuid
 import logging
 import math
@@ -19,7 +19,10 @@ from .magic_crafting_models import (
 )
 from .magic_system import MagicSystem, MagicUser
 from .advanced_magic_features import EnvironmentalMagicResonance
-from ..db.database import SessionLocal
+
+if TYPE_CHECKING:
+    from backend.src.shared.models import Character
+# from ..db.database import SessionLocal  # TODO: Fix import path when database is available
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -45,8 +48,9 @@ class MagicalMaterialService:
         self.environmental_resonance = EnvironmentalMagicResonance()
     
     def get_db_session(self) -> Session:
-        """Get a database session"""
-        return SessionLocal()
+        """Get a database session - placeholder implementation"""
+        # TODO: Implement proper database session when database is available
+        return None  # Placeholder - replace with actual SessionLocal() when available
     
     def get_material(self, material_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -168,7 +172,8 @@ class MagicalMaterialService:
     
     def discover_gathering_location(self, player_id: str, region_id: str, 
                                  character_skills: Dict[str, int],
-                                 magic_profile: MagicUser) -> Dict[str, Any]:
+                                 magic_profile: MagicUser,
+                                 character: Optional['Character'] = None) -> Dict[str, Any]:
         """
         Attempt to discover a new gathering location in a region
         
@@ -177,6 +182,7 @@ class MagicalMaterialService:
             region_id: ID of the region
             character_skills: Character's skills
             magic_profile: Player's magic profile
+            character: Optional character object for enhanced rolls
             
         Returns:
             Result of the discovery attempt
@@ -192,46 +198,82 @@ class MagicalMaterialService:
             if not undiscovered_locations:
                 return {"success": False, "reason": "No undiscovered locations in this region"}
             
-            # Calculate discovery chance based on skills
-            perception_skill = character_skills.get("perception", 0)
-            tracking_skill = character_skills.get("tracking", 0)
-            magical_sensitivity = magic_profile.ley_energy_sensitivity if hasattr(magic_profile, "ley_energy_sensitivity") else 0
-            
-            # Weighted skill calculation
-            discovery_skill = (perception_skill * 0.4) + (tracking_skill * 0.3) + (magical_sensitivity * 0.3)
-            
             # Sort locations by discovery difficulty
             undiscovered_locations.sort(key=lambda loc: loc.discovery_difficulty)
             
             for location in undiscovered_locations:
-                # Base discovery chance
-                base_chance = 0.1 + (discovery_skill * 0.05)
-                
-                # Difficulty adjustment
-                difficulty_factor = 1.0 - (location.discovery_difficulty * 0.05)
-                discovery_chance = base_chance * difficulty_factor
-                
-                # Cap minimum and maximum chance
-                discovery_chance = max(0.05, min(0.9, discovery_chance))
-                
-                # Roll for discovery
-                if random.random() < discovery_chance:
-                    # Success! Mark as discovered
-                    location.is_discovered = True
-                    session.commit()
+                if character:
+                    # Use enhanced roll system for location discovery
+                    base_difficulty = 10 + location.discovery_difficulty
                     
-                    # Invalidate cache
-                    if location.id in gathering_location_cache:
-                        del gathering_location_cache[location.id]
+                    # Mind for perception/awareness, Spirit for magical sensitivity
+                    from backend.src.shared.models import DomainType
+                    discovery_result = character.roll_check_hybrid(
+                        primary_domain=DomainType.MIND,
+                        secondary_domain=DomainType.SPIRIT,
+                        difficulty=base_difficulty,
+                        context=f"discovering magical gathering location"
+                    )
                     
-                    # Return discovered location
-                    location_data = self.get_gathering_location(location.id)
+                    if discovery_result['success']:
+                        # Success! Mark as discovered
+                        location.is_discovered = True
+                        session.commit()
+                        
+                        # Invalidate cache
+                        if hasattr(self, 'gathering_location_cache') and location.id in self.gathering_location_cache:
+                            del self.gathering_location_cache[location.id]
+                        
+                        # Return discovered location
+                        location_data = self.get_gathering_location(location.id)
+                        
+                        success_message = f"You discovered a new gathering location!"
+                        if discovery_result['is_critical_success']:
+                            success_message += " (You gained exceptional insight into the area's magical properties!)"
+                        
+                        return {
+                            "success": True,
+                            "message": success_message,
+                            "location": location_data,
+                            "roll_details": discovery_result
+                        }
+                else:
+                    # Fallback to original probability system
+                    perception_skill = character_skills.get("perception", 0)
+                    tracking_skill = character_skills.get("tracking", 0)
+                    magical_sensitivity = magic_profile.ley_energy_sensitivity if hasattr(magic_profile, "ley_energy_sensitivity") else 0
                     
-                    return {
-                        "success": True,
-                        "location": location_data,
-                        "discovery_message": f"You have discovered {location.name}!"
-                    }
+                    # Weighted skill calculation
+                    discovery_skill = (perception_skill * 0.4) + (tracking_skill * 0.3) + (magical_sensitivity * 0.3)
+                    
+                    # Base discovery chance
+                    base_chance = 0.1 + (discovery_skill * 0.05)
+                    
+                    # Difficulty adjustment
+                    difficulty_factor = 1.0 - (location.discovery_difficulty * 0.05)
+                    discovery_chance = base_chance * difficulty_factor
+                    
+                    # Cap minimum and maximum chance
+                    discovery_chance = max(0.05, min(0.9, discovery_chance))
+                    
+                    # Roll for discovery
+                    if random.random() < discovery_chance:
+                        # Success! Mark as discovered
+                        location.is_discovered = True
+                        session.commit()
+                        
+                        # Invalidate cache
+                        if hasattr(self, 'gathering_location_cache') and location.id in self.gathering_location_cache:
+                            del self.gathering_location_cache[location.id]
+                        
+                        # Return discovered location
+                        location_data = self.get_gathering_location(location.id)
+                        
+                        return {
+                            "success": True,
+                            "message": "You discovered a new gathering location!",
+                            "location": location_data
+                        }
             
             # No successful discoveries
             return {
@@ -251,7 +293,8 @@ class MagicalMaterialService:
     def gather_materials(self, player_id: str, location_id: str, 
                       character_skills: Dict[str, int],
                       magic_profile: MagicUser,
-                      tool_id: Optional[str] = None) -> Dict[str, Any]:
+                      tool_id: Optional[str] = None,
+                      character: Optional['Character'] = None) -> Dict[str, Any]:
         """
         Gather magical materials from a location
         
@@ -261,6 +304,7 @@ class MagicalMaterialService:
             character_skills: Character's skills
             magic_profile: Player's magic profile
             tool_id: Optional ID of the gathering tool being used
+            character: Optional character object for enhanced rolls
             
         Returns:
             Result of the gathering attempt
@@ -315,38 +359,99 @@ class MagicalMaterialService:
                 if not material_data:
                     continue
                 
-                # Calculate gathering chance
-                gathering_difficulty = material_data.get("gathering_difficulty", 1)
-                difficulty_factor = 1.0 - (gathering_difficulty * 0.05)
-                
-                # Base chance from location
-                material_chance = float(base_chance)
-                
-                # Apply skill and bonuses
-                skill_bonus = effective_skill * 0.05
-                current_abundance = location_data.get("current_abundance", 1.0)
-                
-                # Final chance calculation
-                final_chance = material_chance * difficulty_factor * (1.0 + skill_bonus) * current_abundance
-                
-                # Apply tool bonus if this material requires the tool
-                if tool_id and material_data.get("required_tool") == tool_type:
-                    final_chance *= (1.0 + tool_bonus)
-                
-                # Cap minimum and maximum chance
-                final_chance = max(0.01, min(0.9, final_chance))
-                
-                # Roll for gathering
-                if random.random() < final_chance:
-                    # Success! Calculate quantity
-                    base_yield = material_data.get("base_yield", 1)
-                    skill_yield_bonus = max(0, math.floor(effective_skill / 3))
-                    quantity = base_yield + random.randint(0, skill_yield_bonus)
+                if character:
+                    # Use enhanced roll system for material gathering
+                    base_difficulty = 8 + material_data.get("gathering_difficulty", 1) * 2
                     
-                    # Calculate quality
-                    base_quality = 1.0
-                    skill_quality_bonus = effective_skill * 0.02
-                    luck_factor = random.uniform(-0.1, 0.3)
+                    # Adjust difficulty based on location abundance
+                    current_abundance = location_data.get("current_abundance", 1.0)
+                    abundance_modifier = int((1.0 - current_abundance) * 4)  # Less abundant = harder
+                    
+                    final_difficulty = base_difficulty + abundance_modifier
+                    
+                    # Use Body as primary (physical gathering) and Mind as secondary (knowledge/technique)
+                    from backend.src.shared.models import DomainType
+                    gathering_result = character.roll_check_hybrid(
+                        primary_domain=DomainType.BODY,
+                        secondary_domain=DomainType.MIND,
+                        difficulty=final_difficulty,
+                        context=f"gathering {material_data.get('name', material_id)}"
+                    )
+                    
+                    if gathering_result['success']:
+                        # Success! Calculate quantity based on success margin
+                        base_yield = material_data.get("base_yield", 1)
+                        margin_bonus = max(0, gathering_result['margin_of_success'] // 5)
+                        critical_bonus = 2 if gathering_result['is_critical_success'] else 0
+                        
+                        quantity = base_yield + margin_bonus + critical_bonus
+                        
+                        # Calculate quality based on roll performance
+                        base_quality = 1.0
+                        roll_quality_bonus = min(gathering_result['margin_of_success'] * 0.05, 0.5)
+                        critical_quality_bonus = 0.3 if gathering_result['is_critical_success'] else 0
+                        
+                        quality = base_quality + roll_quality_bonus + critical_quality_bonus
+                        quality = min(2.0, max(0.5, quality))  # Cap quality between 0.5 and 2.0
+                        
+                        # Check for special properties on exceptional success
+                        has_special_properties = gathering_result['is_critical_success'] or gathering_result['margin_of_success'] >= 10
+                        
+                        special_properties = []
+                        if has_special_properties:
+                            # Add special properties based on material type and location
+                            if "crystal" in material_data.get("name", "").lower():
+                                special_properties.append("enhanced_resonance")
+                            elif "herb" in material_data.get("name", "").lower():
+                                special_properties.append("potent_essence")
+                            else:
+                                special_properties.append("high_purity")
+                        
+                        gathered_materials.append({
+                            "material_id": material_id,
+                            "name": material_data.get("name", material_id),
+                            "quantity": quantity,
+                            "quality": round(quality, 2),
+                            "special_properties": special_properties,
+                            "roll_details": gathering_result
+                        })
+                        
+                        if special_properties:
+                            special_finds.append(f"Found exceptional {material_data.get('name', material_id)} with {', '.join(special_properties)}")
+                
+                else:
+                    # Fallback to original probability system
+                    gathering_difficulty = material_data.get("gathering_difficulty", 1)
+                    difficulty_factor = 1.0 - (gathering_difficulty * 0.05)
+                    
+                    # Base chance from location
+                    material_chance = float(base_chance)
+                    
+                    # Apply skill and bonuses
+                    skill_bonus = effective_skill * 0.05
+                    current_abundance = location_data.get("current_abundance", 1.0)
+                    
+                    # Final chance calculation
+                    final_chance = material_chance * difficulty_factor * (1.0 + skill_bonus) * current_abundance
+                    
+                    # Apply tool bonus if this material requires the tool
+                    if tool_id and material_data.get("required_tool") == tool_type:
+                        final_chance *= (1.0 + tool_bonus)
+                    
+                    # Cap minimum and maximum chance
+                    final_chance = max(0.01, min(0.9, final_chance))
+                    
+                    # Roll for gathering
+                    if random.random() < final_chance:
+                        # Success! Calculate quantity
+                        base_yield = material_data.get("base_yield", 1)
+                        skill_yield_bonus = max(0, math.floor(effective_skill / 3))
+                        quantity = base_yield + random.randint(0, skill_yield_bonus)
+                        
+                        # Calculate quality
+                        base_quality = 1.0
+                        skill_quality_bonus = effective_skill * 0.02
+                        luck_factor = random.uniform(-0.1, 0.3)
                     
                     quality = base_quality + skill_quality_bonus + luck_factor
                     

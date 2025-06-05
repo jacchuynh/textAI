@@ -8,6 +8,8 @@ from .characters import router as characters_router
 from .economy import router as economy_router
 from .combat_api import router as combat_router
 from .game import router as game_router
+from .survival import router as survival_router
+from .character_creation import router as character_creation_router
 
 
 def create_app() -> FastAPI:
@@ -37,6 +39,8 @@ def create_app() -> FastAPI:
     app.include_router(economy_router, prefix="/api")
     app.include_router(combat_router, prefix="/api")
     app.include_router(game_router, prefix="/api")
+    app.include_router(survival_router, prefix="/api")
+    app.include_router(character_creation_router, prefix="/api")
 
     # Add root endpoint
     @app.get("/")

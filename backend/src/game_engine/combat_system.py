@@ -17,6 +17,58 @@ from ..shared.models import Character, DomainType, Tag
 from ..events.event_bus import event_bus, GameEvent, EventType
 from ..memory.memory_manager import memory_manager, MemoryTier, MemoryType
 
+# Enhanced combat imports
+try:
+    from .enhanced_combat.status_system import (
+        EnhancedStatus, StatusFactory, StatusTier, StatusSource
+    )
+    from .enhanced_combat.combat_system_core import Status as EnhancedStatusType, Domain
+    ENHANCED_STATUS_AVAILABLE = True
+except ImportError:
+    ENHANCED_STATUS_AVAILABLE = False
+
+try:
+    from .enhanced_combat.adaptive_enemy_ai import (
+        AdaptiveEnemyAI, EnemyPersonality, CombatMemento
+    )
+    ADAPTIVE_AI_AVAILABLE = True
+except ImportError:
+    ADAPTIVE_AI_AVAILABLE = False
+
+try:
+    from .enhanced_combat.environment_effects import (
+        EnvironmentEffect, _apply_burning_environment, _apply_freezing_environment
+    )
+    from .enhanced_combat.environment_system import (
+        EnvironmentSystem, EnvironmentElement, EnvironmentInteraction
+    )
+    ENVIRONMENT_EFFECTS_AVAILABLE = True
+except ImportError as e:
+    ENVIRONMENT_EFFECTS_AVAILABLE = False
+
+try:
+    from .enhanced_combat.monster_database import (
+        MonsterDatabase, load_monster_database, create_monster, get_random_monster
+    )
+    from .enhanced_combat.monster_archetypes import ThreatTier, ThreatCategory
+    MONSTER_DATABASE_AVAILABLE = True
+except ImportError:
+    MONSTER_DATABASE_AVAILABLE = False
+    # Fallback classes for when enhanced combat isn't available
+    class StatusTier:
+        MINOR = "minor"
+        MODERATE = "moderate" 
+        SEVERE = "severe"
+        CRITICAL = "critical"
+    
+    class StatusSource:
+        PHYSICAL = "physical"
+        MENTAL = "mental"
+        SPIRITUAL = "spiritual"
+        ENVIRONMENTAL = "environmental"
+        MAGICAL = "magical"
+        SOCIAL = "social"
+
 
 class CombatPhase(Enum):
     """Phases of combat."""
@@ -223,13 +275,182 @@ class CombatSystem:
     
     def __init__(self):
         """Initialize the combat system."""
-        # Enemy templates
-        self.enemy_templates: Dict[int, EnemyTemplate] = {}
-        self._initialize_enemy_templates()
-        
-        # Active combats
         self.active_combats: Dict[str, Dict[str, Any]] = {}
-    
+        self.combat_templates = self._load_combat_templates()
+        # Enhanced combat integrations
+        self.adaptive_ais: Dict[str, Dict[str, Any]] = {}  # combat_id -> {enemy_id -> AdaptiveEnemyAI}
+        self.environment_systems: Dict[str, Any] = {}
+        
+        # Initialize monster database if available
+        if MONSTER_DATABASE_AVAILABLE:
+            self.monster_database = MonsterDatabase()
+            self._load_monster_database()
+        else:
+            self.monster_database = None
+
+    def _load_monster_database(self):
+        """Load monster archetypes from YAML files in the data directory."""
+        if not self.monster_database:
+            return
+            
+        import os
+        
+        # Get the path to the data/monsters directory
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Go up from backend/src/game_engine to the root, then to data/monsters
+        data_dir = os.path.join(current_dir, '..', '..', '..', 'data', 'monsters')
+        data_dir = os.path.normpath(data_dir)
+        
+        try:
+            if os.path.exists(data_dir):
+                loaded_count = 0
+                for filename in os.listdir(data_dir):
+                    if filename.endswith('.yaml') or filename.endswith('.yml'):
+                        file_path = os.path.join(data_dir, filename)
+                        self.monster_database.load_from_yaml(file_path)
+                        loaded_count += 1
+                
+                print(f"Combat System: Loaded {loaded_count} monster database files from {data_dir}")
+                print(f"Combat System: {len(self.monster_database.archetypes)} monster archetypes available")
+            else:
+                print(f"Monster data directory {data_dir} does not exist. Using fallback enemy templates.")
+        except Exception as e:
+            print(f"Error loading monster database: {e}. Using fallback enemy templates.")
+
+    def _create_enemy_from_database(self, 
+                                  region: Optional[str] = None,
+                                  tier: Optional[str] = None,
+                                  category: Optional[str] = None,
+                                  level: int = 1,
+                                  archetype_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        Create an enemy using the monster database.
+        
+        Args:
+            region: Optional region filter (e.g., 'human', 'ember', 'verdant')
+            tier: Optional threat tier ('minion', 'standard', 'elite', 'boss', 'legendary')
+            category: Optional category filter ('beast', 'humanoid', 'construct', etc.)
+            level: Enemy level
+            archetype_id: Specific archetype ID to use
+            
+        Returns:
+            Enemy dictionary or None if creation failed
+        """
+        if not self.monster_database or not MONSTER_DATABASE_AVAILABLE:
+            return None
+        
+        try:
+            # Convert string tier to ThreatTier enum if provided
+            threat_tier = None
+            if tier:
+                try:
+                    threat_tier = ThreatTier[tier.upper()]
+                except KeyError:
+                    print(f"Warning: Unknown threat tier '{tier}', using random selection")
+            
+            # Convert string category to ThreatCategory enum if provided
+            threat_category = None
+            if category:
+                try:
+                    threat_category = ThreatCategory[category.upper()]
+                except KeyError:
+                    print(f"Warning: Unknown threat category '{category}', using random selection")
+            
+            # Get monster archetype
+            if archetype_id:
+                archetype = self.monster_database.get_archetype(archetype_id)
+                if not archetype:
+                    print(f"Warning: Archetype '{archetype_id}' not found")
+                    return None
+            else:
+                archetype = self.monster_database.get_random_archetype(
+                    region=region,
+                    tier=threat_tier,
+                    category=threat_category
+                )
+                if not archetype:
+                    print(f"Warning: No monster found for criteria (region={region}, tier={tier}, category={category})")
+                    return None
+            
+            # Create monster using the enhanced combat system
+            monster_combatant, available_moves = create_monster(
+                archetype_id=archetype.id,
+                tier=threat_tier,
+                level=level
+            )
+            
+            # Convert to the format expected by the combat system
+            enemy_data = {
+                "id": str(uuid.uuid4()),
+                "name": monster_combatant.name,
+                "max_health": monster_combatant.max_health,
+                "current_health": monster_combatant.current_health,
+                "level": level,
+                "archetype_id": archetype.id,
+                "archetype": archetype,
+                "combatant": monster_combatant,
+                "available_moves": available_moves,
+                "domains": self._convert_combatant_domains(monster_combatant),
+                "attacks": self._convert_moves_to_attacks(available_moves),
+                "description": archetype.description,
+                "tags": [archetype.category.name.lower()],
+                "resistances": [domain.name.lower() for domain in archetype.resistant_domains],
+                "weaknesses": [domain.name.lower() for domain in archetype.weak_domains],
+                "status_effects": []
+            }
+            
+            return enemy_data
+            
+        except Exception as e:
+            print(f"Error creating enemy from database: {e}")
+            return None
+
+    def _convert_combatant_domains(self, combatant) -> Dict[str, int]:
+        """Convert enhanced combat domains to combat system format."""
+        domain_mapping = {
+            1: "body",      # Domain.BODY
+            2: "mind",      # Domain.MIND
+            3: "spirit",    # Domain.SPIRIT
+            4: "authority", # Domain.AUTHORITY
+            5: "craft",     # Domain.CRAFT
+            6: "social",    # Domain.SOCIAL
+            7: "awareness"  # Domain.AWARENESS
+        }
+        
+        result = {}
+        if hasattr(combatant, 'domains'):
+            for domain_enum, value in combatant.domains.items():
+                # domain_enum is a Domain enum (integer value)
+                domain_name = domain_mapping.get(domain_enum.value, str(domain_enum).lower())
+                result[domain_name] = value
+        
+        return result
+
+    def _convert_moves_to_attacks(self, available_moves) -> List[Dict[str, Any]]:
+        """Convert enhanced combat moves to legacy attack format."""
+        attacks = []
+        
+        for move in available_moves:
+            attack = {
+                "name": move.name,
+                "damage": getattr(move, 'base_damage', 3),  # Default damage if not specified
+                "type": move.move_type.name.lower() if hasattr(move, 'move_type') else "physical",
+                "description": getattr(move, 'description', f"Uses {move.name}"),
+                "effects": []
+            }
+            
+            # Add any special effects
+            if hasattr(move, 'special_effects') and move.special_effects:
+                for effect in move.special_effects:
+                    attack["effects"].append({
+                        "type": "special",
+                        "description": effect
+                    })
+            
+            attacks.append(attack)
+        
+        return attacks
+
     def _initialize_enemy_templates(self):
         """Initialize built-in enemy templates."""
         # Add some basic enemy templates
@@ -361,40 +582,121 @@ class CombatSystem:
         self.enemy_templates[template.id] = template
         return template.id
     
+    def _convert_character_domains(self, domains: Dict) -> Dict[str, int]:
+        """
+        Convert character domains to a simple string -> int mapping for combat.
+        Handles both DomainType keys and string keys.
+        """
+        result = {}
+        for key, value in domains.items():
+            # Get the domain name as string
+            if hasattr(key, 'value'):  # DomainType enum
+                domain_name = key.value
+            elif hasattr(key, 'name'):  # DomainType enum with .name
+                domain_name = key.name.lower()
+            else:  # Already a string
+                domain_name = str(key).lower()
+            
+            # Get the domain value
+            if hasattr(value, 'value'):  # Domain object
+                domain_value = value.value
+            else:  # Direct value
+                domain_value = int(value)
+            
+            result[domain_name] = domain_value
+        
+        return result
+    
     def start_combat(self, 
                     character: Character, 
-                    enemy_template_id: int, 
+                    enemy_template_id: Optional[int] = None, 
                     level_override: Optional[int] = None,
                     location_name: str = "Unknown",
                     environment_factors: List[str] = None,
                     surprise: bool = False,
-                    game_id: Optional[str] = None) -> Dict[str, Any]:
+                    game_id: Optional[str] = None,
+                    # New monster database parameters
+                    region: Optional[str] = None,
+                    tier: Optional[str] = None,
+                    category: Optional[str] = None,
+                    archetype_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Start a new combat encounter.
         
         Args:
             character: The player character
-            enemy_template_id: ID of the enemy template
+            enemy_template_id: ID of the enemy template (legacy, optional if using database)
             level_override: Optional level override for the enemy
             location_name: Name of the combat location
             environment_factors: List of environmental effects
             surprise: Whether this is a surprise attack
             game_id: Optional game ID for event tracking
+            region: Optional region filter for monster database (e.g., 'human', 'ember', 'verdant')
+            tier: Optional threat tier for monster database ('minion', 'standard', 'elite', 'boss', 'legendary')
+            category: Optional category filter for monster database ('beast', 'humanoid', 'construct', etc.)
+            archetype_id: Specific monster archetype ID to use from database
             
         Returns:
             New combat state
         """
-        # Get the enemy template
-        template = self.get_enemy_template(enemy_template_id)
-        if not template:
-            raise ValueError(f"Enemy template with ID {enemy_template_id} not found")
+        # Try to create enemy from monster database first
+        enemy = None
+        if MONSTER_DATABASE_AVAILABLE and self.monster_database:
+            enemy_data = self._create_enemy_from_database(
+                region=region,
+                tier=tier,
+                category=category,
+                level=level_override or 1,
+                archetype_id=archetype_id
+            )
+            if enemy_data:
+                enemy = enemy_data
         
-        # Create enemy instance
-        enemy = template.create_instance(level_override)
+        # Fall back to template system if database creation failed or not available
+        if not enemy:
+            if enemy_template_id is None:
+                # Default to a basic enemy if no specific enemy requested
+                enemy_template_id = 1  # Wolf
+                
+            template = self.get_enemy_template(enemy_template_id)
+            if not template:
+                raise ValueError(f"Enemy template with ID {enemy_template_id} not found")
+            
+            # Create enemy instance from template
+            enemy = template.create_instance(level_override)
         
         # Determine initiative/momentum
         momentum = "enemy" if surprise else "player"
         
+        # Get health information from survival system if available
+        max_health = 100
+        current_health = 100
+        
+        # Try to get health from survival system
+        try:
+            from ..game_engine.survival_integration import SurvivalIntegration
+            survival_integration = SurvivalIntegration()
+            survival_state = survival_integration.get_survival_state(str(character.id))
+            if survival_state:
+                max_health = survival_state.max_health
+                current_health = survival_state.current_health
+        except Exception as e:
+            # Fall back to calculating from character domains
+            if character.domains:
+                # Handle both DomainType keys and string keys
+                body_domain = None
+                if DomainType.BODY in character.domains:
+                    body_domain = character.domains[DomainType.BODY]
+                elif "body" in character.domains:
+                    body_domain = character.domains["body"]
+                elif hasattr(DomainType.BODY, 'value') and DomainType.BODY.value in character.domains:
+                    body_domain = character.domains[DomainType.BODY.value]
+                
+                if body_domain:
+                    body_value = body_domain.value if hasattr(body_domain, 'value') else body_domain
+                    max_health = 100 + (body_value * 10)  # Base 100 + 10 per Body level
+                    current_health = max_health
+
         # Create combat state
         combat_id = str(uuid.uuid4())
         combat_state = {
@@ -408,11 +710,11 @@ class CombatSystem:
             "player": {
                 "id": str(character.id),
                 "name": character.name,
-                "max_health": character.max_health,
-                "current_health": character.current_health,
+                "max_health": max_health,
+                "current_health": current_health,
                 "max_mana": getattr(character, "max_mana", 0),
                 "current_mana": getattr(character, "current_mana", 0),
-                "domains": {d.name: v.value for d, v in character.domains.items()} if character.domains else {},
+                "domains": self._convert_character_domains(character.domains) if character.domains else {},
                 "tags": {name: tag.rank for name, tag in character.tags.items()} if character.tags else {},
                 "status_effects": []
             },
@@ -430,6 +732,21 @@ class CombatSystem:
         
         # Store the active combat
         self.active_combats[combat_id] = combat_state
+        
+        # Initialize environment system if available
+        if ENVIRONMENT_EFFECTS_AVAILABLE:
+            try:
+                env_system = EnvironmentSystem()
+                env_system.set_environment_tags(environment_factors or [])
+                self.environment_systems[combat_id] = env_system
+                
+                # Add environment interactions to combat log
+                if env_system.available_interactions:
+                    interaction_names = list(env_system.available_interactions.keys())
+                    combat_state["log"].append(f"Environmental interactions available: {', '.join(interaction_names)}")
+            except Exception as e:
+                # Fallback if environment system fails
+                self.environment_systems[combat_id] = None
         
         # Emit combat started event
         if game_id:
@@ -550,8 +867,42 @@ class CombatSystem:
         )
         options.append(escape.to_dict())
         
-        # Check if character has spells and add them
-        # TODO: Implement spell system integration
+        # Add intimidation option (uses hybrid system)
+        intimidate = CombatAction(
+            label="Intimidate",
+            action_type=CombatActionType.SPECIAL,
+            domains=[DomainType.AUTHORITY, DomainType.SOCIAL],
+            description="Attempt to frighten or demoralize the enemy",
+            effects=[{"type": "fear", "duration": 2}],
+            tags=["social", "intimidation", "fear"],
+            requires_target=True
+        )
+        options.append(intimidate.to_dict())
+        
+        # Add precision strike (awareness + body)
+        precision = CombatAction(
+            label="Precision Strike",
+            action_type=CombatActionType.ATTACK,
+            domains=[DomainType.BODY, DomainType.AWARENESS],
+            description="A carefully aimed attack targeting weak points",
+            damage=4,
+            tags=["physical", "weapon", "precise"],
+            requires_target=True,
+            difficulty_modifier=1  # Harder but more effective
+        )
+        options.append(precision.to_dict())
+        
+        # Add tactical analysis (mind-based)
+        analyze = CombatAction(
+            label="Analyze Enemy",
+            action_type=CombatActionType.SPECIAL,
+            domains=[DomainType.MIND, DomainType.AWARENESS],
+            description="Study the enemy to find weaknesses and patterns",
+            effects=[{"type": "analysis_bonus", "duration": 3}],
+            tags=["tactical", "study", "intelligence"],
+            requires_target=True
+        )
+        options.append(analyze.to_dict())
         
         # Check if character has special abilities based on tags
         if character.tags:
@@ -570,6 +921,24 @@ class CombatSystem:
                             requires_target=True
                         )
                         options.append(special_attack.to_dict())
+        
+        # Add environmental interaction options
+        combat_id = combat_state.get("id")
+        if combat_id and combat_id in self.environment_systems and self.environment_systems[combat_id]:
+            env_system = self.environment_systems[combat_id]
+            for interaction_name, interaction in env_system.available_interactions.items():
+                # Convert environment interaction to combat action
+                env_action = CombatAction(
+                    label=f"Environment: {interaction.name}",
+                    action_type=CombatActionType.SPECIAL,
+                    domains=[interaction.requirements.get("domain", DomainType.AWARENESS)],
+                    description=interaction.description,
+                    effects=[{"type": "environment", "interaction": interaction_name}],
+                    tags=["environmental", "tactical"] + interaction.requirements.get("tags", []),
+                    requires_target=interaction.effects.get("requires_target", False),
+                    difficulty_modifier=interaction.requirements.get("difficulty_modifier", 0)
+                )
+                options.append(env_action.to_dict())
         
         return options
     
@@ -619,23 +988,75 @@ class CombatSystem:
         # Set phase to action resolution
         combat_state["phase"] = CombatPhase.ACTION_RESOLUTION.value
         
-        # Roll for success
-        roll_result = self._resolve_action_roll(character, action_data, combat_state, target)
+        # Roll for success using enhanced domain system
         
-        # Add to log
+        # Determine primary domain for action
+        primary_domain = self._determine_action_domain(action_data)
+        
+        # Find relevant tag for action
+        action_tag = self._find_best_action_tag(character, action_data)
+        
+        # Calculate base difficulty
+        base_difficulty = self._calculate_action_difficulty(action_data, target, combat_state)
+        
+        # Prepare target data for roll calculation
+        target_data = None
+        if target:
+            target_data = {
+                "level": target.get("level", 1),
+                "resistances": target.get("resistances", []),
+                "weaknesses": target.get("weaknesses", [])
+            }
+        
+        # Perform enhanced action roll
+        roll_result = character.roll_check_hybrid(
+            domain_type=primary_domain,
+            tag_name=action_tag,
+            difficulty=base_difficulty,
+            action_data=action_data,
+            target=target_data,
+            combat_state=combat_state
+        )
+        
+        # Apply environment bonuses if available
+        env_bonus = combat_state.get("environment_bonus", 0)
+        if env_bonus > 0:
+            roll_result["total"] += env_bonus
+            roll_result["margin"] = roll_result["total"] - roll_result["difficulty"]
+            roll_result["success"] = roll_result["total"] >= roll_result["difficulty"]
+            roll_result["breakdown"] += f" + environment({env_bonus})"
+            
+            # Consume the environment bonus (one-time use)
+            combat_state["environment_bonus"] = 0
+        
+        # Add to log with enhanced breakdown
         log_entry = f"Player used {action_data.get('label', 'an action')}. "
-        log_entry += f"Roll: {roll_result['roll']} + {roll_result['modifier']} = {roll_result['total']} "
-        log_entry += f"vs DC {roll_result['dc']} - "
+        
+        if roll_result.get("method") == "dice":
+            log_entry += f"Roll: {roll_result['breakdown']} = {roll_result['total']} "
+        else:
+            log_entry += f"Check: {roll_result['breakdown']} = {roll_result['total']} "
+        
+        log_entry += f"vs {roll_result['difficulty_breakdown']} - "
         log_entry += "Success!" if roll_result["success"] else "Failure!"
+        
+        # Add method information for debugging/narrative
+        if roll_result.get("method_reason"):
+            log_entry += f" ({roll_result['method_reason']})"
+            
         combat_state["log"].append(log_entry)
         
-        # Add to growth log
+        # Add to growth log with enhanced domain/tag tracking
         growth_entry = {
-            "domain": domains[0] if domains else None,
+            "method": roll_result.get("method", "dice"),
+            "domains_used": roll_result.get("domains_used", []),
+            "tags_used": roll_result.get("tags_used", []),
             "success": roll_result["success"],
-            "roll": roll_result["total"],
-            "dc": roll_result["dc"],
-            "action": action_data.get("label", "Unknown action")
+            "total": roll_result["total"],
+            "dc": roll_result.get("difficulty", roll_result.get("dc", 10)),
+            "margin": roll_result["margin"],
+            "action": action_data.get("label", "Unknown action"),
+            "critical": roll_result.get("critical", False)
         }
         combat_state["growth_log"].append(growth_entry)
         
@@ -671,98 +1092,7 @@ class CombatSystem:
         
         return combat_state
     
-    def _resolve_action_roll(self, 
-                            character: Character, 
-                            action_data: Dict[str, Any],
-                            combat_state: Dict[str, Any],
-                            target: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        Resolve a dice roll for an action.
-        
-        Args:
-            character: The player character
-            action_data: The action data
-            combat_state: Current combat state
-            target: Optional target enemy
-            
-        Returns:
-            Roll result dictionary
-        """
-        # Roll d20
-        roll = random.randint(1, 20)
-        
-        # Calculate domain modifier
-        domain_modifier = 0
-        for domain_str in action_data.get("domains", []):
-            try:
-                domain = DomainType(domain_str)
-                if domain in character.domains:
-                    domain_modifier += character.domains[domain].value
-            except (ValueError, KeyError):
-                # Invalid domain or not present
-                pass
-        
-        # Add tag/skill modifier if applicable
-        tag_modifier = 0
-        for tag in action_data.get("tags", []):
-            if character.tags and tag in character.tags:
-                tag_modifier += character.tags[tag].rank
-        
-        # Calculate total modifier
-        modifier = domain_modifier + tag_modifier
-        
-        # Calculate difficulty
-        base_difficulty = 10  # Default difficulty
-        
-        # Adjust for enemy level if targeting an enemy
-        if target:
-            base_difficulty += target.get("level", 0)
-            
-            # Check for target resistances
-            for resistance in target.get("resistances", []):
-                if resistance in action_data.get("tags", []):
-                    base_difficulty += 2
-            
-            # Check for target weaknesses
-            for weakness in target.get("weaknesses", []):
-                if weakness in action_data.get("tags", []):
-                    base_difficulty -= 2
-        
-        # Adjust for environmental factors
-        for factor in combat_state.get("environment", []):
-            # Example adjustments
-            if factor == "Darkness" and "light" not in action_data.get("tags", []):
-                base_difficulty += 1
-            if factor == "Slippery Ground" and action_data.get("action_type") == "maneuver":
-                base_difficulty += 1
-        
-        # Adjust for momentum
-        if combat_state.get("momentum") == "player":
-            base_difficulty -= 1
-        elif combat_state.get("momentum") == "enemy":
-            base_difficulty += 1
-        
-        # Apply action's difficulty modifier
-        base_difficulty += action_data.get("difficulty_modifier", 0)
-        
-        # Ensure difficulty is at least 5
-        dc = max(5, base_difficulty)
-        
-        # Calculate total and success
-        total = roll + modifier
-        success = total >= dc
-        
-        # Return result
-        return {
-            "roll": roll,
-            "modifier": modifier,
-            "total": total,
-            "dc": dc,
-            "success": success,
-            "critical": roll == 20,
-            "fumble": roll == 1,
-            "margin": total - dc
-        }
+
     
     def _apply_action_effects(self, 
                              combat_state: Dict[str, Any],
@@ -880,28 +1210,42 @@ class CombatSystem:
                 combat_state["log"].append(f"Failed to use {action_data.get('label', 'item')} effectively.")
         
         elif action_type == CombatActionType.SPECIAL.value:
-            if roll_result["success"] and target:
-                # Calculate damage
-                base_damage = action_data.get("damage", 5)
-                
-                # Critical hits do double damage
-                if roll_result["critical"]:
-                    damage = base_damage * 2
-                    combat_state["log"].append(f"Critical hit with special attack! Double damage ({damage}).")
+            # Check if this is an environmental action
+            is_environment_action = False
+            for effect in action_data.get("effects", []):
+                if effect.get("type") == "environment":
+                    is_environment_action = True
+                    interaction_name = effect.get("interaction")
+                    try:
+                        self._process_environment_action(combat_state, action_data, roll_result, interaction_name)
+                    except Exception as e:
+                        combat_state["log"].append(f"Error processing environment action: {e}")
+                    break
+            
+            # Handle regular special attacks if not an environment action
+            if not is_environment_action:
+                if roll_result["success"] and target:
+                    # Calculate damage
+                    base_damage = action_data.get("damage", 5)
+                    
+                    # Critical hits do double damage
+                    if roll_result["critical"]:
+                        damage = base_damage * 2
+                        combat_state["log"].append(f"Critical hit with special attack! Double damage ({damage}).")
+                    else:
+                        # Scale damage with margin of success
+                        damage = base_damage + (roll_result["margin"] // 2)
+                    
+                    # Apply damage to target
+                    target["current_health"] = max(0, target["current_health"] - damage)
+                    combat_state["log"].append(f"Special attack dealt {damage} damage to {target['name']}. "
+                                              f"Health: {target['current_health']}/{target['max_health']}")
+                    
+                    # If target defeated
+                    if target["current_health"] <= 0:
+                        combat_state["log"].append(f"{target['name']} was defeated!")
                 else:
-                    # Scale damage with margin of success
-                    damage = base_damage + (roll_result["margin"] // 2)
-                
-                # Apply damage to target
-                target["current_health"] = max(0, target["current_health"] - damage)
-                combat_state["log"].append(f"Special attack dealt {damage} damage to {target['name']}. "
-                                          f"Health: {target['current_health']}/{target['max_health']}")
-                
-                # If target defeated
-                if target["current_health"] <= 0:
-                    combat_state["log"].append(f"{target['name']} was defeated!")
-            else:
-                combat_state["log"].append("The special attack missed!")
+                    combat_state["log"].append("The special attack missed!")
     
     def _process_enemy_actions(self, 
                               combat_state: Dict[str, Any],
@@ -1040,14 +1384,225 @@ class CombatSystem:
                 "type": "physical",
                 "description": "A basic attack"
             }
-            
-        # Simple logic: usually use basic attacks, occasionally use specials
+        
+        # Try to use adaptive AI if available
+        if ADAPTIVE_AI_AVAILABLE:
+            adaptive_choice = self._choose_adaptive_attack(enemy, combat_state, attacks)
+            if adaptive_choice:
+                return adaptive_choice
+        
+        # Fallback to basic logic: usually use basic attacks, occasionally use specials
         if len(attacks) > 1 and random.random() < 0.3:
             # Use a non-primary attack
             return random.choice(attacks[1:])
         else:
             # Use the primary attack
             return attacks[0]
+    
+    def _choose_adaptive_attack(self, enemy: Dict[str, Any], combat_state: Dict[str, Any], attacks: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Choose an attack using adaptive AI logic."""
+        try:
+            combat_id = combat_state.get("id", "")
+            enemy_id = enemy.get("id", enemy.get("name", "unknown"))
+            
+            # Initialize adaptive AI for this enemy if not already done
+            if combat_id not in self.adaptive_ais:
+                self.adaptive_ais[combat_id] = {}
+            
+            if enemy_id not in self.adaptive_ais[combat_id]:
+                # Create enemy personality based on enemy type
+                personality = self._create_enemy_personality(enemy)
+                
+                # Create a mock combatant for the adaptive AI (simplified)
+                enemy_combatant = self._create_mock_combatant(enemy)
+                
+                # Initialize the adaptive AI
+                difficulty = min(1.0, enemy.get("level", 1) * 0.2)  # Scale difficulty with level
+                self.adaptive_ais[combat_id][enemy_id] = AdaptiveEnemyAI(
+                    enemy=enemy_combatant,
+                    personality=personality,
+                    difficulty=difficulty
+                )
+            
+            # Get the adaptive AI for this enemy
+            ai = self.adaptive_ais[combat_id][enemy_id]
+            
+            # Record player's last action if available
+            if "last_player_action" in combat_state:
+                last_action = combat_state["last_player_action"]
+                # Convert to adaptive AI's expected format
+                if last_action:
+                    ai.record_player_move(last_action.get("action_type", "attack"))
+            
+            # Get AI's recommended action
+            health_ratio = enemy["current_health"] / enemy["max_health"]
+            
+            # Use AI logic to choose attack
+            if health_ratio < 0.3:  # Desperate
+                # Favor powerful attacks when desperate
+                powerful_attacks = [a for a in attacks if a.get("damage", 0) >= 5]
+                if powerful_attacks:
+                    return random.choice(powerful_attacks)
+            elif health_ratio < 0.6:  # Tactical
+                # Try to counter player patterns
+                predicted_move = ai.predict_next_move() if hasattr(ai, 'predict_next_move') else None
+                if predicted_move:
+                    # Choose counter-attack based on prediction
+                    counter_attacks = self._get_counter_attacks(attacks, predicted_move)
+                    if counter_attacks:
+                        return random.choice(counter_attacks)
+            
+            # Use personality-based selection
+            return self._choose_personality_based_attack(attacks, ai.personality)
+            
+        except Exception as e:
+            # Fallback on any error
+            return None
+    
+    
+    def _create_enemy_personality(self, enemy: Dict[str, Any]) -> 'EnemyPersonality':
+        """Create a personality for an enemy based on its characteristics."""
+        if not ADAPTIVE_AI_AVAILABLE:
+            return None
+            
+        # Enhanced: Use database archetype personality if available
+        if "archetype" in enemy and enemy["archetype"]:
+            archetype = enemy["archetype"]
+            # Base personality on archetype category and traits
+            category = archetype.category.name.lower() if hasattr(archetype.category, 'name') else 'beast'
+            
+            # Get personality modifiers from archetype
+            aggression = getattr(archetype, 'aggression_modifier', 0.5)
+            adaptability = getattr(archetype, 'intelligence_modifier', 0.3)
+            risk_taking = getattr(archetype, 'risk_modifier', 0.4)
+            calculation = getattr(archetype, 'calculation_modifier', 0.5)
+            
+            # Adjust based on category
+            if category in ['beast', 'animal']:
+                aggression = min(1.0, aggression + 0.3)
+                calculation = max(0.1, calculation - 0.3)
+            elif category in ['humanoid', 'human']:
+                calculation = min(1.0, calculation + 0.2)
+                adaptability = min(1.0, adaptability + 0.2)
+            elif category in ['construct', 'undead']:
+                calculation = min(1.0, calculation + 0.4)
+                risk_taking = max(0.1, risk_taking - 0.2)
+            elif category in ['demon', 'devil']:
+                calculation = min(1.0, calculation + 0.3)
+                aggression = min(1.0, aggression + 0.2)
+                
+        else:
+            # Fall back to original logic
+            enemy_name = enemy.get("name", "").lower()
+            level = enemy.get("level", 1)
+            
+            # Default personality
+            aggression = 0.5
+            adaptability = 0.3
+            risk_taking = 0.4
+            calculation = 0.5
+            
+            # Adjust based on enemy type
+            if "wolf" in enemy_name or "beast" in enemy_name:
+                aggression = 0.8
+                risk_taking = 0.6
+                calculation = 0.2
+            elif "bandit" in enemy_name or "rogue" in enemy_name:
+                calculation = 0.7
+                adaptability = 0.6
+                aggression = 0.6
+            elif "mage" in enemy_name or "wizard" in enemy_name:
+                calculation = 0.9
+                adaptability = 0.8
+                aggression = 0.3
+            elif "warrior" in enemy_name or "knight" in enemy_name:
+                aggression = 0.7
+                calculation = 0.6
+                risk_taking = 0.5
+        
+        # Scale adaptability with level
+        level = enemy.get("level", 1)
+        adaptability = min(1.0, adaptability + (level * 0.1))
+        
+        return EnemyPersonality(
+            aggression=aggression,
+            adaptability=adaptability,
+            risk_taking=risk_taking,
+            calculation=calculation
+        )
+    
+    def _create_mock_combatant(self, enemy: Dict[str, Any]):
+        """Create a simplified combatant object for adaptive AI."""
+        # This is a simplified mock - in a full implementation,
+        # you'd convert the enemy dict to a proper Combatant object
+        class MockCombatant:
+            def __init__(self, enemy_data):
+                self.name = enemy_data.get("name", "Enemy")
+                self.max_health = enemy_data.get("max_health", enemy_data.get("health", 20))
+                self.current_health = enemy_data.get("current_health", self.max_health)
+                self.level = enemy_data.get("level", 1)
+                
+                # Enhanced: Use database moves if available
+                if "available_moves" in enemy_data:
+                    self.available_moves = enemy_data["available_moves"]
+                else:
+                    self.available_moves = []  # Would be populated with actual moves
+                
+                # Enhanced: Use database archetype if available
+                if "archetype" in enemy_data:
+                    self.archetype = enemy_data["archetype"]
+                    # Use archetype personality traits for AI
+                    self.personality_traits = {
+                        "aggression": getattr(self.archetype, 'aggression_modifier', 0.5),
+                        "intelligence": getattr(self.archetype, 'intelligence_modifier', 0.5),
+                        "cunning": getattr(self.archetype, 'cunning_modifier', 0.5)
+                    }
+                else:
+                    self.archetype = None
+                    self.personality_traits = {}
+                
+        return MockCombatant(enemy)
+    
+    def _get_counter_attacks(self, attacks: List[Dict[str, Any]], predicted_move: str) -> List[Dict[str, Any]]:
+        """Get attacks that counter the predicted player move."""
+        # Simple counter logic - in a full implementation, this would be more sophisticated
+        counters = []
+        
+        if predicted_move == "attack":
+            # Counter attacks with defensive moves or powerful strikes
+            counters = [a for a in attacks if "counter" in a.get("name", "").lower() or 
+                       "block" in a.get("name", "").lower() or
+                       a.get("damage", 0) >= 6]
+        elif predicted_move == "defend":
+            # Counter defense with overwhelming attacks
+            counters = [a for a in attacks if a.get("damage", 0) >= 5]
+        elif predicted_move == "magic":
+            # Counter magic with interruption or resistance
+            counters = [a for a in attacks if "interrupt" in a.get("name", "").lower() or
+                       a.get("type") == "mental"]
+        
+        return counters if counters else attacks
+    
+    def _choose_personality_based_attack(self, attacks: List[Dict[str, Any]], personality) -> Dict[str, Any]:
+        """Choose an attack based on enemy personality."""
+        if not personality:
+            return random.choice(attacks)
+        
+        # High aggression favors high damage attacks
+        if personality.aggression > 0.7:
+            high_damage = [a for a in attacks if a.get("damage", 0) >= 5]
+            if high_damage:
+                return random.choice(high_damage)
+        
+        # High calculation favors special/tactical attacks
+        if personality.calculation > 0.7 and len(attacks) > 1:
+            special_attacks = [a for a in attacks if a.get("type") != "physical" or
+                             "special" in a.get("name", "").lower()]
+            if special_attacks:
+                return random.choice(special_attacks)
+        
+        # Default to random selection
+        return random.choice(attacks)
     
     def _check_combat_end(self, combat_state: Dict[str, Any]) -> bool:
         """
@@ -1285,11 +1840,453 @@ class CombatSystem:
         # Return the final state before cleanup
         final_state = combat_state.copy()
         
+        # Sync health changes back to survival system if available
+        try:
+            from ..game_engine.survival_integration import SurvivalIntegration
+            from ..shared.survival_models import SurvivalStateUpdate
+            survival_integration = SurvivalIntegration()
+            
+            current_health = combat_state["player"]["current_health"]
+            max_health = combat_state["player"]["max_health"]
+            character_id = combat_state["player"]["id"]
+            
+            # Get current survival state
+            survival_state = survival_integration.get_survival_state(character_id)
+            if survival_state:
+                # Calculate health change during combat
+                health_change = current_health - survival_state.current_health
+                
+                # Only update if there was a change
+                if health_change != 0:
+                    update = SurvivalStateUpdate(current_health=health_change)
+                    survival_integration.survival_system.update_survival_state(character_id, update)
+        except Exception as e:
+            # Silently fail if survival system not available
+            pass
+        
+        # Clean up environment system
+        if combat_id in self.environment_systems:
+            del self.environment_systems[combat_id]
+            
+        # Clean up adaptive AI
+        if combat_id in self.adaptive_ais:
+            del self.adaptive_ais[combat_id]
+        
         # Clean up (remove after a delay in a real implementation)
         # del self.active_combats[combat_id]
         
         return final_state
 
+    def _determine_action_domain(self, action_data: Dict[str, Any]) -> DomainType:
+        """Determine the primary domain for a combat action."""
+        
+        # First check if the action specifies domains
+        domains = action_data.get("domains", [])
+        if domains:
+            # Handle both DomainType enums and integer values
+            first_domain = domains[0]
+            if isinstance(first_domain, DomainType):
+                return first_domain
+            elif isinstance(first_domain, int):
+                # Convert enhanced combat Domain enum integer to DomainType
+                # The enhanced combat Domain enum uses auto() which creates sequential integers
+                domain_mapping = {
+                    1: DomainType.BODY,      # Domain.BODY
+                    2: DomainType.MIND,      # Domain.MIND  
+                    3: DomainType.CRAFT,     # Domain.CRAFT
+                    4: DomainType.AWARENESS, # Domain.AWARENESS
+                    5: DomainType.SOCIAL,    # Domain.SOCIAL
+                    6: DomainType.AUTHORITY, # Domain.AUTHORITY
+                    7: DomainType.SPIRIT,    # Domain.SPIRIT
+                }
+                if first_domain in domain_mapping:
+                    return domain_mapping[first_domain]
+            elif isinstance(first_domain, str):
+                # Convert string to DomainType enum
+                try:
+                    return DomainType(first_domain.lower())
+                except ValueError:
+                    pass  # Fall through to other methods
+        
+        action_type = action_data.get("action_type", "attack")
+        action_label = action_data.get("label", "").lower()
+        
+        # Map action types to domains
+        action_domain_map = {
+            'attack': DomainType.AWARENESS,     # Combat reflexes and targeting
+            'defend': DomainType.SPIRIT,        # Willpower and resilience
+            'magic': DomainType.MIND,           # Magical theory and power
+            'social': DomainType.SOCIAL,        # Intimidation, persuasion
+            'skill': DomainType.CRAFT,          # Technical skills and tools
+            'movement': DomainType.AWARENESS,   # Agility and positioning
+            'special': DomainType.MIND          # Unique abilities
+        }
+        
+        # Check for keyword matches in label
+        if any(keyword in action_label for keyword in ['magic', 'spell', 'cast']):
+            return DomainType.MIND
+        elif any(keyword in action_label for keyword in ['intimidate', 'taunt', 'inspire']):
+            return DomainType.SOCIAL
+        elif any(keyword in action_label for keyword in ['dodge', 'duck', 'evade', 'move']):
+            return DomainType.AWARENESS
+        elif any(keyword in action_label for keyword in ['block', 'guard', 'defend', 'resist']):
+            return DomainType.SPIRIT
+        elif any(keyword in action_label for keyword in ['craft', 'tool', 'device']):
+            return DomainType.CRAFT
+        
+        # Default to action type mapping
+        return action_domain_map.get(action_type, DomainType.AWARENESS)
 
-# Global combat system instance
-combat_system = CombatSystem()
+    def _find_best_action_tag(self, character: Character, action_data: Dict[str, Any]) -> Optional[str]:
+        """Find the best tag for the character to use with this action."""
+        action_type = action_data.get("action_type", "attack")
+        action_label = action_data.get("label", "").lower()
+        
+        combat_related_tags = []
+        
+        # Look for combat-related tags
+        for tag_name, tag in character.tags.items():
+            tag_name_lower = tag_name.lower()
+            
+            # General combat tags
+            if any(keyword in tag_name_lower for keyword in ['combat', 'fight', 'battle', 'warrior']):
+                combat_related_tags.append((tag_name, tag.rank))
+            
+            # Weapon-specific tags
+            elif any(keyword in tag_name_lower for keyword in ['sword', 'bow', 'staff', 'dagger', 'weapon']):
+                combat_related_tags.append((tag_name, tag.rank))
+                
+            # Magic-related tags for magic actions
+            elif action_type == 'magic' and any(keyword in tag_name_lower for keyword in ['magic', 'spell', 'arcane', 'mana']):
+                combat_related_tags.append((tag_name, tag.rank))
+                
+            # Social tags for social actions
+            elif action_type == 'social' and any(keyword in tag_name_lower for keyword in ['intimidate', 'persuade', 'leadership']):
+                combat_related_tags.append((tag_name, tag.rank))
+        
+        # Return the highest ranked relevant tag
+        if combat_related_tags:
+            return max(combat_related_tags, key=lambda x: x[1])[0]
+        
+        return None
+
+    def _calculate_action_difficulty(self, action_data: Dict[str, Any], target: Optional[Dict[str, Any]], combat_state: Dict[str, Any]) -> int:
+        """Calculate the difficulty for performing a combat action."""
+        base_difficulty = 10
+        
+        # Adjust for action complexity
+        action_type = action_data.get("action_type", "attack")
+        complexity_adjustments = {
+            'attack': 0,
+            'defend': 0,
+            'magic': 3,      # Magic is harder
+            'social': 2,     # Social actions moderately harder
+            'special': 4,    # Special abilities are hardest
+            'skill': 1       # Skill-based actions slightly harder
+        }
+        base_difficulty += complexity_adjustments.get(action_type, 0)
+        
+        # Adjust for target difficulty
+        if target:
+            target_level = target.get("level", 1)
+            level_modifier = max(0, target_level - 1)  # Each level above 1 adds difficulty
+            base_difficulty += level_modifier
+            
+            # Adjust for target resistances
+            resistances = target.get("resistances", [])
+            if resistances:
+                base_difficulty += len(resistances)  # Each resistance adds +1 difficulty
+        
+        # Adjust for combat conditions
+        combat_round = combat_state.get("round", 1)
+        if combat_round > 5:
+            base_difficulty += 1  # Combat fatigue after round 5
+        
+        # Adjust for wounds/status effects
+        player_status = combat_state.get("player_status", {})
+        if player_status.get("wounded", False):
+            base_difficulty += 2
+        if player_status.get("exhausted", False):
+            base_difficulty += 3
+        
+        return max(5, base_difficulty)  # Minimum difficulty of 5
+
+    # Enhanced Status System Integration
+    def apply_enhanced_status(self, combat_state: Dict[str, Any], target_key: str, 
+                            status_name: str, tier: str, source: str, 
+                            duration: int = 3, description: str = "") -> Dict[str, Any]:
+        """
+        Apply an enhanced status effect to a combatant.
+        
+        Args:
+            combat_state: Current combat state
+            target_key: "player" or "enemies[0]" etc.
+            status_name: Name of the status effect
+            tier: Severity tier (minor, moderate, severe, critical)
+            source: Source of the effect (physical, mental, etc.)
+            duration: Duration in rounds
+            description: Custom description
+            
+        Returns:
+            Result of status application
+        """
+        if not ENHANCED_STATUS_AVAILABLE:
+            # Fallback to basic status system
+            return self._apply_basic_status(combat_state, target_key, status_name, duration, description)
+        
+        try:
+            # Create enhanced status effect
+            enhanced_status = StatusFactory.create_status(
+                name=status_name,
+                tier=getattr(StatusTier, tier.upper()),
+                source=getattr(StatusSource, source.upper()),
+                duration=duration,
+                description=description or f"{status_name} effect"
+            )
+            
+            # Apply to target
+            target = self._get_combat_target(combat_state, target_key)
+            if target:
+                # Initialize enhanced status tracking if needed
+                if "enhanced_statuses" not in target:
+                    target["enhanced_statuses"] = []
+                
+                # Add the enhanced status
+                target["enhanced_statuses"].append({
+                    "name": enhanced_status.name,
+                    "tier": enhanced_status.tier.name,
+                    "source": enhanced_status.source.name,
+                    "duration": enhanced_status.duration,
+                    "description": enhanced_status.description,
+                    "stat_modifiers": enhanced_status.stat_modifiers,
+                    "domain_modifiers": enhanced_status.domain_modifiers,
+                    "special_effects": enhanced_status.special_effects
+                })
+                
+                # Apply immediate effects
+                self._apply_status_modifiers(target, enhanced_status)
+                
+                combat_state["log"].append(f"{target.get('name', 'Target')} is now {enhanced_status.description}")
+                
+                return {
+                    "success": True,
+                    "status_applied": enhanced_status.name,
+                    "tier": enhanced_status.tier.name,
+                    "duration": enhanced_status.duration
+                }
+                
+        except Exception as e:
+            # Fallback to basic status system
+            return self._apply_basic_status(combat_state, target_key, status_name, duration, description)
+    
+    
+    def _apply_basic_status(self, combat_state: Dict[str, Any], target_key: str, 
+                          status_name: str, duration: int, description: str) -> Dict[str, Any]:
+        """Fallback basic status application."""
+        target = self._get_combat_target(combat_state, target_key)
+        if target:
+            if "status_effects" not in target:
+                target["status_effects"] = []
+            
+            target["status_effects"].append({
+                "type": status_name,
+                "duration": duration,
+                "description": description or f"{status_name} effect"
+            })
+            
+            combat_state["log"].append(f"{target.get('name', 'Target')} is now {description or status_name}")
+            
+            return {"success": True, "status_applied": status_name, "duration": duration}
+        
+        return {"success": False, "reason": "Target not found"}
+    
+    def _get_combat_target(self, combat_state: Dict[str, Any], target_key: str) -> Optional[Dict[str, Any]]:
+        """Get a combat target by key."""
+        if target_key == "player":
+            return combat_state.get("player")
+        elif target_key.startswith("enemies[") and target_key.endswith("]"):
+            try:
+                index = int(target_key[8:-1])
+                enemies = combat_state.get("enemies", [])
+                if 0 <= index < len(enemies):
+                    return enemies[index]
+            except (ValueError, IndexError):
+                pass
+        return None
+    
+    def _apply_status_modifiers(self, target: Dict[str, Any], enhanced_status) -> None:
+        """Apply stat modifiers from enhanced status."""
+        if not hasattr(enhanced_status, 'stat_modifiers'):
+            return
+            
+        for stat, modifier in enhanced_status.stat_modifiers.items():
+            if stat == "max_health":
+                original_max = target.get("max_health", target.get("health", 20))
+                target["max_health"] = max(1, original_max + modifier)
+                # Keep current health within bounds
+                target["current_health"] = min(target.get("current_health", original_max), target["max_health"])
+            elif stat == "defense":
+                target["defense_bonus"] = target.get("defense_bonus", 0) + modifier
+            elif stat == "attack":
+                target["attack_bonus"] = target.get("attack_bonus", 0) + modifier
+    
+    def update_status_effects(self, combat_state: Dict[str, Any]) -> None:
+        """Update all status effects at the end of a round."""
+        for combatant_key in ["player", "enemies"]:
+            if combatant_key == "player":
+                targets = [combat_state.get("player")] if combat_state.get("player") else []
+            else:
+                targets = combat_state.get("enemies", [])
+            
+            for target in targets:
+                if not target:
+                    continue
+                    
+                # Update basic status effects
+                if "status_effects" in target:
+                    target["status_effects"] = [
+                        effect for effect in target["status_effects"]
+                        if self._update_basic_status_effect(effect, target)
+                    ]
+                
+                # Update enhanced status effects
+                if "enhanced_statuses" in target:
+                    target["enhanced_statuses"] = [
+                        status for status in target["enhanced_statuses"]
+                        if self._update_enhanced_status_effect(status, target, combat_state)
+                    ]
+    
+    def _update_basic_status_effect(self, effect: Dict[str, Any], target: Dict[str, Any]) -> bool:
+        """Update a basic status effect and return True if it should continue."""
+        effect["duration"] -= 1
+        if effect["duration"] <= 0:
+            # Status effect expired
+            return False
+        return True
+    
+    def _update_enhanced_status_effect(self, status: Dict[str, Any], target: Dict[str, Any], combat_state: Dict[str, Any]) -> bool:
+        """Update an enhanced status effect and return True if it should continue."""
+        status["duration"] -= 1
+        
+        # Apply ongoing effects based on status type
+        if status["name"] == "poisoned" and status["duration"] > 0:
+            damage = 2  # Poison damage per round
+            target["current_health"] = max(0, target.get("current_health", 0) - damage)
+            combat_state["log"].append(f"{target.get('name', 'Target')} takes {damage} poison damage!")
+        
+        if status["duration"] <= 0:
+            # Remove stat modifiers when status expires
+            self._remove_status_modifiers(target, status)
+            combat_state["log"].append(f"{target.get('name', 'Target')} recovers from {status['name']}")
+            return False
+        
+        return True
+    
+    def _remove_status_modifiers(self, target: Dict[str, Any], status: Dict[str, Any]) -> None:
+        """Remove stat modifiers when a status effect expires."""
+        stat_modifiers = status.get("stat_modifiers", {})
+        
+        for stat, modifier in stat_modifiers.items():
+            if stat == "defense":
+                target["defense_bonus"] = target.get("defense_bonus", 0) - modifier
+            elif stat == "attack":
+                target["attack_bonus"] = target.get("attack_bonus", 0) - modifier
+
+    def _process_environment_action(self, 
+                                   combat_state: Dict[str, Any], 
+                                   action_data: Dict[str, Any], 
+                                   roll_result: Dict[str, Any], 
+                                   interaction_name: str) -> None:
+        """
+        Process an environmental interaction action.
+        
+        Args:
+            combat_state: Current combat state
+            action_data: The action data
+            roll_result: Result of the roll check
+            interaction_name: Name of the environment interaction
+        """
+        if not roll_result["success"]:
+            combat_state["log"].append(f"Failed to use the environment effectively.")
+            return
+        
+        combat_id = combat_state.get("id")
+        if not combat_id or combat_id not in self.environment_systems:
+            return
+            
+        env_system = self.environment_systems[combat_id]
+        if not env_system or interaction_name not in env_system.available_interactions:
+            return
+            
+        interaction = env_system.available_interactions[interaction_name]
+        effects = interaction.effects
+        
+        # Apply environment interaction effects
+        if "damage_bonus" in effects:
+            bonus = effects["damage_bonus"]
+            # Find the target enemy and apply extra damage
+            for enemy in combat_state["enemies"]:
+                if enemy.get("current_health", 0) > 0:
+                    enemy["current_health"] = max(0, enemy["current_health"] - bonus)
+                    combat_state["log"].append(
+                        f"Environmental effect deals {bonus} additional damage to {enemy['name']}! "
+                        f"Health: {enemy['current_health']}/{enemy['max_health']}"
+                    )
+                    break
+        
+        if "roll_bonus" in effects:
+            # Apply bonus to next action (store in combat state)
+            bonus = effects["roll_bonus"]
+            combat_state["environment_bonus"] = combat_state.get("environment_bonus", 0) + bonus
+            combat_state["log"].append(f"Environmental advantage grants +{bonus} to your next action!")
+        
+        if "defense_bonus" in effects:
+            bonus = effects["defense_bonus"]
+            combat_state["player"]["status_effects"].append({
+                "type": "environmental_defense",
+                "value": bonus,
+                "duration": 2,
+                "description": f"Environmental defense bonus: +{bonus}"
+            })
+            combat_state["log"].append(f"Environmental cover provides +{bonus} defense for 2 rounds!")
+        
+        if "surprise_bonus" in effects:
+            combat_state["momentum"] = "player"
+            combat_state["log"].append("Environmental stealth gives you the advantage!")
+        
+        if "aoe_damage" in effects:
+            aoe_damage = effects["aoe_damage"]
+            # Apply to all enemies
+            enemies_hit = 0
+            for enemy in combat_state["enemies"]:
+                if enemy.get("current_health", 0) > 0:
+                    enemy["current_health"] = max(0, enemy["current_health"] - aoe_damage)
+                    enemies_hit += 1
+            
+            if enemies_hit > 0:
+                combat_state["log"].append(
+                    f"Environmental collapse deals {aoe_damage} damage to {enemies_hit} enemies!"
+                )
+        
+        # Add narrative description
+        if "narrative" in effects:
+            combat_state["log"].append(effects["narrative"])
+        else:
+            combat_state["log"].append(f"Successfully used {interaction.name}!")
+        
+        # Apply critical success bonuses
+        if roll_result.get("critical"):
+            combat_state["log"].append("Critical environmental interaction! Enhanced effects!")
+            # Double any numerical bonuses for critical success
+            for key in ["damage_bonus", "roll_bonus", "defense_bonus", "aoe_damage"]:
+                if key in effects:
+                    extra = effects[key]
+                    if key == "damage_bonus" or key == "aoe_damage":
+                        # Apply extra damage to enemies
+                        for enemy in combat_state["enemies"]:
+                            if enemy.get("current_health", 0) > 0:
+                                enemy["current_health"] = max(0, enemy["current_health"] - extra)
+                        combat_state["log"].append(f"Critical success deals {extra} additional damage!")
+                    elif key == "roll_bonus":
+                        combat_state["environment_bonus"] = combat_state.get("environment_bonus", 0) + extra
+                        combat_state["log"].append(f"Critical success grants an additional +{extra} bonus!")

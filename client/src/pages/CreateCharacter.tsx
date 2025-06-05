@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import axios from 'axios';
 import { useForm } from 'react-hook-form';
@@ -34,16 +34,36 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+interface Region {
+  id: number;
+  name: string;
+  description: string;
+  climate: string;
+  dangerLevel: number;
+  dominantMagicAspect: string;
+}
+
+interface Area {
+  id: number;
+  name: string;
+  description: string;
+  terrain: string;
+  regionId: number;
+}
+
 export default function CreateCharacter() {
   const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [isLoadingRegions, setIsLoadingRegions] = useState(true);
 
   // Default form values
   const defaultValues: Partial<FormValues> = {
     name: '',
     magicAffinity: 'arcane',
-    startingRegion: 'Arcadia',
+    startingRegion: '',
   };
 
   // Initialize form
@@ -51,6 +71,29 @@ export default function CreateCharacter() {
     resolver: zodResolver(formSchema),
     defaultValues,
   });
+
+  // Fetch regions on component mount
+  useEffect(() => {
+    const fetchRegions = async () => {
+      try {
+        setIsLoadingRegions(true);
+        const response = await axios.get('/api/regions');
+        setRegions(response.data);
+        
+        // Set the first region as default if available
+        if (response.data.length > 0 && !form.getValues('startingRegion')) {
+          form.setValue('startingRegion', response.data[0].name);
+        }
+      } catch (error) {
+        console.error('Error fetching regions:', error);
+        setError('Failed to load regions. Please refresh the page.');
+      } finally {
+        setIsLoadingRegions(false);
+      }
+    };
+
+    fetchRegions();
+  }, [form]);
 
   // Handle form submission
   const onSubmit = async (data: FormValues) => {
@@ -97,16 +140,16 @@ export default function CreateCharacter() {
   // Helper function to get starting area based on region
   const getStartingArea = (region: string): string => {
     switch (region) {
-      case 'Arcadia':
-        return 'Novice_Quarter';
-      case 'Shadowvale':
-        return 'Twilight_Entrance';
-      case 'Emberhold':
-        return 'Ash_Roads';
-      case 'Crystalshore':
-        return 'Harbor_District';
+      case 'Skarport':
+        return 'Accord_Ring';
+      case 'Stonewake':
+        return 'Iron_Gates';
+      case 'Lethandrel':
+        return 'Memory_Grove';
+      case 'Rivemark':
+        return 'Market_Square';
       default:
-        return 'Town_Square';
+        return 'Accord_Ring';
     }
   };
 
@@ -204,20 +247,32 @@ export default function CreateCharacter() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-gray-200">Starting Region</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value} // Use value instead of defaultValue for controlled component
+                      disabled={isLoadingRegions || regions.length === 0}
                     >
                       <FormControl>
                         <SelectTrigger className="border-gray-700 bg-gray-800 text-gray-100">
-                          <SelectValue placeholder="Select starting region" />
+                          <SelectValue placeholder={
+                            isLoadingRegions ? "Loading regions..." :
+                            regions.length === 0 ? "No regions available" :
+                            "Select starting region"
+                          } />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="border-gray-700 bg-gray-800 text-gray-100">
-                        <SelectItem value="Arcadia" className="focus:bg-purple-900/50 focus:text-purple-200">Arcadia - Magical academy city</SelectItem>
-                        <SelectItem value="Shadowvale" className="focus:bg-indigo-900/50 focus:text-indigo-200">Shadowvale - Mysterious forests</SelectItem>
-                        <SelectItem value="Emberhold" className="focus:bg-orange-900/50 focus:text-orange-200">Emberhold - Volcanic mountains</SelectItem>
-                        <SelectItem value="Crystalshore" className="focus:bg-teal-900/50 focus:text-teal-200">Crystalshore - Coastal crystal caves</SelectItem>
+                        {!isLoadingRegions && regions.length > 0 && (
+                          regions.map((region) => (
+                            <SelectItem
+                              key={region.id}
+                              value={region.name}
+                              className="focus:bg-purple-900/50 focus:text-purple-200"
+                            >
+                              {region.name} - {region.description.substring(0, 50)}...
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormDescription className="text-gray-500">

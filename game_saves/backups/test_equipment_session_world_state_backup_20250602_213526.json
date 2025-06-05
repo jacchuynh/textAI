@@ -1,0 +1,41 @@
+{
+  "metadata": {
+    "game_id": "test_equipment_session",
+    "saved_at": "2025-06-02T21:33:18.327655",
+    "version": "1.0"
+  },
+  "world_state": {
+    "metadata": {
+      "serialized_at": "2025-06-02T21:33:18.327128",
+      "version": "1.0",
+      "serializer": "WorldStateSerializer"
+    },
+    "locations": {},
+    "containers": {},
+    "player": {
+      "player_id": "test_player",
+      "current_location": "test_armory",
+      "inventory": [],
+      "equipped_items": {},
+      "stats": {},
+      "discovered_locations": [],
+      "last_save": "2025-06-02T21:33:18.327108",
+      "custom_data": {}
+    },
+    "global_state": {
+      "metadata": {
+        "session_id": "test_equipment_session",
+        "player_id": "test_player",
+        "saved_at": "2025-06-02T21:33:18.327104"
+      },
+      "shared_context": {
+        "session_id": "test_equipment_session",
+        "player_id": "test_player",
+        "game_state": {},
+        "player_state": {},
+        "world_state": {},
+        "system_metrics": {}
+      }
+    }
+  }
+}
