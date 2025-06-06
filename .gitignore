@@ -51,6 +51,7 @@ coverage.xml
 venv/
 ENV/
 ai_gm_venv/
+ai_gm_venv_311/
 .venv/
 .env.local
 .env.development.local

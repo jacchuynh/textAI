@@ -29,7 +29,7 @@ else
   echo -e "${YELLOW}Starting AI GM Brain server...${NC}"
   
   # Start AI GM Brain server in the background
-  cd "$(dirname "$0")" && source ai_gm_venv/bin/activate && python advanced_ai_gm_server.py &
+  cd "$(dirname "$0")" && source ai_gm_venv_311/bin/activate && python advanced_ai_gm_server.py &
   AI_GM_PID=$!
   
   # Wait for server to start

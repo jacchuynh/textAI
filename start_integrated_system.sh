@@ -27,9 +27,12 @@ start_ai_gm_brain() {
     cd "$(dirname "$0")"
     
     # Activate virtual environment
-    if [ -d "./ai_gm_venv" ]; then
+    if [ -d "./ai_gm_venv_311" ]; then
+        source ./ai_gm_venv_311/bin/activate
+        echo -e "${GREEN}✅ Virtual environment activated (Python 3.11.3)${NC}"
+    elif [ -d "./ai_gm_venv" ]; then
         source ./ai_gm_venv/bin/activate
-        echo -e "${GREEN}✅ Virtual environment activated${NC}"
+        echo -e "${YELLOW}⚠️  Using old virtual environment (Python 3.9)${NC}"
     else
         echo -e "${YELLOW}⚠️  Virtual environment not found, using system Python${NC}"
     fi
